@@ -400,7 +400,7 @@
       const token = String(params.get("token") || "").trim();
 
       if (!token) {
-        return;
+        return false;
       }
 
       // Token do Edge Function tạo là UUID.
@@ -408,7 +408,7 @@
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
       if (!uuidPattern.test(token)) {
-        return;
+        return false;
       }
 
       saveSessionToken(token);
@@ -419,6 +419,8 @@
         document.title,
         window.location.pathname
       );
+
+      return true;
     }
 
     function readSession() {
@@ -464,7 +466,7 @@
     }
 
     async function loadKey() {
-      acceptTokenFromUrl();
+      const hasFreshToken = acceptTokenFromUrl();
 
       copyButton.disabled = true;
       keyValue.textContent = "Đang Kiểm Tra Phiên...";
@@ -528,6 +530,15 @@
           keyValue.textContent = "Chưa Cấu Hình Supabase";
           statusText.textContent = "Lỗi Cấu Hình";
           showToast("Bạn Chưa Điền SUPABASE_URL Trong config.js.");
+          return;
+        }
+
+        // Vào thẳng key.html (không có token mới trên URL) mà claim hỏng:
+        // đưa về trang chính để vượt link lại thay vì báo lỗi cụt.
+        if (!hasFreshToken) {
+          localStorage.removeItem(SESSION_STORAGE_KEY);
+          showToast("Vui Lòng Vượt Link Từ Đầu Để Nhận Key.");
+          setTimeout(redirectToStart, 1400);
           return;
         }
 

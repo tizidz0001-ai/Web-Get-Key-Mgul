@@ -590,6 +590,97 @@
       transform: translate(-50%, 0);
     }
 
+    /* Bảng đếm ngược tạo key */
+    .countdown-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(4, 7, 14, 0.72);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .countdown-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .countdown-box {
+      width: min(420px, 100%);
+      padding: 34px 28px;
+      border: 1px solid var(--card-border);
+      border-radius: 26px;
+      text-align: center;
+      background:
+        linear-gradient(145deg, rgba(116, 92, 255, 0.14), rgba(56, 212, 255, 0.06)),
+        var(--card);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+
+    .countdown-overlay.show .countdown-box {
+      transform: scale(1);
+    }
+
+    .countdown-ring {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      margin: 0 auto 22px;
+    }
+
+    .countdown-ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .ring-track {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 9;
+    }
+
+    .ring-progress {
+      fill: none;
+      stroke: url(#countdownGradient);
+      stroke-width: 9;
+      stroke-linecap: round;
+    }
+
+    .countdown-number {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-size: 52px;
+      font-weight: 950;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .countdown-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .countdown-desc {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
     @media (max-width: 680px) {
       .page {
         align-items: start;
@@ -803,6 +894,29 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <div class="countdown-overlay" id="countdownOverlay" role="dialog" aria-modal="true" aria-live="polite">
+    <div class="countdown-box">
+      <div class="countdown-ring">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <defs>
+            <linearGradient id="countdownGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#8c7cf2"></stop>
+              <stop offset="100%" stop-color="#69cde8"></stop>
+            </linearGradient>
+          </defs>
+          <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+          <circle class="ring-progress" id="ringProgress" cx="60" cy="60" r="52"></circle>
+        </svg>
+        <div class="countdown-number" id="countdownNumber">0</div>
+      </div>
+
+      <h2 class="countdown-title">Đang Tạo Key Cho Bạn</h2>
+      <p class="countdown-desc">
+        Vui Lòng Chờ Trong Giây Lát. Tab Link Vượt Sẽ Tự Mở Khi Đếm Ngược Kết Thúc.
+      </p>
+    </div>
+  </div>
+
 
   <script>
     (function () {
@@ -855,6 +969,14 @@
     const stockState = document.getElementById("stockState");
     const stockStateText = document.getElementById("stockStateText");
     const toast = document.getElementById("toast");
+    const countdownOverlay = document.getElementById("countdownOverlay");
+    const countdownNumber = document.getElementById("countdownNumber");
+    const ringProgress = document.getElementById("ringProgress");
+
+    // Chu vi vòng tròn tiến trình (r = 52).
+    const RING_CIRCUMFERENCE = 2 * Math.PI * 52;
+    ringProgress.style.strokeDasharray = String(RING_CIRCUMFERENCE);
+    ringProgress.style.strokeDashoffset = "0";
 
     const originalGetKeyContent = getKeyButton.innerHTML;
     const SESSION_STORAGE_KEY =
@@ -1050,6 +1172,45 @@
       }
     }
 
+    function showCountdownOverlay(show) {
+      countdownOverlay.classList.toggle("show", show);
+    }
+
+    function updateRing(remaining, total) {
+      const ratio = total > 0 ? Math.max(0, remaining) / total : 0;
+      // Vòng tròn rút dần theo thời gian còn lại.
+      ringProgress.style.strokeDashoffset =
+        String(RING_CIRCUMFERENCE * (1 - ratio));
+    }
+
+    // Đếm ngược đúng số giây "seconds" rồi gọi onDone().
+    function runCountdown(seconds, onDone) {
+      const totalMs = Math.max(1, Math.round(seconds * 1000));
+      const startedAt = Date.now();
+
+      countdownNumber.textContent = Math.ceil(totalMs / 1000);
+      updateRing(totalMs, totalMs);
+      showCountdownOverlay(true);
+
+      clearInterval(runCountdown.timer);
+      runCountdown.timer = setInterval(() => {
+        const elapsed = Date.now() - startedAt;
+        const remaining = Math.max(0, totalMs - elapsed);
+
+        countdownNumber.textContent = Math.ceil(remaining / 1000);
+        updateRing(remaining, totalMs);
+
+        if (remaining <= 0) {
+          clearInterval(runCountdown.timer);
+          showCountdownOverlay(false);
+
+          if (typeof onDone === "function") {
+            onDone();
+          }
+        }
+      }, 100);
+    }
+
     getKeyButton.addEventListener("click", async () => {
       try {
         getFunctionUrl();
@@ -1074,14 +1235,22 @@
       setGetKeyLoading(true);
 
       try {
+        // Đo thời gian API phản hồi thực tế để đếm ngược đúng bấy nhiêu giây.
+        const startedAt = Date.now();
         const session = await callKeyApi("create-session");
+        const elapsedSeconds = (Date.now() - startedAt) / 1000;
 
         if (!session.token || !session.shortUrl) {
           throw new Error("SHORT_URL_NOT_FOUND");
         }
 
         saveSession(session);
-        taskTab.location.replace(session.shortUrl);
+
+        // Đếm ngược đúng số giây API vừa mất, xong thì tự mở link vượt.
+        setGetKeyLoading(false);
+        runCountdown(elapsedSeconds, () => {
+          taskTab.location.replace(session.shortUrl);
+        });
       } catch (error) {
         taskTab.close();
         console.error(error);
@@ -1195,6 +1364,15 @@
         layer.appendChild(petal);
       }
     }
+
+    // Cập nhật số key ngay khi người dùng quay lại tab (vừa vượt link xong).
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        updateKeyCount();
+      }
+    });
+
+    window.addEventListener("focus", updateKeyCount);
 
     createSakura();
     loadPublicSettings();
