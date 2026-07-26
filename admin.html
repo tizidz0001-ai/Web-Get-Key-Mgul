@@ -334,6 +334,54 @@
       line-height: 1.55;
     }
 
+    button.ghost {
+      color: #cfe6ee;
+      border-color: rgba(121, 200, 223, .28);
+      background: rgba(121, 200, 223, .06);
+    }
+
+    .shortener-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .shortener-row {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr 1.4fr auto;
+      gap: 10px;
+      align-items: end;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      background: rgba(255, 255, 255, .025);
+    }
+
+    .shortener-row .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .shortener-row .field input {
+      width: 100%;
+    }
+
+    .shortener-index {
+      grid-column: 1 / -1;
+      font-size: 12px;
+      font-weight: 850;
+      color: var(--primary-2);
+      letter-spacing: .02em;
+    }
+
+    @media (max-width: 680px) {
+      .shortener-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .list-toolbar {
       align-items: stretch;
       margin-bottom: 14px;
@@ -667,6 +715,48 @@
       <section class="section">
         <div class="section-head">
           <div>
+            <h2>Cấu Hình Rút Gọn Link</h2>
+            <p>
+              Thêm Nhiều Web Vượt Link. Chọn Số Lớp Rút Gọn (1-6). Các Lớp Luân
+              Phiên Theo Thứ Tự Web: Lớp 1 = Web 1, Lớp 2 = Web 2, Lớp 3 = Web 1...
+              Nếu Một Lớp Lỗi Sẽ Bỏ Qua Và Dùng Link Đã Rút Được.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div>
+            <label for="shortenerLayers">Số Lớp Rút Gọn</label>
+
+            <select id="shortenerLayers">
+              <option value="1">1 Lớp</option>
+              <option value="2">2 Lớp</option>
+              <option value="3">3 Lớp</option>
+              <option value="4">4 Lớp</option>
+              <option value="5">5 Lớp</option>
+              <option value="6">6 Lớp</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="shortener-list" id="shortenerList"></div>
+
+        <div class="actions">
+          <button class="ghost" id="addShortenerButton" type="button">
+            + Thêm Web
+          </button>
+
+          <button class="primary" id="saveShortenersButton" type="button">
+            Lưu Cấu Hình Rút Gọn
+          </button>
+        </div>
+
+        <div class="message" id="shortenerMessage"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
             <h2>Thêm Key Vào Kho</h2>
             <p>Nhập Mỗi Key Một Dòng Hoặc Kéo File TXT Vào Ô Bên Dưới.</p>
           </div>
@@ -897,6 +987,21 @@
 
     const supportUrl =
       document.getElementById("supportUrl");
+
+    const shortenerLayers =
+      document.getElementById("shortenerLayers");
+
+    const shortenerList =
+      document.getElementById("shortenerList");
+
+    const addShortenerButton =
+      document.getElementById("addShortenerButton");
+
+    const saveShortenersButton =
+      document.getElementById("saveShortenersButton");
+
+    const shortenerMessage =
+      document.getElementById("shortenerMessage");
 
     const keySearchInput =
       document.getElementById("keySearchInput");
@@ -1197,6 +1302,102 @@
 
       supportUrl.value =
         settings.supportUrl || "";
+
+      renderShorteners(settings);
+    }
+
+    // Đổ cấu hình rút gọn: số lớp + danh sách web.
+    function renderShorteners(settings = {}) {
+      const layers =
+        Math.min(
+          6,
+          Math.max(
+            1,
+            Math.floor(Number(settings.shortenerLayers) || 2)
+          )
+        );
+
+      shortenerLayers.value = String(layers);
+
+      shortenerList.innerHTML = "";
+
+      const list =
+        Array.isArray(settings.shorteners)
+          ? settings.shorteners
+          : [];
+
+      if (list.length === 0) {
+        addShortenerRow();
+        return;
+      }
+
+      list.forEach((item) => addShortenerRow(item));
+    }
+
+    // Thêm một dòng web rút gọn (name + apiUrl + apiKey + nút xóa).
+    function addShortenerRow(data = {}) {
+      const row = document.createElement("div");
+      row.className = "shortener-row";
+
+      const nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.placeholder = "Tên Web (Tùy Chọn)";
+      nameInput.value = String(data.name || "");
+      nameInput.dataset.field = "name";
+
+      const apiUrlInput = document.createElement("input");
+      apiUrlInput.type = "url";
+      apiUrlInput.placeholder = "API URL, VD: https://web1.com/api";
+      apiUrlInput.value = String(data.apiUrl || "");
+      apiUrlInput.dataset.field = "apiUrl";
+
+      const apiKeyInput = document.createElement("input");
+      apiKeyInput.type = "text";
+      apiKeyInput.placeholder = "API Key";
+      apiKeyInput.value = String(data.apiKey || "");
+      apiKeyInput.dataset.field = "apiKey";
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "danger shortener-remove";
+      removeButton.textContent = "Xóa";
+      removeButton.addEventListener("click", () => {
+        row.remove();
+      });
+
+      row.append(nameInput, apiUrlInput, apiKeyInput, removeButton);
+      shortenerList.appendChild(row);
+    }
+
+    // Gom các dòng web thành mảng { name, apiUrl, apiKey }.
+    function collectShorteners() {
+      const rows =
+        shortenerList.querySelectorAll(".shortener-row");
+
+      const result = [];
+
+      rows.forEach((row) => {
+        const get = (field) => {
+          const el = row.querySelector(`[data-field="${field}"]`);
+          return el ? el.value.trim() : "";
+        };
+
+        const apiUrl = get("apiUrl");
+        const apiKey = get("apiKey");
+
+        // Bỏ dòng trống hoàn toàn; giữ dòng có nhập.
+        if (!apiUrl && !apiKey) {
+          return;
+        }
+
+        result.push({
+          name: get("name"),
+          apiUrl,
+          apiKey
+        });
+      });
+
+      return result;
     }
 
     function formatDate(value) {
@@ -1499,6 +1700,7 @@
 
         renderStats(payload);
         renderSettings(payload.settings);
+        renderShorteners(payload.settings);
 
         selectedKeyIds.clear();
         await loadKeyList(1);
@@ -1584,6 +1786,19 @@
       }
     }
 
+    // Gom toàn bộ cấu hình (link nút + shortener) để gửi 1 lần.
+    // Cả 2 nút lưu đều gửi đầy đủ, tránh nút này ghi đè dữ liệu nút kia.
+    function collectAllSettings() {
+      return {
+        downloadIpaUrl: downloadIpaUrl.value,
+        telegramUrl: telegramUrl.value,
+        supportUrl: supportUrl.value,
+        shortenerLayers:
+          Number(shortenerLayers.value) || 2,
+        shorteners: collectShorteners()
+      };
+    }
+
     async function saveSettings() {
       setLoading(
         saveSettingsButton,
@@ -1597,17 +1812,11 @@
         const data =
           await adminApi(
             "admin-update-settings",
-            {
-              downloadIpaUrl:
-                downloadIpaUrl.value,
-              telegramUrl:
-                telegramUrl.value,
-              supportUrl:
-                supportUrl.value
-            }
+            collectAllSettings()
           );
 
         renderSettings(data.settings);
+        renderShorteners(data.settings);
 
         setMessage(
           settingsMessage,
@@ -1624,6 +1833,44 @@
           saveSettingsButton,
           false,
           "Lưu Các Đường Link"
+        );
+      }
+    }
+
+    async function saveShorteners() {
+      setLoading(
+        saveShortenersButton,
+        true,
+        "Đang Lưu..."
+      );
+
+      setMessage(shortenerMessage, "");
+
+      try {
+        const data =
+          await adminApi(
+            "admin-update-settings",
+            collectAllSettings()
+          );
+
+        renderSettings(data.settings);
+        renderShorteners(data.settings);
+
+        setMessage(
+          shortenerMessage,
+          "Đã Lưu Cấu Hình Rút Gọn Thành Công.",
+          "success"
+        );
+      } catch (error) {
+        await handleAdminError(
+          error,
+          shortenerMessage
+        );
+      } finally {
+        setLoading(
+          saveShortenersButton,
+          false,
+          "Lưu Cấu Hình Rút Gọn"
         );
       }
     }
@@ -1847,6 +2094,16 @@
     saveSettingsButton.addEventListener(
       "click",
       saveSettings
+    );
+
+    addShortenerButton.addEventListener(
+      "click",
+      () => addShortenerRow()
+    );
+
+    saveShortenersButton.addEventListener(
+      "click",
+      saveShorteners
     );
 
     addButton.addEventListener(
