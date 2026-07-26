@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090d18" />
+  <title>Lấy Key</title>
+
+  <style>
+    :root {
+      --bg: #070b14;
+      --card: rgba(14, 21, 38, 0.84);
+      --card-border: rgba(255, 255, 255, 0.10);
+      --text: #f8fafc;
+      --muted: #a9b4c8;
+      --primary: #8c7cf2;
+      --primary-2: #69cde8;
+      --success: #43e6a3;
+      --pink: #ff9fbd;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      color-scheme: dark;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 15% 12%, rgba(116, 92, 255, 0.23), transparent 32%),
+        radial-gradient(circle at 86% 82%, rgba(56, 212, 255, 0.14), transparent 31%),
+        #070b14;
+      overflow-x: hidden;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .icon {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      flex: 0 0 auto;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.9;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .icon-sm {
+      width: 16px;
+      height: 16px;
+    }
+
+    .icon-lg {
+      width: 25px;
+      height: 25px;
+    }
+
+    /* Hoa anh đào */
+    #sakuraLayer {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .petal {
+      position: absolute;
+      top: -40px;
+      width: var(--size);
+      height: calc(var(--size) * 0.72);
+      border-radius: 80% 15% 80% 15%;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 224, 235, 0.96),
+        rgba(255, 142, 180, 0.88)
+      );
+      box-shadow: 0 0 10px rgba(255, 159, 189, 0.24);
+      opacity: var(--opacity);
+      animation:
+        sakuraFall var(--duration) linear infinite,
+        sakuraSwing calc(var(--duration) * 0.42) ease-in-out infinite alternate;
+      animation-delay: var(--delay);
+      will-change: transform;
+    }
+
+    .petal::after {
+      content: "";
+      position: absolute;
+      width: 42%;
+      height: 42%;
+      left: 30%;
+      top: 28%;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    @keyframes sakuraFall {
+      from {
+        translate: 0 -60px;
+        rotate: 0deg;
+      }
+      to {
+        translate: var(--drift) calc(100vh + 100px);
+        rotate: 620deg;
+      }
+    }
+
+    @keyframes sakuraSwing {
+      from {
+        margin-left: -20px;
+      }
+      to {
+        margin-left: 25px;
+      }
+    }
+
+    .page {
+      position: relative;
+      z-index: 2;
+      width: min(820px, calc(100% - 24px));
+      min-height: 100vh;
+      margin: 0 auto;
+      display: grid;
+      place-items: center;
+      padding: 24px 0;
+    }
+
+    .card {
+      width: 100%;
+      padding: clamp(24px, 5vw, 42px);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow:
+        0 30px 90px rgba(0, 0, 0, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      top: -150px;
+      right: -100px;
+      border-radius: 50%;
+      background: linear-gradient(
+        135deg,
+        rgba(116, 92, 255, 0.35),
+        rgba(56, 212, 255, 0.12)
+      );
+      filter: blur(30px);
+      pointer-events: none;
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #e8edff;
+      font-size: 17px;
+      font-weight: 900;
+    }
+
+    .rainbow-brand {
+      display: inline-block;
+      color: transparent;
+      background:
+        linear-gradient(
+          90deg,
+          #ff4d4d 0%,
+          #ff9f43 14%,
+          #ffe66d 28%,
+          #4cd964 42%,
+          #38d4ff 56%,
+          #5b7cff 70%,
+          #b65cff 84%,
+          #ff5ca8 100%
+        );
+      background-size: 260% 100%;
+      background-position: 100% 50%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      font-weight: 950;
+      letter-spacing: 0.01em;
+      filter: drop-shadow(0 0 9px rgba(116, 92, 255, 0.22));
+      animation: rainbowSweep 4.8s linear infinite;
+    }
+
+    @keyframes rainbowSweep {
+      0% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: -160% 50%;
+      }
+    }
+
+    .brand-icon {
+      width: 39px;
+      height: 39px;
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 8px 24px rgba(116, 92, 255, 0.28);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid rgba(67, 230, 163, 0.20);
+      border-radius: 999px;
+      color: #bdf8dd;
+      background: rgba(67, 230, 163, 0.075);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 14px var(--success);
+    }
+
+    .main {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 185px;
+      align-items: center;
+      gap: 28px;
+      margin-top: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(38px, 7vw, 61px);
+      line-height: 1;
+      letter-spacing: -0.055em;
+    }
+
+    .gradient-text {
+      color: transparent;
+      background: linear-gradient(100deg, #ffffff 3%, #c4b9ff 49%, #78e8ff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+
+    .description {
+      max-width: 570px;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .stock-card {
+      min-height: 156px;
+      padding: 20px 16px;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 22px;
+      text-align: center;
+      background:
+        linear-gradient(145deg, rgba(116, 92, 255, 0.15), rgba(56, 212, 255, 0.055));
+    }
+
+    .stock-icon {
+      font-size: 26px;
+      margin-bottom: 5px;
+    }
+
+    .stock-count {
+      display: block;
+      color: white;
+      font-size: 38px;
+      line-height: 1;
+      font-weight: 950;
+      letter-spacing: -0.04em;
+    }
+
+    .stock-label {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .stock-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      color: #bff9df;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .mini-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .stock-state.empty {
+      color: #ffb5c7;
+    }
+
+    .actions {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      gap: 11px;
+      flex-wrap: wrap;
+      margin-top: 25px;
+    }
+
+    .actions .btn {
+      min-width: 170px;
+    }
+
+    .btn {
+      position: relative;
+      isolation: isolate;
+      min-height: 52px;
+      padding: 0 22px;
+      border: 0;
+      border-radius: 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      color: white;
+      font: inherit;
+      font-weight: 900;
+      text-decoration: none;
+      cursor: pointer;
+      overflow: hidden;
+      transform: translateZ(0);
+      transition:
+        transform 0.22s ease,
+        box-shadow 0.22s ease,
+        border-color 0.22s ease,
+        filter 0.22s ease;
+    }
+
+    .btn::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      top: -70%;
+      left: -45%;
+      width: 34%;
+      height: 240%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.28),
+        transparent
+      );
+      transform: rotate(20deg) translateX(-220%);
+      animation: buttonShine 3.4s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .btn::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      border-radius: inherit;
+      background: radial-gradient(
+        circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(255, 255, 255, 0.18),
+        transparent 42%
+      );
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      pointer-events: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-3px) scale(1.015);
+      filter: brightness(1.08);
+    }
+
+    .btn:hover::after {
+      opacity: 1;
+    }
+
+    .btn:active {
+      transform: translateY(0) scale(0.97);
+    }
+
+    .btn .icon {
+      transition: transform 0.24s ease;
+    }
+
+    .btn:hover .icon {
+      transform: translateX(2px) rotate(-5deg);
+    }
+
+    @keyframes buttonShine {
+      0%,
+      55% {
+        transform: rotate(20deg) translateX(-240%);
+      }
+      82%,
+      100% {
+        transform: rotate(20deg) translateX(520%);
+      }
+    }
+
+    .btn-primary {
+      background:
+        linear-gradient(
+          120deg,
+          rgba(140, 124, 242, 0.88),
+          rgba(116, 151, 231, 0.88) 44%,
+          rgba(105, 205, 232, 0.82) 72%,
+          rgba(140, 124, 242, 0.88)
+        );
+      background-size: 220% 100%;
+      box-shadow:
+        0 10px 24px rgba(101, 115, 205, 0.22),
+        0 0 0 1px rgba(255, 255, 255, 0.07) inset;
+      animation:
+        primaryGradient 5.5s ease-in-out infinite,
+        primaryGlow 3.2s ease-in-out infinite alternate;
+    }
+
+    .btn-primary:hover {
+      box-shadow:
+        0 14px 30px rgba(101, 115, 205, 0.28),
+        0 0 18px rgba(105, 205, 232, 0.12);
+    }
+
+    @keyframes primaryGradient {
+      0%,
+      100% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+    }
+
+    @keyframes primaryGlow {
+      from {
+        box-shadow:
+          0 10px 24px rgba(101, 115, 205, 0.18),
+          0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+      }
+      to {
+        box-shadow:
+          0 13px 28px rgba(101, 115, 205, 0.26),
+          0 0 16px rgba(105, 205, 232, 0.11);
+      }
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background:
+        linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.055),
+          rgba(255, 255, 255, 0.025)
+        );
+      color: #e9edf7;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    }
+
+    .btn-secondary:hover {
+      border-color: rgba(145, 206, 223, 0.24);
+      box-shadow:
+        0 9px 22px rgba(0, 0, 0, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.055);
+    }
+
+    .steps {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 28px;
+      padding-top: 21px;
+      border-top: 1px solid rgba(255, 255, 255, 0.075);
+    }
+
+    .step {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 12px;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.033);
+    }
+
+    .step-number {
+      flex: 0 0 35px;
+      width: 35px;
+      height: 35px;
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      color: #e9edff;
+      background: rgba(116, 92, 255, 0.18);
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    .step-text strong {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 13px;
+    }
+
+    .step-text span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+.toast {
+      position: fixed;
+      left: 50%;
+      bottom: 25px;
+      z-index: 30;
+      width: max-content;
+      max-width: calc(100% - 24px);
+      padding: 12px 17px;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 13px;
+      color: white;
+      background: rgba(12, 18, 31, 0.97);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.44);
+      opacity: 0;
+      transform: translate(-50%, 100px);
+      transition: 0.28s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    @media (max-width: 680px) {
+      .page {
+        align-items: start;
+      }
+
+      .main {
+        grid-template-columns: 1fr;
+        gap: 19px;
+      }
+
+      .stock-card {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: auto auto 1fr;
+        justify-items: start;
+        align-items: center;
+        gap: 10px;
+        padding: 15px 17px;
+        text-align: left;
+      }
+
+      .stock-icon {
+        margin: 0;
+      }
+
+      .stock-count {
+        font-size: 29px;
+      }
+
+      .stock-label,
+      .stock-state {
+        margin: 0;
+      }
+
+      .stock-info {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 7px 12px;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 460px) {
+      .card {
+        padding: 22px 17px;
+        border-radius: 22px;
+      }
+
+      .status {
+        width: 100%;
+        justify-content: center;
+      }
+
+      h1 {
+        font-size: 42px;
+      }
+
+      .description {
+        font-size: 14px;
+      }
+
+      .actions {
+        display: grid;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .petal {
+        display: none;
+      }
+
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="sakuraLayer" aria-hidden="true"></div>
+
+  <main class="page">
+    <section class="card">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-icon" aria-hidden="true">
+            <svg class="icon icon-lg" viewBox="0 0 24 24">
+              <circle cx="8" cy="15" r="4"></circle>
+              <path d="M11 12l8-8"></path>
+              <path d="M15 8l2 2"></path>
+              <path d="M17 6l2 2"></path>
+            </svg>
+          </span>
+          <span id="appName" class="rainbow-brand">Get Key Free Fire iPA</span>
+        </div>
+
+        <div class="status">
+          <span class="status-dot"></span>
+          Hệ Thống Đang Hoạt Động
+        </div>
+      </header>
+
+      <div class="main">
+        <div>
+          <h1>
+            <span class="gradient-text">Get Key iPA MiGul</span><br />
+            Free 1H
+          </h1>
+
+          <p class="description">
+            Nhấn <strong>Lấy Key Ngay</strong>, Hoàn Thành Nhiệm Vụ Trong Tab Mới Và Nhận Key Tại Trang Đích.
+          </p>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="getKeyButton" type="button">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="8" cy="15" r="4"></circle>
+                <path d="M11 12l8-8"></path>
+                <path d="M15 8l2 2"></path>
+                <path d="M17 6l2 2"></path>
+              </svg>
+              <span>Lấy Key Ngay</span>
+            </button>
+
+            <a class="btn btn-secondary" id="downloadIpaButton" href="#" hidden>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3v12"></path>
+                <path d="M7 10l5 5 5-5"></path>
+                <path d="M5 21h14"></path>
+              </svg>
+              <span>DownLoad iPA MiGul</span>
+            </a>
+
+            <a class="btn btn-secondary" id="telegramButton" href="#" hidden>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21 3L3.8 10.1c-.9.4-.9 1.7.1 2l4.4 1.5 1.7 5.1c.3.9 1.5 1.1 2.1.4l2.5-3 4.6 3.4c.8.6 1.9.1 2-1L22 4.2c.1-.9-.6-1.5-1-1.2z"></path>
+                <path d="M8.3 13.6L17.6 7"></path>
+              </svg>
+              <span>Join Chanel Telegram</span>
+            </a>
+
+            <a class="btn btn-secondary" id="supportButton" href="#" hidden>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+              </svg>
+              <span>Hỗ Trợ</span>
+            </a>
+          </div>
+        </div>
+
+        <aside class="stock-card" aria-label="Số lượng key hiện có">
+          <span class="stock-icon" aria-hidden="true">
+            <svg class="icon icon-lg" viewBox="0 0 24 24">
+              <circle cx="8" cy="15" r="4"></circle>
+              <path d="M11 12l8-8"></path>
+              <path d="M15 8l2 2"></path>
+              <path d="M17 6l2 2"></path>
+            </svg>
+          </span>
+          <span class="stock-count" id="keyCount">0</span>
+
+          <div class="stock-info">
+            <span class="stock-label">Key Hiện Có</span>
+            <span class="stock-state" id="stockState">
+              <span class="mini-dot"></span>
+              <span id="stockStateText">Còn Key</span>
+            </span>
+          </div>
+        </aside>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <span class="step-number">01</span>
+          <div class="step-text">
+            <strong>Nhấn Lấy Key</strong>
+            <span>Mở Nhiệm Vụ Trong Tab Mới.</span>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="step-number">02</span>
+          <div class="step-text">
+            <strong>Hoàn Thành Vượt Link</strong>
+            <span>Làm Đúng Yêu Cầu Của Trang.</span>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="step-number">03</span>
+          <div class="step-text">
+            <strong>Sao Chép Key</strong>
+            <span>Nhận Key Tại Trang Đích.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+
+  <script>
+    (function () {
+      if (!window.crypto || typeof window.crypto.randomUUID === "function") {
+        return;
+      }
+
+      function fallbackUuidV4() {
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+
+        bytes[6] = (bytes[6] & 15) | 64;
+        bytes[8] = (bytes[8] & 63) | 128;
+
+        const hex = Array.from(bytes, function (value) {
+          return value.toString(16).padStart(2, "0");
+        });
+
+        return [
+          hex.slice(0, 4).join(""),
+          hex.slice(4, 6).join(""),
+          hex.slice(6, 8).join(""),
+          hex.slice(8, 10).join(""),
+          hex.slice(10, 16).join("")
+        ].join("-");
+      }
+
+      try {
+        Object.defineProperty(window.crypto, "randomUUID", {
+          configurable: true,
+          value: fallbackUuidV4
+        });
+      } catch {
+        window.crypto.randomUUID = fallbackUuidV4;
+      }
+    })();
+  </script>
+
+  <script src="config.js"></script>
+
+  <script>
+    const config = window.APP_CONFIG || {};
+
+    const appName = document.getElementById("appName");
+    const getKeyButton = document.getElementById("getKeyButton");
+    const supportButton = document.getElementById("supportButton");
+    const downloadIpaButton = document.getElementById("downloadIpaButton");
+    const telegramButton = document.getElementById("telegramButton");
+    const keyCountElement = document.getElementById("keyCount");
+    const stockState = document.getElementById("stockState");
+    const stockStateText = document.getElementById("stockStateText");
+    const toast = document.getElementById("toast");
+
+    const originalGetKeyContent = getKeyButton.innerHTML;
+    const SESSION_STORAGE_KEY =
+      config.SESSION_STORAGE_KEY || "migul_key_session_token_v1";
+    const KEY_CACHE_STORAGE_KEY =
+      config.KEY_CACHE_STORAGE_KEY || "migul_claimed_key_cache_v1";
+
+    const displayAppName = config.APP_NAME || "Get Key Free Fire iPA";
+    appName.textContent = displayAppName;
+    document.title = `${displayAppName} - Lấy Key`;
+
+    function toTitleCase(value) {
+      return String(value || "")
+        .trim()
+        .toLocaleLowerCase("vi-VN")
+        .replace(/(^|[\s\-_/]+)(\p{L})/gu, (match, separator, letter) => {
+          return separator + letter.toLocaleUpperCase("vi-VN");
+        });
+    }
+
+    function showToast(message) {
+      toast.textContent = toTitleCase(message);
+      toast.classList.add("show");
+
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => {
+        toast.classList.remove("show");
+      }, 3400);
+    }
+
+    function setExternalButton(button, url) {
+      const safeUrl = String(url || "").trim();
+
+      if (!safeUrl) {
+        button.hidden = true;
+        return;
+      }
+
+      try {
+        const parsed = new URL(safeUrl);
+
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          throw new Error("INVALID_PROTOCOL");
+        }
+
+        button.hidden = false;
+        button.href = parsed.href;
+        button.target = "_blank";
+        button.rel = "noopener noreferrer";
+      } catch {
+        button.hidden = true;
+      }
+    }
+
+    function getFunctionUrl() {
+      const baseUrl = String(config.SUPABASE_URL || "")
+        .trim()
+        .replace(/\/+$/, "");
+
+      const functionName = String(config.EDGE_FUNCTION_NAME || "key-api")
+        .trim()
+        .replace(/^\/+|\/+$/g, "");
+
+      if (
+        !baseUrl ||
+        baseUrl.includes("YOUR_PROJECT_ID") ||
+        !/^https:\/\/.+\.supabase\.co$/i.test(baseUrl)
+      ) {
+        throw new Error("SUPABASE_NOT_CONFIGURED");
+      }
+
+      return `${baseUrl}/functions/v1/${functionName}`;
+    }
+
+    async function callKeyApi(action, payload = {}) {
+      const response = await fetch(getFunctionUrl(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify({
+          action,
+          ...payload
+        }),
+        cache: "no-store"
+      });
+
+      let data = {};
+
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error("INVALID_SERVER_RESPONSE");
+      }
+
+      if (!response.ok || data.success !== true) {
+        const error = new Error(data.error || `HTTP_${response.status}`);
+        error.code = data.error || `HTTP_${response.status}`;
+        throw error;
+      }
+
+      return data;
+    }
+
+
+    async function loadPublicSettings() {
+      try {
+        const data = await callKeyApi("get-settings");
+        const settings = data.settings || {};
+
+        setExternalButton(
+          downloadIpaButton,
+          settings.downloadIpaUrl || config.DOWNLOAD_IPA_URL
+        );
+        setExternalButton(
+          telegramButton,
+          settings.telegramUrl || config.TELEGRAM_URL
+        );
+        setExternalButton(
+          supportButton,
+          settings.supportUrl || config.SUPPORT_URL
+        );
+      } catch (error) {
+        console.error("Không Thể Tải Cấu Hình Nút:", error);
+
+        // Dùng config.js làm dự phòng khi Supabase đang lỗi.
+        setExternalButton(downloadIpaButton, config.DOWNLOAD_IPA_URL);
+        setExternalButton(telegramButton, config.TELEGRAM_URL);
+        setExternalButton(supportButton, config.SUPPORT_URL);
+      }
+    }
+
+    function renderKeyCount(count, state = "ready") {
+      const safeCount = Math.max(0, Number(count) || 0);
+      keyCountElement.textContent = safeCount.toLocaleString("vi-VN");
+
+      if (state === "error") {
+        stockStateText.textContent = "Chưa Kết Nối";
+        stockState.classList.add("empty");
+        getKeyButton.disabled = true;
+        return;
+      }
+
+      if (safeCount > 0) {
+        stockStateText.textContent = "Còn Key";
+        stockState.classList.remove("empty");
+        getKeyButton.disabled = false;
+      } else {
+        stockStateText.textContent = "Tạm Hết Key";
+        stockState.classList.add("empty");
+        getKeyButton.disabled =
+          config.DISABLE_WHEN_OUT_OF_STOCK !== false;
+      }
+    }
+
+    async function updateKeyCount() {
+      try {
+        const data = await callKeyApi("count");
+        renderKeyCount(data.count || 0);
+      } catch (error) {
+        console.error("Không Thể Tải Số Lượng Key:", error);
+        renderKeyCount(0, "error");
+      }
+    }
+
+    function saveSession(data) {
+      localStorage.setItem(
+        SESSION_STORAGE_KEY,
+        JSON.stringify({
+          token: data.token,
+          expiresAt: data.expiresAt || null,
+          createdAt: Date.now()
+        })
+      );
+
+      // Phiên mới phải nhận một key mới.
+      localStorage.removeItem(KEY_CACHE_STORAGE_KEY);
+    }
+
+    function setGetKeyLoading(loading) {
+      getKeyButton.disabled = loading;
+
+      if (loading) {
+        getKeyButton.innerHTML = `
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 12a8 8 0 1 1-2.3-5.7"></path>
+          </svg>
+          <span>Đang Tạo Link...</span>
+        `;
+      } else {
+        getKeyButton.innerHTML = originalGetKeyContent;
+      }
+    }
+
+    getKeyButton.addEventListener("click", async () => {
+      try {
+        getFunctionUrl();
+      } catch {
+        showToast("Bạn Chưa Điền SUPABASE_URL Trong config.js.");
+        return;
+      }
+
+      // Mở tab ngay khi bấm để tránh trình duyệt chặn popup.
+      const taskTab = window.open("about:blank", "_blank");
+
+      if (!taskTab) {
+        showToast("Hãy Cho Phép Website Mở Tab Mới.");
+        return;
+      }
+
+      taskTab.opener = null;
+      taskTab.document.title = "Đang Tạo Link...";
+      taskTab.document.body.innerHTML =
+        '<p style="font-family:system-ui;text-align:center;margin-top:60px">Đang Tạo Link Vượt Riêng Cho Bạn...</p>';
+
+      setGetKeyLoading(true);
+
+      try {
+        const session = await callKeyApi("create-session");
+
+        if (!session.token || !session.shortUrl) {
+          throw new Error("SHORT_URL_NOT_FOUND");
+        }
+
+        saveSession(session);
+        taskTab.location.replace(session.shortUrl);
+      } catch (error) {
+        taskTab.close();
+        console.error(error);
+
+        const messages = {
+          OUT_OF_KEYS: "Kho Key Đã Hết. Vui Lòng Quay Lại Sau.",
+          SHORTENER_NOT_CONFIGURED:
+            "Chưa Cấu Hình Đủ Hai API Key TrafficVN Trong Supabase Secrets.",
+          SHORTENER_STEP_1_NOT_CONFIGURED:
+            "Chưa Có API Key TrafficVN 1.",
+          SHORTENER_STEP_2_NOT_CONFIGURED:
+            "Chưa Có API Key TrafficVN 2.",
+          SHORTENER_STEP_1_REQUEST_FAILED:
+            "TrafficVN 1 Không Thể Tạo Link. Vui Lòng Thử Lại.",
+          SHORTENER_STEP_2_REQUEST_FAILED:
+            "TrafficVN 2 Không Thể Tạo Link. Vui Lòng Thử Lại.",
+          SHORTENER_STEP_1_INVALID_RESPONSE:
+            "TrafficVN 1 Trả Về Dữ Liệu Không Hợp Lệ.",
+          SHORTENER_STEP_2_INVALID_RESPONSE:
+            "TrafficVN 2 Trả Về Dữ Liệu Không Hợp Lệ.",
+          SHORTENER_REQUEST_FAILED:
+            "TrafficVN Không Thể Tạo Link. Vui Lòng Thử Lại.",
+          CREATE_SESSION_FAILED:
+            "Không Thể Tạo Phiên Nhận Key.",
+          SUPABASE_NOT_CONFIGURED:
+            "Bạn Chưa Điền SUPABASE_URL Trong config.js."
+        };
+
+        showToast(
+          messages[error.code] ||
+          messages[error.message] ||
+          "Không Thể Tạo Link. Vui Lòng Thử Lại."
+        );
+      } finally {
+        setGetKeyLoading(false);
+        updateKeyCount();
+      }
+    });
+
+    const pageParams = new URLSearchParams(window.location.search);
+
+    if (pageParams.get("key_required") === "1") {
+      showToast("Vui Lòng Vượt Link Từ Đầu Để Nhận Key.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    document.querySelectorAll(".btn").forEach((button) => {
+      button.addEventListener("pointermove", (event) => {
+        const rect = button.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 100;
+        const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+        button.style.setProperty("--mouse-x", `${x}%`);
+        button.style.setProperty("--mouse-y", `${y}%`);
+      });
+
+      button.addEventListener("click", (event) => {
+        const rect = button.getBoundingClientRect();
+        const diameter = Math.max(rect.width, rect.height) * 1.8;
+        const ripple = document.createElement("span");
+
+        ripple.style.position = "absolute";
+        ripple.style.width = `${diameter}px`;
+        ripple.style.height = `${diameter}px`;
+        ripple.style.left =
+          `${event.clientX - rect.left - diameter / 2}px`;
+        ripple.style.top =
+          `${event.clientY - rect.top - diameter / 2}px`;
+        ripple.style.borderRadius = "50%";
+        ripple.style.background = "rgba(255,255,255,0.18)";
+        ripple.style.pointerEvents = "none";
+        ripple.style.transform = "scale(0)";
+        ripple.style.opacity = "1";
+        ripple.style.transition =
+          "transform 0.55s ease, opacity 0.55s ease";
+        ripple.style.zIndex = "1";
+
+        button.appendChild(ripple);
+
+        requestAnimationFrame(() => {
+          ripple.style.transform = "scale(1)";
+          ripple.style.opacity = "0";
+        });
+
+        setTimeout(() => ripple.remove(), 600);
+      });
+    });
+
+    function createSakura() {
+      const layer = document.getElementById("sakuraLayer");
+      const amount = window.innerWidth < 600 ? 14 : 24;
+
+      for (let i = 0; i < amount; i += 1) {
+        const petal = document.createElement("span");
+        const size = 8 + Math.random() * 9;
+        const duration = 8 + Math.random() * 9;
+        const delay = -(Math.random() * duration);
+        const drift = `${-90 + Math.random() * 180}px`;
+
+        petal.className = "petal";
+        petal.style.left = `${Math.random() * 100}%`;
+        petal.style.setProperty("--size", `${size}px`);
+        petal.style.setProperty("--duration", `${duration}s`);
+        petal.style.setProperty("--delay", `${delay}s`);
+        petal.style.setProperty("--drift", drift);
+        petal.style.setProperty(
+          "--opacity",
+          (0.45 + Math.random() * 0.42).toFixed(2)
+        );
+
+        layer.appendChild(petal);
+      }
+    }
+
+    createSakura();
+    loadPublicSettings();
+    updateKeyCount();
+    setInterval(updateKeyCount, 15000);
+    setInterval(loadPublicSettings, 60000);
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quản Trị Get Key</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b14;
+      --card: rgba(15, 22, 39, .91);
+      --card-soft: rgba(255, 255, 255, .035);
+      --border: rgba(255, 255, 255, .1);
+      --text: #f8fafc;
+      --muted: #a9b4c9;
+      --primary: #9184e9;
+      --primary-2: #79c8df;
+      --success: #45e5a2;
+      --warning: #ffd27d;
+      --danger: #ff8ba7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 22px;
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(140, 124, 242, .19), transparent 33%),
+        radial-gradient(circle at 90% 90%, rgba(105, 205, 232, .11), transparent 30%),
+        var(--bg);
+    }
+
+    .wrap {
+      width: min(1100px, 100%);
+      margin: 24px auto;
+    }
+
+    .card {
+      padding: clamp(22px, 4vw, 38px);
+      border: 1px solid var(--border);
+      border-radius: 25px;
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 28px 80px rgba(0, 0, 0, .4);
+    }
+
+    .login-card {
+      width: min(470px, 100%);
+      margin: min(12vh, 90px) auto 0;
+      text-align: center;
+    }
+
+    .lock-icon {
+      width: 62px;
+      height: 62px;
+      margin: 0 auto 18px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(121, 200, 223, .22);
+      border-radius: 19px;
+      background: rgba(121, 200, 223, .07);
+    }
+
+    .icon {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      letter-spacing: -.035em;
+    }
+
+    h1 {
+      font-size: clamp(31px, 5vw, 44px);
+    }
+
+    h2 {
+      font-size: 24px;
+    }
+
+    p {
+      margin: 9px 0 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .dashboard-header,
+    .section-head,
+    .list-toolbar,
+    .list-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 13px;
+    }
+
+    .dashboard-header {
+      margin-bottom: 24px;
+    }
+
+    .section {
+      margin-top: 17px;
+      padding: 21px;
+      border: 1px solid var(--border);
+      border-radius: 19px;
+      background: var(--card-soft);
+    }
+
+    .section-head {
+      margin-bottom: 15px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 11px;
+    }
+
+    .stat {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .025);
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 27px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 13px;
+    }
+
+    .field-full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      margin: 0 0 8px;
+      font-weight: 800;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 15px;
+      color: var(--text);
+      background: rgba(255, 255, 255, .045);
+      outline: none;
+      font: inherit;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: rgba(121, 200, 223, .38);
+      box-shadow: 0 0 0 3px rgba(121, 200, 223, .08);
+    }
+
+    textarea {
+      min-height: 210px;
+      resize: vertical;
+      font-family: Consolas, monospace;
+      line-height: 1.6;
+    }
+
+
+    .admin-email-box {
+      margin-top: 20px;
+      padding: 16px;
+      border: 1px solid rgba(121, 200, 223, .18);
+      border-radius: 15px;
+      background: rgba(121, 200, 223, .045);
+      text-align: left;
+    }
+
+    .admin-email-box span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      margin-bottom: 7px;
+    }
+
+    .admin-email-box strong {
+      display: block;
+      overflow-wrap: anywhere;
+      font-size: 15px;
+    }
+
+    .password-row {
+      position: relative;
+      margin-top: 20px;
+    }
+
+    .password-row input {
+      padding-right: 52px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      top: 50%;
+      right: 8px;
+      width: 40px;
+      min-height: 38px;
+      padding: 0;
+      transform: translateY(-50%);
+      background: transparent;
+    }
+
+    .drop-zone {
+      margin-top: 12px;
+      padding: 18px;
+      border: 1px dashed rgba(121, 200, 223, .35);
+      border-radius: 15px;
+      color: var(--muted);
+      text-align: center;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+
+    .drop-zone.drag {
+      color: white;
+      background: rgba(121, 200, 223, .08);
+    }
+
+    .actions {
+      display: flex;
+      gap: 11px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    button,
+    a {
+      min-height: 46px;
+      padding: 0 18px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: white;
+      background: rgba(255, 255, 255, .055);
+      font: inherit;
+      font-weight: 850;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .2s ease, border-color .2s ease;
+    }
+
+    button:hover,
+    a:hover {
+      transform: translateY(-1px);
+      border-color: rgba(121, 200, 223, .25);
+    }
+
+    button.primary {
+      border: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(145, 132, 233, .82),
+        rgba(121, 200, 223, .72)
+      );
+    }
+
+    button.danger {
+      color: #ffc3d1;
+      border-color: rgba(255, 139, 167, .22);
+      background: rgba(255, 139, 167, .065);
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: wait;
+      transform: none;
+    }
+
+    .message {
+      min-height: 24px;
+      margin-top: 15px;
+      font-weight: 750;
+    }
+
+    .message.success {
+      color: var(--success);
+    }
+
+    .message.error {
+      color: var(--danger);
+    }
+
+    .security-note {
+      margin-top: 18px;
+      padding: 13px 15px;
+      border: 1px solid rgba(121, 200, 223, .12);
+      border-radius: 13px;
+      color: var(--muted);
+      background: rgba(121, 200, 223, .035);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .list-toolbar {
+      align-items: stretch;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .list-search {
+      flex: 1 1 300px;
+      display: flex;
+      gap: 9px;
+    }
+
+    .list-filter {
+      width: min(220px, 100%);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 780px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, .065);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      color: #dce3f2;
+      background: rgba(255, 255, 255, .035);
+      font-size: 12px;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, .025);
+    }
+
+    .checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary-2);
+      cursor: pointer;
+    }
+
+    .key-code {
+      max-width: 380px;
+      display: block;
+      overflow-wrap: anywhere;
+      color: #eef2ff;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      padding: 6px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .status-available {
+      color: #bff7dd;
+      background: rgba(69, 229, 162, .08);
+      border: 1px solid rgba(69, 229, 162, .16);
+    }
+
+    .status-claimed {
+      color: #ffe2a9;
+      background: rgba(255, 210, 125, .08);
+      border: 1px solid rgba(255, 210, 125, .16);
+    }
+
+    .status-disabled {
+      color: #ffc0cf;
+      background: rgba(255, 139, 167, .08);
+      border: 1px solid rgba(255, 139, 167, .16);
+    }
+
+    .date-text {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .empty-row {
+      padding: 35px !important;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .list-footer {
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .selected-count,
+    .page-info {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .pager {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    @media (max-width: 760px) {
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field-full {
+        grid-column: auto;
+      }
+
+      .dashboard-header,
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .actions {
+        display: grid;
+      }
+
+      .actions button,
+      .actions a {
+        width: 100%;
+      }
+
+      .list-search {
+        width: 100%;
+        display: grid;
+      }
+
+      .list-filter {
+        width: 100%;
+      }
+
+      .list-footer {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .pager {
+        justify-content: space-between;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="wrap">
+    <section class="card login-card" id="loginView">
+      <div class="lock-icon">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="5" y="10" width="14" height="11" rx="2"></rect>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+        </svg>
+      </div>
+
+      <h1>Đăng Nhập Quản Trị</h1>
+
+      <p>
+        Nhập Email Và Mật Khẩu Admin Để Truy Cập Chức Năng Quản Lý.
+      </p>
+
+      <div style="margin-top: 22px; text-align: left;">
+        <label for="emailInput">Email Admin</label>
+        <input
+          id="emailInput"
+          type="email"
+          autocomplete="username"
+          placeholder="admin@gmail.com"
+          value="hatrungson230209@gmail.com"
+        />
+      </div>
+
+      <div class="password-row">
+        <label for="passwordInput">Mật Khẩu</label>
+        <input
+          id="passwordInput"
+          type="password"
+          autocomplete="current-password"
+          placeholder="Nhập Mật Khẩu"
+        />
+        <button
+          class="toggle-password"
+          id="togglePasswordButton"
+          type="button"
+          aria-label="Hiện Hoặc Ẩn Mật Khẩu"
+        >
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="loginButton" type="button">
+          Đăng Nhập
+        </button>
+
+        <a href="index.html">Về Trang Chính</a>
+      </div>
+
+      <div class="message" id="loginMessage"></div>
+
+      <div class="security-note">
+        Đăng Nhập Bằng Email Và Mật Khẩu Của Tài Khoản Admin. Chỉ Đúng
+        Email Admin Mới Được Phép Truy Cập Trang Quản Trị.
+      </div>
+    </section>
+
+    <section class="card" id="dashboardView" hidden>
+      <header class="dashboard-header">
+        <div>
+          <h1>Quản Trị Get Key</h1>
+          <p>Quản Lý Kho Key Và Các Nút Hiển Thị Trên Trang Chính.</p>
+        </div>
+
+        <button class="danger" id="logoutButton" type="button">
+          Đăng Xuất
+        </button>
+      </header>
+
+      <section class="section">
+        <div class="section-head">
+          <h2>Thống Kê Kho Key</h2>
+
+          <button id="refreshButton" type="button">
+            Làm Mới
+          </button>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <span>Tổng Key</span>
+            <strong id="total">0</strong>
+          </div>
+
+          <div class="stat">
+            <span>Còn Key</span>
+            <strong id="available">0</strong>
+          </div>
+
+          <div class="stat">
+            <span>Đã Nhận</span>
+            <strong id="claimed">0</strong>
+          </div>
+
+          <div class="stat">
+            <span>Đã Khóa</span>
+            <strong id="disabled">0</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <h2>Quản Lý Link Các Nút</h2>
+            <p>Để Trống Một Ô Thì Nút Đó Sẽ Bị Ẩn Ngoài Trang Chính.</p>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="field-full">
+            <label for="downloadIpaUrl">Link DownLoad iPA MiGul</label>
+
+            <input
+              id="downloadIpaUrl"
+              type="url"
+              placeholder="https://..."
+            />
+          </div>
+
+          <div>
+            <label for="telegramUrl">Link Join Chanel Telegram</label>
+
+            <input
+              id="telegramUrl"
+              type="url"
+              placeholder="https://t.me/..."
+            />
+          </div>
+
+          <div>
+            <label for="supportUrl">Link Hỗ Trợ</label>
+
+            <input
+              id="supportUrl"
+              type="url"
+              placeholder="https://..."
+            />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="saveSettingsButton" type="button">
+            Lưu Các Đường Link
+          </button>
+        </div>
+
+        <div class="message" id="settingsMessage"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <h2>Thêm Key Vào Kho</h2>
+            <p>Nhập Mỗi Key Một Dòng Hoặc Kéo File TXT Vào Ô Bên Dưới.</p>
+          </div>
+        </div>
+
+        <textarea
+          id="keyInput"
+          placeholder="MIGUL-KEY-001&#10;MIGUL-KEY-002&#10;MIGUL-KEY-003"
+        ></textarea>
+
+        <div class="drop-zone" id="dropZone">
+          Kéo File TXT Vào Đây Hoặc Bấm Để Chọn File
+          <input id="fileInput" type="file" accept=".txt,text/plain" hidden />
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="addButton" type="button">
+            Thêm Key Vào Kho
+          </button>
+        </div>
+
+        <div class="message" id="keyMessage"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <h2>Danh Sách Key Đã Thêm</h2>
+            <p>Chọn Một Hoặc Nhiều Key Để Xóa Khỏi Supabase.</p>
+          </div>
+
+          <button id="reloadListButton" type="button">
+            Tải Lại Danh Sách
+          </button>
+        </div>
+
+        <div class="list-toolbar">
+          <div class="list-search">
+            <input
+              id="keySearchInput"
+              type="search"
+              placeholder="Tìm Theo Nội Dung Key..."
+            />
+
+            <button id="searchButton" type="button">
+              Tìm Kiếm
+            </button>
+          </div>
+
+          <select class="list-filter" id="statusFilter">
+            <option value="">Tất Cả Trạng Thái</option>
+            <option value="available">Còn Key</option>
+            <option value="claimed">Đã Nhận</option>
+            <option value="disabled">Đã Khóa</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <input
+                    class="checkbox"
+                    id="selectAllKeys"
+                    type="checkbox"
+                    aria-label="Chọn Tất Cả Key Trong Trang"
+                  />
+                </th>
+                <th>Key</th>
+                <th>Trạng Thái</th>
+                <th>Ngày Thêm</th>
+                <th>Ngày Nhận</th>
+              </tr>
+            </thead>
+
+            <tbody id="keyTableBody">
+              <tr>
+                <td class="empty-row" colspan="5">
+                  Chưa Tải Danh Sách Key.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="list-footer">
+          <div>
+            <div class="selected-count" id="selectedCount">
+              Đã Chọn 0 Key
+            </div>
+
+            <button
+              class="danger"
+              id="deleteSelectedButton"
+              type="button"
+              disabled
+            >
+              Xóa Key Đã Chọn
+            </button>
+          </div>
+
+          <div class="pager">
+            <button id="previousPageButton" type="button">
+              Trang Trước
+            </button>
+
+            <span class="page-info" id="pageInfo">
+              Trang 1 / 1
+            </span>
+
+            <button id="nextPageButton" type="button">
+              Trang Sau
+            </button>
+          </div>
+        </div>
+
+        <div class="message" id="listMessage"></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      if (!window.crypto || typeof window.crypto.randomUUID === "function") {
+        return;
+      }
+
+      function fallbackUuidV4() {
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+
+        bytes[6] = (bytes[6] & 15) | 64;
+        bytes[8] = (bytes[8] & 63) | 128;
+
+        const hex = Array.from(bytes, function (value) {
+          return value.toString(16).padStart(2, "0");
+        });
+
+        return [
+          hex.slice(0, 4).join(""),
+          hex.slice(4, 6).join(""),
+          hex.slice(6, 8).join(""),
+          hex.slice(8, 10).join(""),
+          hex.slice(10, 16).join("")
+        ].join("-");
+      }
+
+      try {
+        Object.defineProperty(window.crypto, "randomUUID", {
+          configurable: true,
+          value: fallbackUuidV4
+        });
+      } catch {
+        window.crypto.randomUUID = fallbackUuidV4;
+      }
+    })();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="config.js"></script>
+
+  <script>
+    const config = window.APP_CONFIG || {};
+
+    const ADMIN_EMAIL =
+      String(
+        config.ADMIN_EMAIL ||
+        "hatrungson230209@gmail.com"
+      )
+        .trim()
+        .toLowerCase();
+
+    const loginView =
+      document.getElementById("loginView");
+
+    const dashboardView =
+      document.getElementById("dashboardView");
+
+    const emailInput =
+      document.getElementById("emailInput");
+
+    const passwordInput =
+      document.getElementById("passwordInput");
+
+    const togglePasswordButton =
+      document.getElementById("togglePasswordButton");
+
+    const loginButton =
+      document.getElementById("loginButton");
+
+    const logoutButton =
+      document.getElementById("logoutButton");
+
+    const loginMessage =
+      document.getElementById("loginMessage");
+
+    const refreshButton =
+      document.getElementById("refreshButton");
+
+    const addButton =
+      document.getElementById("addButton");
+
+    const saveSettingsButton =
+      document.getElementById("saveSettingsButton");
+
+    const keyInput =
+      document.getElementById("keyInput");
+
+    const keyMessage =
+      document.getElementById("keyMessage");
+
+    const settingsMessage =
+      document.getElementById("settingsMessage");
+
+    const dropZone =
+      document.getElementById("dropZone");
+
+    const fileInput =
+      document.getElementById("fileInput");
+
+    const downloadIpaUrl =
+      document.getElementById("downloadIpaUrl");
+
+    const telegramUrl =
+      document.getElementById("telegramUrl");
+
+    const supportUrl =
+      document.getElementById("supportUrl");
+
+    const keySearchInput =
+      document.getElementById("keySearchInput");
+
+    const statusFilter =
+      document.getElementById("statusFilter");
+
+    const searchButton =
+      document.getElementById("searchButton");
+
+    const reloadListButton =
+      document.getElementById("reloadListButton");
+
+    const keyTableBody =
+      document.getElementById("keyTableBody");
+
+    const selectAllKeys =
+      document.getElementById("selectAllKeys");
+
+    const deleteSelectedButton =
+      document.getElementById("deleteSelectedButton");
+
+    const selectedCount =
+      document.getElementById("selectedCount");
+
+    const previousPageButton =
+      document.getElementById("previousPageButton");
+
+    const nextPageButton =
+      document.getElementById("nextPageButton");
+
+    const pageInfo =
+      document.getElementById("pageInfo");
+
+    const listMessage =
+      document.getElementById("listMessage");
+
+    const statElements = {
+      total: document.getElementById("total"),
+      available: document.getElementById("available"),
+      claimed: document.getElementById("claimed"),
+      disabled: document.getElementById("disabled")
+    };
+
+    const ADMIN_TOKEN_STORAGE_KEY = "migul_admin_token_v1";
+    let adminToken = "";
+    let currentPage = 1;
+    let totalPages = 1;
+    const pageSize = 50;
+    let currentPageKeys = [];
+    const selectedKeyIds = new Set();
+
+    function setMessage(element, text, type = "") {
+      element.textContent = text;
+      element.className =
+        `message ${type}`.trim();
+    }
+
+    function setLoading(
+      button,
+      loading,
+      loadingText
+    ) {
+      if (!button.dataset.originalText) {
+        button.dataset.originalText =
+          button.textContent.trim();
+      }
+
+      button.disabled = loading;
+
+      button.textContent = loading
+        ? loadingText
+        : button.dataset.originalText;
+    }
+
+    function getSupabaseUrl() {
+      const value =
+        String(config.SUPABASE_URL || "")
+          .trim()
+          .replace(/\/+$/, "");
+
+      if (
+        !value ||
+        value.includes("YOUR_PROJECT_ID") ||
+        !/^https:\/\/.+\.supabase\.co$/i.test(value)
+      ) {
+        throw new Error(
+          "Bạn Chưa Điền SUPABASE_URL Trong config.js."
+        );
+      }
+
+      return value;
+    }
+
+    function getPublishableKey() {
+      const value =
+        String(
+          config.SUPABASE_PUBLISHABLE_KEY || ""
+        ).trim();
+
+      if (
+        !value ||
+        value.includes("YOUR_KEY")
+      ) {
+        throw new Error(
+          "Bạn Chưa Điền SUPABASE_PUBLISHABLE_KEY Trong config.js."
+        );
+      }
+
+      return value;
+    }
+
+    function getFunctionUrl() {
+      const functionName =
+        String(
+          config.EDGE_FUNCTION_NAME ||
+          "key-api"
+        )
+          .trim()
+          .replace(/^\/+|\/+$/g, "");
+
+      return `${getSupabaseUrl()}/functions/v1/${functionName}`;
+    }
+
+    function mapApiError(code) {
+      const messages = {
+        UNAUTHORIZED:
+          "Phiên Đăng Nhập Đã Hết Hạn. Vui Lòng Đăng Nhập Lại.",
+        INVALID_CREDENTIALS:
+          "Mật Khẩu Admin Không Đúng.",
+        ADMIN_PASSWORD_NOT_CONFIGURED:
+          "Edge Function Chưa Cấu Hình ADMIN_PASSWORD.",
+        NO_KEYS_PROVIDED:
+          "Bạn Chưa Nhập Key.",
+        ADD_KEYS_FAILED:
+          "Không Thể Thêm Key Vào Supabase.",
+        ADMIN_STATS_FAILED:
+          "Không Thể Tải Thống Kê.",
+        SETTINGS_READ_FAILED:
+          "Không Thể Tải Các Đường Link.",
+        SETTINGS_UPDATE_FAILED:
+          "Không Thể Lưu Các Đường Link.",
+        INVALID_SETTINGS_URL:
+          "Link Không Hợp Lệ. Link Phải Bắt Đầu Bằng http:// Hoặc https://.",
+        INVALID_STATUS:
+          "Trạng Thái Key Không Hợp Lệ.",
+        LIST_KEYS_FAILED:
+          "Không Thể Tải Danh Sách Key.",
+        NO_KEYS_SELECTED:
+          "Bạn Chưa Chọn Key Cần Xóa.",
+        DELETE_KEYS_FAILED:
+          "Không Thể Xóa Các Key Đã Chọn.",
+        SERVER_CONFIG_ERROR:
+          "Edge Function Thiếu Cấu Hình Supabase.",
+        INTERNAL_SERVER_ERROR:
+          "Edge Function Đang Bị Lỗi Nội Bộ.",
+        INVALID_ACTION:
+          "Edge Function Chưa Được Cập Nhật Bản Mới.",
+        HTTP_404:
+          "Không Tìm Thấy Edge Function key-api.",
+        HTTP_401:
+          "Phiên Đăng Nhập Không Hợp Lệ.",
+        HTTP_500:
+          "Edge Function Đang Bị Lỗi Máy Chủ."
+      };
+
+      return (
+        messages[code] ||
+        `Lỗi Máy Chủ: ${code}`
+      );
+    }
+
+    function loadStoredToken() {
+      try {
+        return String(
+          window.localStorage.getItem(
+            ADMIN_TOKEN_STORAGE_KEY
+          ) || ""
+        );
+      } catch {
+        return "";
+      }
+    }
+
+    function saveToken(token) {
+      adminToken = String(token || "");
+
+      try {
+        if (adminToken) {
+          window.localStorage.setItem(
+            ADMIN_TOKEN_STORAGE_KEY,
+            adminToken
+          );
+        } else {
+          window.localStorage.removeItem(
+            ADMIN_TOKEN_STORAGE_KEY
+          );
+        }
+      } catch {
+        // Bỏ qua nếu trình duyệt chặn localStorage.
+      }
+    }
+
+    async function adminApi(
+      action,
+      payload = {},
+      requireAuth = true
+    ) {
+      const headers = {
+        "Content-Type": "application/json",
+        "apikey": getPublishableKey()
+      };
+
+      if (requireAuth) {
+        if (!adminToken) {
+          const error =
+            new Error(
+              mapApiError("UNAUTHORIZED")
+            );
+
+          error.code = "UNAUTHORIZED";
+          throw error;
+        }
+
+        headers.Authorization =
+          `Bearer ${adminToken}`;
+      }
+
+      const response =
+        await fetch(getFunctionUrl(), {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            action,
+            ...payload
+          }),
+          cache: "no-store"
+        });
+
+      const raw = await response.text();
+      let data = {};
+
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        data = {};
+      }
+
+      if (
+        !response.ok ||
+        data.success !== true
+      ) {
+        const code =
+          String(
+            data.error ||
+            `HTTP_${response.status}`
+          );
+
+        const error =
+          new Error(mapApiError(code));
+
+        error.code = code;
+        error.httpStatus =
+          response.status;
+
+        throw error;
+      }
+
+      return data;
+    }
+
+    function renderStats(data) {
+      const stats = data.stats || {};
+
+      statElements.total.textContent =
+        Number(data.total || 0)
+          .toLocaleString("vi-VN");
+
+      statElements.available.textContent =
+        Number(stats.available || 0)
+          .toLocaleString("vi-VN");
+
+      statElements.claimed.textContent =
+        Number(stats.claimed || 0)
+          .toLocaleString("vi-VN");
+
+      statElements.disabled.textContent =
+        Number(stats.disabled || 0)
+          .toLocaleString("vi-VN");
+    }
+
+    function renderSettings(settings = {}) {
+      downloadIpaUrl.value =
+        settings.downloadIpaUrl || "";
+
+      telegramUrl.value =
+        settings.telegramUrl || "";
+
+      supportUrl.value =
+        settings.supportUrl || "";
+    }
+
+    function formatDate(value) {
+      if (!value) {
+        return "Chưa Có";
+      }
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return "Không Xác Định";
+      }
+
+      return new Intl.DateTimeFormat(
+        "vi-VN",
+        {
+          dateStyle: "short",
+          timeStyle: "short"
+        }
+      ).format(date);
+    }
+
+    function getStatusInfo(status) {
+      const map = {
+        available: {
+          label: "Còn Key",
+          className: "status-available"
+        },
+        claimed: {
+          label: "Đã Nhận",
+          className: "status-claimed"
+        },
+        disabled: {
+          label: "Đã Khóa",
+          className: "status-disabled"
+        }
+      };
+
+      return (
+        map[status] ||
+        {
+          label: "Không Xác Định",
+          className: "status-disabled"
+        }
+      );
+    }
+
+    function updateSelectedUi() {
+      selectedCount.textContent =
+        `Đã Chọn ${selectedKeyIds.size} Key`;
+
+      deleteSelectedButton.disabled =
+        selectedKeyIds.size === 0;
+
+      const visibleIds =
+        currentPageKeys.map(
+          (item) => item.id
+        );
+
+      const selectedVisible =
+        visibleIds.filter(
+          (id) => selectedKeyIds.has(id)
+        ).length;
+
+      selectAllKeys.checked =
+        visibleIds.length > 0 &&
+        selectedVisible ===
+          visibleIds.length;
+
+      selectAllKeys.indeterminate =
+        selectedVisible > 0 &&
+        selectedVisible <
+          visibleIds.length;
+    }
+
+    function renderKeyList(data) {
+      currentPageKeys =
+        Array.isArray(data.keys)
+          ? data.keys
+          : [];
+
+      const pagination =
+        data.pagination || {};
+
+      currentPage =
+        Number(pagination.page || 1);
+
+      totalPages =
+        Number(
+          pagination.totalPages || 1
+        );
+
+      keyTableBody.textContent = "";
+
+      if (!currentPageKeys.length) {
+        const row =
+          document.createElement("tr");
+
+        const cell =
+          document.createElement("td");
+
+        cell.colSpan = 5;
+        cell.className = "empty-row";
+
+        cell.textContent =
+          "Không Có Key Phù Hợp Với Bộ Lọc.";
+
+        row.appendChild(cell);
+        keyTableBody.appendChild(row);
+      } else {
+        for (
+          const item of currentPageKeys
+        ) {
+          const row =
+            document.createElement("tr");
+
+          const checkboxCell =
+            document.createElement("td");
+
+          const checkbox =
+            document.createElement("input");
+
+          checkbox.type = "checkbox";
+          checkbox.className = "checkbox";
+          checkbox.checked =
+            selectedKeyIds.has(item.id);
+
+          checkbox.addEventListener(
+            "change",
+            () => {
+              if (checkbox.checked) {
+                selectedKeyIds.add(
+                  item.id
+                );
+              } else {
+                selectedKeyIds.delete(
+                  item.id
+                );
+              }
+
+              updateSelectedUi();
+            }
+          );
+
+          checkboxCell.appendChild(
+            checkbox
+          );
+
+          const keyCell =
+            document.createElement("td");
+
+          const keyCode =
+            document.createElement("code");
+
+          keyCode.className = "key-code";
+          keyCode.textContent =
+            item.keyValue;
+
+          keyCell.appendChild(keyCode);
+
+          const statusCell =
+            document.createElement("td");
+
+          const statusInfo =
+            getStatusInfo(item.status);
+
+          const badge =
+            document.createElement("span");
+
+          badge.className =
+            `status-badge ${statusInfo.className}`;
+
+          badge.textContent =
+            statusInfo.label;
+
+          statusCell.appendChild(badge);
+
+          const createdCell =
+            document.createElement("td");
+
+          createdCell.className =
+            "date-text";
+
+          createdCell.textContent =
+            formatDate(item.createdAt);
+
+          const claimedCell =
+            document.createElement("td");
+
+          claimedCell.className =
+            "date-text";
+
+          claimedCell.textContent =
+            formatDate(item.claimedAt);
+
+          row.append(
+            checkboxCell,
+            keyCell,
+            statusCell,
+            createdCell,
+            claimedCell
+          );
+
+          keyTableBody.appendChild(row);
+        }
+      }
+
+      pageInfo.textContent =
+        `Trang ${currentPage} / ${totalPages}`;
+
+      previousPageButton.disabled =
+        currentPage <= 1;
+
+      nextPageButton.disabled =
+        currentPage >= totalPages;
+
+      updateSelectedUi();
+    }
+
+    async function signInWithPassword() {
+      const email =
+        String(emailInput.value || "")
+          .trim()
+          .toLowerCase();
+
+      const password =
+        String(passwordInput.value || "");
+
+      if (!email || !password) {
+        setMessage(
+          loginMessage,
+          "Bạn Chưa Nhập Email Hoặc Mật Khẩu.",
+          "error"
+        );
+
+        return;
+      }
+
+      if (email !== ADMIN_EMAIL) {
+        setMessage(
+          loginMessage,
+          "Email Này Không Được Phép Truy Cập Trang Quản Trị.",
+          "error"
+        );
+
+        return;
+      }
+
+      setLoading(
+        loginButton,
+        true,
+        "Đang Đăng Nhập..."
+      );
+
+      setMessage(loginMessage, "");
+
+      try {
+        // Gửi mật khẩu tới Edge Function để lấy token quản trị.
+        const data =
+          await adminApi(
+            "admin-login",
+            { password },
+            false
+          );
+
+        saveToken(data.adminToken);
+
+        passwordInput.value = "";
+
+        await openDashboard(data);
+      } catch (error) {
+        setMessage(
+          loginMessage,
+          String(
+            error?.message ||
+            error
+          ),
+          "error"
+        );
+      } finally {
+        setLoading(
+          loginButton,
+          false,
+          "Đăng Nhập"
+        );
+      }
+    }
+
+    // data (tùy chọn): kết quả admin-login đã có sẵn stats + settings.
+    async function openDashboard(data) {
+      setMessage(loginMessage, "");
+
+      loginView.hidden = true;
+      dashboardView.hidden = false;
+
+      try {
+        const payload =
+          data ||
+          await adminApi("admin-refresh");
+
+        renderStats(payload);
+        renderSettings(payload.settings);
+
+        selectedKeyIds.clear();
+        await loadKeyList(1);
+      } catch (dataError) {
+        setMessage(
+          keyMessage,
+          "Không Tải Được Dữ Liệu: " +
+            String(dataError?.message || dataError),
+          "error"
+        );
+      }
+    }
+
+    function logout() {
+      selectedKeyIds.clear();
+      saveToken("");
+
+      dashboardView.hidden = true;
+      loginView.hidden = false;
+
+      setMessage(
+        loginMessage,
+        "Đã Đăng Xuất.",
+        "success"
+      );
+    }
+
+    function handleAdminError(
+      error,
+      messageElement
+    ) {
+      if (
+        [
+          "UNAUTHORIZED",
+          "HTTP_401"
+        ].includes(String(error?.code || ""))
+      ) {
+        logout();
+
+        setMessage(
+          loginMessage,
+          String(error.message),
+          "error"
+        );
+
+        return;
+      }
+
+      setMessage(
+        messageElement,
+        String(
+          error?.message ||
+          error
+        ),
+        "error"
+      );
+    }
+
+    async function refreshStats() {
+      setLoading(
+        refreshButton,
+        true,
+        "Đang Tải..."
+      );
+
+      try {
+        renderStats(
+          await adminApi(
+            "admin-stats"
+          )
+        );
+      } catch (error) {
+        await handleAdminError(
+          error,
+          keyMessage
+        );
+      } finally {
+        setLoading(
+          refreshButton,
+          false,
+          "Làm Mới"
+        );
+      }
+    }
+
+    async function saveSettings() {
+      setLoading(
+        saveSettingsButton,
+        true,
+        "Đang Lưu..."
+      );
+
+      setMessage(settingsMessage, "");
+
+      try {
+        const data =
+          await adminApi(
+            "admin-update-settings",
+            {
+              downloadIpaUrl:
+                downloadIpaUrl.value,
+              telegramUrl:
+                telegramUrl.value,
+              supportUrl:
+                supportUrl.value
+            }
+          );
+
+        renderSettings(data.settings);
+
+        setMessage(
+          settingsMessage,
+          "Đã Lưu Các Đường Link Thành Công.",
+          "success"
+        );
+      } catch (error) {
+        await handleAdminError(
+          error,
+          settingsMessage
+        );
+      } finally {
+        setLoading(
+          saveSettingsButton,
+          false,
+          "Lưu Các Đường Link"
+        );
+      }
+    }
+
+    async function addKeys() {
+      const keys =
+        keyInput.value.trim();
+
+      if (!keys) {
+        setMessage(
+          keyMessage,
+          "Bạn Chưa Nhập Key.",
+          "error"
+        );
+
+        return;
+      }
+
+      setLoading(
+        addButton,
+        true,
+        "Đang Thêm..."
+      );
+
+      setMessage(keyMessage, "");
+
+      try {
+        const data =
+          await adminApi(
+            "admin-add-keys",
+            { keys }
+          );
+
+        setMessage(
+          keyMessage,
+          `Đã Thêm ${data.inserted} Key. Trùng ${data.duplicates} Key.`,
+          "success"
+        );
+
+        keyInput.value = "";
+        selectedKeyIds.clear();
+
+        await Promise.all([
+          refreshStats(),
+          loadKeyList(1)
+        ]);
+      } catch (error) {
+        await handleAdminError(
+          error,
+          keyMessage
+        );
+      } finally {
+        setLoading(
+          addButton,
+          false,
+          "Thêm Key Vào Kho"
+        );
+      }
+    }
+
+    async function loadKeyList(
+      page = currentPage
+    ) {
+      setLoading(
+        reloadListButton,
+        true,
+        "Đang Tải..."
+      );
+
+      setMessage(listMessage, "");
+
+      try {
+        const data =
+          await adminApi(
+            "admin-list-keys",
+            {
+              page,
+              pageSize,
+              search:
+                keySearchInput.value
+                  .trim(),
+              status:
+                statusFilter.value
+            }
+          );
+
+        renderKeyList(data);
+      } catch (error) {
+        await handleAdminError(
+          error,
+          listMessage
+        );
+      } finally {
+        setLoading(
+          reloadListButton,
+          false,
+          "Tải Lại Danh Sách"
+        );
+      }
+    }
+
+    async function deleteSelectedKeys() {
+      const keyIds =
+        Array.from(selectedKeyIds);
+
+      if (!keyIds.length) {
+        setMessage(
+          listMessage,
+          "Bạn Chưa Chọn Key Cần Xóa.",
+          "error"
+        );
+
+        return;
+      }
+
+      const confirmed =
+        window.confirm(
+          `Bạn Có Chắc Muốn Xóa ${keyIds.length} Key Đã Chọn Không?\n\nKey Đã Xóa Sẽ Không Thể Khôi Phục.`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      setLoading(
+        deleteSelectedButton,
+        true,
+        "Đang Xóa..."
+      );
+
+      setMessage(listMessage, "");
+
+      try {
+        const data =
+          await adminApi(
+            "admin-delete-keys",
+            { keyIds }
+          );
+
+        selectedKeyIds.clear();
+
+        setMessage(
+          listMessage,
+          `Đã Xóa ${data.deleted} Key.`,
+          "success"
+        );
+
+        await refreshStats();
+        await loadKeyList(currentPage);
+      } catch (error) {
+        await handleAdminError(
+          error,
+          listMessage
+        );
+      } finally {
+        setLoading(
+          deleteSelectedButton,
+          false,
+          "Xóa Key Đã Chọn"
+        );
+
+        updateSelectedUi();
+      }
+    }
+
+    async function initializeAdmin() {
+      // Nếu đã có token còn lưu, tự mở lại dashboard.
+      adminToken = loadStoredToken();
+
+      if (adminToken) {
+        await openDashboard();
+      } else {
+        loginView.hidden = false;
+        dashboardView.hidden = true;
+      }
+    }
+
+    loginButton.addEventListener(
+      "click",
+      signInWithPassword
+    );
+
+    togglePasswordButton.addEventListener(
+      "click",
+      () => {
+        passwordInput.type =
+          passwordInput.type === "password"
+            ? "text"
+            : "password";
+      }
+    );
+
+    passwordInput.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.key === "Enter") {
+          signInWithPassword();
+        }
+      }
+    );
+
+    emailInput.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.key === "Enter") {
+          signInWithPassword();
+        }
+      }
+    );
+
+    logoutButton.addEventListener(
+      "click",
+      logout
+    );
+
+    refreshButton.addEventListener(
+      "click",
+      refreshStats
+    );
+
+    saveSettingsButton.addEventListener(
+      "click",
+      saveSettings
+    );
+
+    addButton.addEventListener(
+      "click",
+      addKeys
+    );
+
+    reloadListButton.addEventListener(
+      "click",
+      () => loadKeyList(currentPage)
+    );
+
+    searchButton.addEventListener(
+      "click",
+      () => {
+        selectedKeyIds.clear();
+        loadKeyList(1);
+      }
+    );
+
+    statusFilter.addEventListener(
+      "change",
+      () => {
+        selectedKeyIds.clear();
+        loadKeyList(1);
+      }
+    );
+
+    keySearchInput.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.key === "Enter") {
+          selectedKeyIds.clear();
+          loadKeyList(1);
+        }
+      }
+    );
+
+    selectAllKeys.addEventListener(
+      "change",
+      () => {
+        for (
+          const item of currentPageKeys
+        ) {
+          if (selectAllKeys.checked) {
+            selectedKeyIds.add(item.id);
+          } else {
+            selectedKeyIds.delete(item.id);
+          }
+        }
+
+        renderKeyList({
+          keys: currentPageKeys,
+          pagination: {
+            page: currentPage,
+            totalPages
+          }
+        });
+      }
+    );
+
+    deleteSelectedButton.addEventListener(
+      "click",
+      deleteSelectedKeys
+    );
+
+    previousPageButton.addEventListener(
+      "click",
+      () => {
+        if (currentPage > 1) {
+          loadKeyList(
+            currentPage - 1
+          );
+        }
+      }
+    );
+
+    nextPageButton.addEventListener(
+      "click",
+      () => {
+        if (
+          currentPage < totalPages
+        ) {
+          loadKeyList(
+            currentPage + 1
+          );
+        }
+      }
+    );
+
+    dropZone.addEventListener(
+      "click",
+      () => fileInput.click()
+    );
+
+    ["dragenter", "dragover"]
+      .forEach((name) => {
+        dropZone.addEventListener(
+          name,
+          (event) => {
+            event.preventDefault();
+            dropZone.classList.add(
+              "drag"
+            );
+          }
+        );
+      });
+
+    ["dragleave", "drop"]
+      .forEach((name) => {
+        dropZone.addEventListener(
+          name,
+          (event) => {
+            event.preventDefault();
+            dropZone.classList.remove(
+              "drag"
+            );
+          }
+        );
+      });
+
+    dropZone.addEventListener(
+      "drop",
+      async (event) => {
+        const file =
+          event.dataTransfer
+            .files?.[0];
+
+        if (file) {
+          keyInput.value =
+            await file.text();
+        }
+      }
+    );
+
+    fileInput.addEventListener(
+      "change",
+      async () => {
+        const file =
+          fileInput.files?.[0];
+
+        if (file) {
+          keyInput.value =
+            await file.text();
+        }
+      }
+    );
+
+    initializeAdmin();
+  </script>
+</body>
+</html>
