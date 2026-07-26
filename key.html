@@ -542,9 +542,12 @@
           return;
         }
 
+        const errorCode =
+          String(error?.code || error?.message || "UNKNOWN");
+
         keyValue.textContent = "Không Thể Tải Key";
-        statusText.textContent = "Lỗi Kết Nối";
-        showToast("Không Thể Tải Key. Vui Lòng Thử Lại.");
+        statusText.textContent = "Lỗi: " + errorCode;
+        showToast("Không Thể Tải Key. Mã Lỗi: " + errorCode);
       }
     }
 
