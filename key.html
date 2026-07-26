@@ -444,8 +444,20 @@
           return;
         }
 
-        // Token đã dùng rồi / không hợp lệ / hết hạn.
-        showExpired();
+        // Token thật sự hết hạn / đã dùng / không tồn tại: bảo vượt lại.
+        if (
+          code === "INVALID_SESSION" ||
+          code === "SESSION_EXPIRED" ||
+          code === "TOKEN_REQUIRED"
+        ) {
+          showExpired();
+          return;
+        }
+
+        // Lỗi server khác (claim_key hỏng...): hiện mã lỗi thật để sửa đúng.
+        keyValue.textContent = "Không Thể Tải Key";
+        statusText.textContent = "Lỗi: " + (code || "UNKNOWN");
+        showToast("Không Thể Tải Key. Mã Lỗi: " + (code || "UNKNOWN"));
       }
     }
 
