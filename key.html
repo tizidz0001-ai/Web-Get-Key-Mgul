@@ -221,8 +221,8 @@
     <h1>Key Của Bạn</h1>
 
     <p class="subtitle">
-      Sao Chép Key Bên Dưới Và Nhập Vào Ứng Dụng Hoặc Bot. Tải Lại Trang
-      Vẫn Hiển Thị Đúng Key Cũ Của Phiên Này.
+      Sao Chép Key Bên Dưới Ngay Bây Giờ. Key Chỉ Hiển Thị Một Lần,
+      Tải Lại Trang Sẽ Mất Và Bạn Phải Vượt Link Lại Từ Đầu.
     </p>
 
     <section class="key-box">
@@ -299,11 +299,6 @@
     const toast = document.getElementById("toast");
     const statusText = document.querySelector(".meta-item strong");
 
-    const SESSION_STORAGE_KEY =
-      config.SESSION_STORAGE_KEY || "migul_key_session_token_v1";
-    const KEY_CACHE_STORAGE_KEY =
-      config.KEY_CACHE_STORAGE_KEY || "migul_claimed_key_cache_v1";
-
     let currentKey = "";
 
     document.title =
@@ -370,88 +365,15 @@
       return data;
     }
 
-    function readJsonStorage(storageKey) {
-      try {
-        const raw = localStorage.getItem(storageKey);
-        return raw ? JSON.parse(raw) : null;
-      } catch {
-        return null;
-      }
-    }
-
-    function saveSessionToken(token) {
-      const oldSession = readJsonStorage(SESSION_STORAGE_KEY);
-
-      if (oldSession?.token !== token) {
-        localStorage.removeItem(KEY_CACHE_STORAGE_KEY);
-      }
-
-      localStorage.setItem(
-        SESSION_STORAGE_KEY,
-        JSON.stringify({
-          token,
-          createdAt: Date.now()
-        })
-      );
-    }
-
-    function acceptTokenFromUrl() {
+    // Lấy token từ URL (?token=...). Token do Edge Function tạo là UUID.
+    function getTokenFromUrl() {
       const params = new URLSearchParams(window.location.search);
       const token = String(params.get("token") || "").trim();
 
-      if (!token) {
-        return false;
-      }
-
-      // Token do Edge Function tạo là UUID.
       const uuidPattern =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-      if (!uuidPattern.test(token)) {
-        return false;
-      }
-
-      saveSessionToken(token);
-
-      // Xóa token khỏi thanh địa chỉ sau khi đã lưu.
-      window.history.replaceState(
-        {},
-        document.title,
-        window.location.pathname
-      );
-
-      return true;
-    }
-
-    function readSession() {
-      const session = readJsonStorage(SESSION_STORAGE_KEY);
-
-      if (!session?.token) {
-        return null;
-      }
-
-      return session;
-    }
-
-    function readCachedKey() {
-      const cached = readJsonStorage(KEY_CACHE_STORAGE_KEY);
-
-      if (!cached?.key) {
-        return null;
-      }
-
-      return cached;
-    }
-
-    function saveCachedKey(token, key) {
-      localStorage.setItem(
-        KEY_CACHE_STORAGE_KEY,
-        JSON.stringify({
-          token,
-          key,
-          savedAt: Date.now()
-        })
-      );
+      return uuidPattern.test(token) ? token : "";
     }
 
     function renderKey(key, label = "Còn Hiệu Lực") {
@@ -465,89 +387,65 @@
       window.location.replace("index.html?key_required=1");
     }
 
-    async function loadKey() {
-      const hasFreshToken = acceptTokenFromUrl();
-
+    // Token dùng một lần: hết hạn ngay khi tải lại trang.
+    // Không có token trên URL = phải vượt link lại từ đầu.
+    function showExpired() {
+      keyValue.textContent = "Token Đã Hết Hạn";
+      statusText.textContent = "Hết Hạn Token";
       copyButton.disabled = true;
-      keyValue.textContent = "Đang Kiểm Tra Phiên...";
-      statusText.textContent = "Đang Kiểm Tra";
+      showToast("Token Đã Hết Hạn. Vui Lòng Vượt Link Lại Từ Đầu.");
+      setTimeout(redirectToStart, 1600);
+    }
 
-      const session = readSession();
-      const cached = readCachedKey();
+    async function loadKey() {
+      const token = getTokenFromUrl();
 
-      if (!session) {
-        if (cached?.key) {
-          renderKey(cached.key, "Key Cũ");
-          return;
-        }
-
-        redirectToStart();
+      // Không có token hợp lệ (mở thẳng / tải lại trang) => hết hạn.
+      if (!token) {
+        showExpired();
         return;
       }
 
-      if (cached?.token === session.token && cached?.key) {
-        renderKey(cached.key);
-      }
+      // Xóa token khỏi thanh địa chỉ: tải lại trang sẽ không còn token.
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname
+      );
+
+      copyButton.disabled = true;
+      keyValue.textContent = "Đang Lấy Key...";
+      statusText.textContent = "Đang Xử Lý";
 
       try {
-        const data = await callKeyApi("claim", {
-          token: session.token
-        });
+        const data = await callKeyApi("claim", { token });
 
         if (!data.key) {
           throw new Error("KEY_NOT_FOUND");
         }
 
-        saveCachedKey(session.token, data.key);
         renderKey(data.key);
       } catch (error) {
         console.error(error);
 
-        if (cached?.token === session.token && cached?.key) {
-          renderKey(cached.key, "Key Cũ");
-          showToast("Không Thể Kết Nối Máy Chủ. Đang Hiển Thị Key Đã Lưu.");
-          return;
-        }
+        const code = String(error?.code || error?.message || "");
 
-        if (
-          error.code === "INVALID_SESSION" ||
-          error.code === "SESSION_EXPIRED"
-        ) {
-          localStorage.removeItem(SESSION_STORAGE_KEY);
-          showToast("Phiên Đã Hết Hạn. Vui Lòng Vượt Link Lại.");
-          setTimeout(redirectToStart, 1400);
-          return;
-        }
-
-        if (error.code === "OUT_OF_KEYS") {
+        if (code === "OUT_OF_KEYS") {
           keyValue.textContent = "Tạm Hết Key";
           statusText.textContent = "Hết Key";
           showToast("Kho Key Đã Hết. Vui Lòng Quay Lại Sau.");
           return;
         }
 
-        if (error.message === "SUPABASE_NOT_CONFIGURED") {
+        if (code === "SUPABASE_NOT_CONFIGURED") {
           keyValue.textContent = "Chưa Cấu Hình Supabase";
           statusText.textContent = "Lỗi Cấu Hình";
           showToast("Bạn Chưa Điền SUPABASE_URL Trong config.js.");
           return;
         }
 
-        // Vào thẳng key.html (không có token mới trên URL) mà claim hỏng:
-        // đưa về trang chính để vượt link lại thay vì báo lỗi cụt.
-        if (!hasFreshToken) {
-          localStorage.removeItem(SESSION_STORAGE_KEY);
-          showToast("Vui Lòng Vượt Link Từ Đầu Để Nhận Key.");
-          setTimeout(redirectToStart, 1400);
-          return;
-        }
-
-        const errorCode =
-          String(error?.code || error?.message || "UNKNOWN");
-
-        keyValue.textContent = "Không Thể Tải Key";
-        statusText.textContent = "Lỗi: " + errorCode;
-        showToast("Không Thể Tải Key. Mã Lỗi: " + errorCode);
+        // Token đã dùng rồi / không hợp lệ / hết hạn.
+        showExpired();
       }
     }
 
