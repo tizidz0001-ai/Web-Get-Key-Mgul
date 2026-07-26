@@ -850,6 +850,15 @@
             </div>
 
             <button
+              class="primary"
+              id="reactivateSelectedButton"
+              type="button"
+              disabled
+            >
+              Kích Hoạt Lại Key
+            </button>
+
+            <button
               class="danger"
               id="deleteSelectedButton"
               type="button"
@@ -1023,6 +1032,9 @@
 
     const deleteSelectedButton =
       document.getElementById("deleteSelectedButton");
+
+    const reactivateSelectedButton =
+      document.getElementById("reactivateSelectedButton");
 
     const selectedCount =
       document.getElementById("selectedCount");
@@ -1450,6 +1462,9 @@
         `Đã Chọn ${selectedKeyIds.size} Key`;
 
       deleteSelectedButton.disabled =
+        selectedKeyIds.size === 0;
+
+      reactivateSelectedButton.disabled =
         selectedKeyIds.size === 0;
 
       const visibleIds =
@@ -2036,6 +2051,64 @@
       }
     }
 
+    async function reactivateSelectedKeys() {
+      const keyIds =
+        Array.from(selectedKeyIds);
+
+      if (!keyIds.length) {
+        setMessage(
+          listMessage,
+          "Bạn Chưa Chọn Key Cần Kích Hoạt Lại.",
+          "error"
+        );
+
+        return;
+      }
+
+      setLoading(
+        reactivateSelectedButton,
+        true,
+        "Đang Kích Hoạt..."
+      );
+
+      setMessage(listMessage, "");
+
+      try {
+        const data =
+          await adminApi(
+            "admin-update-status",
+            {
+              keyIds,
+              status: "available"
+            }
+          );
+
+        selectedKeyIds.clear();
+
+        setMessage(
+          listMessage,
+          `Đã Kích Hoạt Lại ${data.updated} Key. Người Khác Có Thể Vượt Link Nhận Lại.`,
+          "success"
+        );
+
+        await refreshStats();
+        await loadKeyList(currentPage);
+      } catch (error) {
+        await handleAdminError(
+          error,
+          listMessage
+        );
+      } finally {
+        setLoading(
+          reactivateSelectedButton,
+          false,
+          "Kích Hoạt Lại"
+        );
+
+        updateSelectedUi();
+      }
+    }
+
     async function initializeAdmin() {
       // Nếu đã có token còn lưu, tự mở lại dashboard.
       adminToken = loadStoredToken();
@@ -2168,6 +2241,11 @@
     deleteSelectedButton.addEventListener(
       "click",
       deleteSelectedKeys
+    );
+
+    reactivateSelectedButton.addEventListener(
+      "click",
+      reactivateSelectedKeys
     );
 
     previousPageButton.addEventListener(
