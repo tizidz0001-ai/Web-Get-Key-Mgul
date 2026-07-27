@@ -1076,6 +1076,7 @@
       if (!response.ok || data.success !== true) {
         const error = new Error(data.error || `HTTP_${response.status}`);
         error.code = data.error || `HTTP_${response.status}`;
+        error.detail = data.detail || null;
         throw error;
       }
 
@@ -1273,17 +1274,27 @@
             "TrafficVN 2 Trả Về Dữ Liệu Không Hợp Lệ.",
           SHORTENER_REQUEST_FAILED:
             "TrafficVN Không Thể Tạo Link. Vui Lòng Thử Lại.",
+          SHORTENER_ALL_FAILED:
+            "Tất Cả Web Rút Gọn Đều Lỗi. Vui Lòng Thử Lại.",
+          DATABASE_REQUEST_FAILED:
+            "Lỗi Cơ Sở Dữ Liệu. Vui Lòng Thử Lại Sau.",
           CREATE_SESSION_FAILED:
             "Không Thể Tạo Phiên Nhận Key.",
           SUPABASE_NOT_CONFIGURED:
             "Bạn Chưa Điền SUPABASE_URL Trong config.js."
         };
 
-        showToast(
+        let text =
           messages[error.code] ||
           messages[error.message] ||
-          "Không Thể Tạo Link. Vui Lòng Thử Lại."
-        );
+          `Không Thể Tạo Link (${error.code || "UNKNOWN"}).`;
+
+        // Kèm chi tiết TrafficVN trả về (nếu có) để dễ dò lỗi cấu hình.
+        if (error.detail) {
+          text += ` [${String(error.detail).slice(0, 200)}]`;
+        }
+
+        showToast(text);
       } finally {
         setGetKeyLoading(false);
         updateKeyCount();
