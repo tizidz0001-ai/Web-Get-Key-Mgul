@@ -567,58 +567,127 @@
       font-size: 11px;
       line-height: 1.4;
     }
-    /* Thông báo nổi trên cùng cho user */
+    /* Thông báo nổi dạng popup cho user (giữa màn hình) */
     .announcement-bar {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 60;
+      inset: 0;
+      z-index: 70;
       display: none;
       align-items: center;
-      gap: 12px;
-      padding: 11px 16px;
-      color: #fff;
-      background: linear-gradient(90deg, #b02a5b, #7a1fa2);
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
-      font-size: 14px;
-      line-height: 1.45;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(6, 10, 18, 0.66);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      opacity: 0;
+      transition: opacity 0.25s ease;
     }
 
     .announcement-bar.show {
       display: flex;
+      opacity: 1;
     }
 
-    .announcement-bar .announcement-icon {
-      flex: 0 0 auto;
-      font-size: 16px;
-    }
-
-    .announcement-bar .announcement-content {
-      flex: 1 1 auto;
-      word-break: break-word;
-    }
-
-    .announcement-bar .announcement-dismiss {
-      flex: 0 0 auto;
-      cursor: pointer;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      background: rgba(255, 255, 255, 0.12);
+    .announcement-popup {
+      position: relative;
+      width: min(420px, 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 30px 26px 24px;
+      text-align: center;
       color: #fff;
-      padding: 5px 10px;
-      border-radius: 8px;
-      font-size: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 22px;
+      background:
+        radial-gradient(120% 120% at 50% 0%, rgba(176, 42, 91, 0.55), transparent 60%),
+        linear-gradient(160deg, #1a1030, #120a22);
+      box-shadow:
+        0 24px 70px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transform: translateY(16px) scale(0.96);
+      transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+    }
+
+    .announcement-bar.show .announcement-popup {
+      transform: translateY(0) scale(1);
+    }
+
+    .announcement-popup .announcement-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 58px;
+      height: 58px;
+      font-size: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #b02a5b, #7a1fa2);
+      box-shadow: 0 10px 26px rgba(176, 42, 91, 0.5);
+    }
+
+    .announcement-popup .announcement-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .announcement-popup .announcement-content {
+      font-size: 14.5px;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.88);
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .announcement-popup .announcement-dismiss {
+      margin-top: 6px;
+      cursor: pointer;
+      border: none;
+      color: #fff;
+      padding: 11px 22px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      font-weight: 600;
       white-space: nowrap;
+      background: linear-gradient(135deg, #b02a5b, #7a1fa2);
+      box-shadow: 0 8px 22px rgba(122, 31, 162, 0.45);
+      transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    }
+
+    .announcement-popup .announcement-dismiss:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+      box-shadow: 0 12px 28px rgba(122, 31, 162, 0.6);
+    }
+
+    .announcement-popup .announcement-dismiss:active {
+      transform: translateY(0);
+    }
+
+    /* Nút X đóng nhanh (không lưu ẩn 1 ngày) */
+    .announcement-popup .announcement-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: none;
+      border-radius: 50%;
+      font-size: 18px;
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.75);
+      background: rgba(255, 255, 255, 0.08);
       transition: 0.2s ease;
     }
 
-    .announcement-bar .announcement-dismiss:hover {
-      background: rgba(255, 255, 255, 0.25);
-    }
-
-    /* Khi banner hiện, đẩy nội dung trang xuống để không bị che */
-    body.has-announcement {
-      padding-top: 52px;
+    .announcement-popup .announcement-close:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.2);
     }
 
 .toast {
@@ -828,17 +897,20 @@
 <body>
   <div id="sakuraLayer" aria-hidden="true"></div>
 
-  <!-- Thông báo nổi cho user (admin bật/tắt). User có thể ẩn 1 ngày. -->
-  <div id="announcementBar" class="announcement-bar" role="alert" hidden>
-    <span class="announcement-icon" aria-hidden="true">📢</span>
-    <span id="announcementContent" class="announcement-content"></span>
-    <button
-      id="announcementDismiss"
-      class="announcement-dismiss"
-      type="button"
-    >
-      Tắt Trong 1 Ngày
-    </button>
+  <!-- Thông báo nổi dạng popup cho user (admin bật/tắt). User có thể ẩn 1 ngày. -->
+  <div id="announcementBar" class="announcement-bar" role="dialog" aria-modal="true" hidden>
+    <div class="announcement-popup">
+      <span class="announcement-icon" aria-hidden="true">📢</span>
+      <h3 class="announcement-title">Thông Báo</h3>
+      <p id="announcementContent" class="announcement-content"></p>
+      <button
+        id="announcementDismiss"
+        class="announcement-dismiss"
+        type="button"
+      >
+        Tắt Trong 1 Ngày
+      </button>
+    </div>
   </div>
 
   <main class="page">
