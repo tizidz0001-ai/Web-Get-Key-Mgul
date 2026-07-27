@@ -348,13 +348,35 @@
 
     .shortener-row {
       display: grid;
-      grid-template-columns: 1fr 1.4fr 1.4fr auto;
+      grid-template-columns: auto 1fr 1.4fr 1.4fr auto;
       gap: 10px;
-      align-items: end;
+      align-items: center;
       padding: 14px;
       border: 1px solid var(--border);
       border-radius: 15px;
       background: rgba(255, 255, 255, .025);
+    }
+
+    .shortener-row.off {
+      opacity: .5;
+    }
+
+    .shortener-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 46px;
+      padding: 0 6px;
+      font-size: 13px;
+      font-weight: 850;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .shortener-toggle input {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
     }
 
     .shortener-row .field label {
@@ -757,6 +779,42 @@
       <section class="section">
         <div class="section-head">
           <div>
+            <h2>Thông Báo Nổi Cho User</h2>
+            <p>
+              Hiện Một Dải Thông Báo Nổi Trên Cùng Trang Người Dùng. Bật Công Tắc
+              Để Hiển Thị. User Có Thể Bấm "Tắt Trong 1 Ngày" Để Ẩn 24 Giờ.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div>
+            <label class="shortener-toggle" for="announcementEnabled">
+              <input type="checkbox" id="announcementEnabled" class="checkbox" />
+              <span>Hiển Thị Thông Báo</span>
+            </label>
+          </div>
+        </div>
+
+        <label for="announcementText">Nội Dung Thông Báo (Tối Đa 500 Ký Tự)</label>
+        <textarea
+          id="announcementText"
+          maxlength="500"
+          placeholder="VD: Hệ thống bảo trì từ 22h-23h hôm nay, vui lòng quay lại sau."
+        ></textarea>
+
+        <div class="actions">
+          <button class="primary" id="saveAnnouncementButton" type="button">
+            Lưu Thông Báo
+          </button>
+        </div>
+
+        <div class="message" id="announcementMessage"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
             <h2>Thêm Key Vào Kho</h2>
             <p>Nhập Mỗi Key Một Dòng Hoặc Kéo File TXT Vào Ô Bên Dưới.</p>
           </div>
@@ -1011,6 +1069,18 @@
 
     const shortenerMessage =
       document.getElementById("shortenerMessage");
+
+    const announcementText =
+      document.getElementById("announcementText");
+
+    const announcementEnabled =
+      document.getElementById("announcementEnabled");
+
+    const saveAnnouncementButton =
+      document.getElementById("saveAnnouncementButton");
+
+    const announcementMessage =
+      document.getElementById("announcementMessage");
 
     const keySearchInput =
       document.getElementById("keySearchInput");
@@ -1316,6 +1386,16 @@
         settings.supportUrl || "";
 
       renderShorteners(settings);
+      renderAnnouncement(settings);
+    }
+
+    // Đổ cấu hình thông báo nổi vào form.
+    function renderAnnouncement(settings = {}) {
+      announcementText.value =
+        String(settings.announcementText || "");
+
+      announcementEnabled.checked =
+        settings.announcementEnabled === true;
     }
 
     // Đổ cấu hình rút gọn: số lớp + danh sách web.
@@ -1346,10 +1426,25 @@
       list.forEach((item) => addShortenerRow(item));
     }
 
-    // Thêm một dòng web rút gọn (name + apiUrl + apiKey + nút xóa).
+    // Thêm một dòng web rút gọn (bật/tắt + name + apiUrl + apiKey + nút xóa).
     function addShortenerRow(data = {}) {
       const row = document.createElement("div");
       row.className = "shortener-row";
+
+      // Công tắc BẬT/TẮT: chỉ API đang bật mới được dùng để rút gọn.
+      const enableLabel = document.createElement("label");
+      enableLabel.className = "shortener-toggle";
+
+      const enableInput = document.createElement("input");
+      enableInput.type = "checkbox";
+      enableInput.className = "checkbox";
+      enableInput.checked = data.enabled === false ? false : true;
+      enableInput.dataset.field = "enabled";
+
+      const enableText = document.createElement("span");
+      enableText.textContent = "Bật";
+
+      enableLabel.append(enableInput, enableText);
 
       const nameInput = document.createElement("input");
       nameInput.type = "text";
@@ -1377,11 +1472,20 @@
         row.remove();
       });
 
-      row.append(nameInput, apiUrlInput, apiKeyInput, removeButton);
+      // Làm mờ dòng khi API bị tắt để dễ nhìn.
+      const applyDisabledStyle = () => {
+        row.classList.toggle("off", !enableInput.checked);
+        enableText.textContent = enableInput.checked ? "Bật" : "Tắt";
+      };
+
+      enableInput.addEventListener("change", applyDisabledStyle);
+      applyDisabledStyle();
+
+      row.append(enableLabel, nameInput, apiUrlInput, apiKeyInput, removeButton);
       shortenerList.appendChild(row);
     }
 
-    // Gom các dòng web thành mảng { name, apiUrl, apiKey }.
+    // Gom các dòng web thành mảng { name, apiUrl, apiKey, enabled }.
     function collectShorteners() {
       const rows =
         shortenerList.querySelectorAll(".shortener-row");
@@ -1402,10 +1506,14 @@
           return;
         }
 
+        const enableEl =
+          row.querySelector('[data-field="enabled"]');
+
         result.push({
           name: get("name"),
           apiUrl,
-          apiKey
+          apiKey,
+          enabled: enableEl ? enableEl.checked : true
         });
       });
 
@@ -1810,7 +1918,11 @@
         supportUrl: supportUrl.value,
         shortenerLayers:
           Number(shortenerLayers.value) || 2,
-        shorteners: collectShorteners()
+        shorteners: collectShorteners(),
+        announcementText:
+          announcementText.value,
+        announcementEnabled:
+          announcementEnabled.checked
       };
     }
 
@@ -1886,6 +1998,44 @@
           saveShortenersButton,
           false,
           "Lưu Cấu Hình Rút Gọn"
+        );
+      }
+    }
+
+    async function saveAnnouncement() {
+      setLoading(
+        saveAnnouncementButton,
+        true,
+        "Đang Lưu..."
+      );
+
+      setMessage(announcementMessage, "");
+
+      try {
+        const data =
+          await adminApi(
+            "admin-update-settings",
+            collectAllSettings()
+          );
+
+        renderSettings(data.settings);
+        renderShorteners(data.settings);
+
+        setMessage(
+          announcementMessage,
+          "Đã Lưu Thông Báo Thành Công.",
+          "success"
+        );
+      } catch (error) {
+        await handleAdminError(
+          error,
+          announcementMessage
+        );
+      } finally {
+        setLoading(
+          saveAnnouncementButton,
+          false,
+          "Lưu Thông Báo"
         );
       }
     }
@@ -2177,6 +2327,11 @@
     saveShortenersButton.addEventListener(
       "click",
       saveShorteners
+    );
+
+    saveAnnouncementButton.addEventListener(
+      "click",
+      saveAnnouncement
     );
 
     addButton.addEventListener(
