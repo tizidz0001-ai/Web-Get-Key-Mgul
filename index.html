@@ -567,6 +567,60 @@
       font-size: 11px;
       line-height: 1.4;
     }
+    /* Thông báo nổi trên cùng cho user */
+    .announcement-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 60;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 16px;
+      color: #fff;
+      background: linear-gradient(90deg, #b02a5b, #7a1fa2);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .announcement-bar.show {
+      display: flex;
+    }
+
+    .announcement-bar .announcement-icon {
+      flex: 0 0 auto;
+      font-size: 16px;
+    }
+
+    .announcement-bar .announcement-content {
+      flex: 1 1 auto;
+      word-break: break-word;
+    }
+
+    .announcement-bar .announcement-dismiss {
+      flex: 0 0 auto;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      white-space: nowrap;
+      transition: 0.2s ease;
+    }
+
+    .announcement-bar .announcement-dismiss:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Khi banner hiện, đẩy nội dung trang xuống để không bị che */
+    body.has-announcement {
+      padding-top: 52px;
+    }
+
 .toast {
       position: fixed;
       left: 50%;
@@ -774,6 +828,19 @@
 <body>
   <div id="sakuraLayer" aria-hidden="true"></div>
 
+  <!-- Thông báo nổi cho user (admin bật/tắt). User có thể ẩn 1 ngày. -->
+  <div id="announcementBar" class="announcement-bar" role="alert" hidden>
+    <span class="announcement-icon" aria-hidden="true">📢</span>
+    <span id="announcementContent" class="announcement-content"></span>
+    <button
+      id="announcementDismiss"
+      class="announcement-dismiss"
+      type="button"
+    >
+      Tắt Trong 1 Ngày
+    </button>
+  </div>
+
   <main class="page">
     <section class="card">
       <header class="topbar">
@@ -972,6 +1039,9 @@
     const countdownOverlay = document.getElementById("countdownOverlay");
     const countdownNumber = document.getElementById("countdownNumber");
     const ringProgress = document.getElementById("ringProgress");
+    const announcementBar = document.getElementById("announcementBar");
+    const announcementContent = document.getElementById("announcementContent");
+    const announcementDismiss = document.getElementById("announcementDismiss");
 
     // Chu vi vòng tròn tiến trình (r = 52).
     const RING_CIRCUMFERENCE = 2 * Math.PI * 52;
@@ -1101,6 +1171,8 @@
           supportButton,
           settings.supportUrl || config.SUPPORT_URL
         );
+
+        renderAnnouncement(settings);
       } catch (error) {
         console.error("Không Thể Tải Cấu Hình Nút:", error);
 
@@ -1110,6 +1182,81 @@
         setExternalButton(supportButton, config.SUPPORT_URL);
       }
     }
+
+    // Khóa lưu thời điểm hết hạn ẩn thông báo (tắt 1 ngày).
+    const ANNOUNCEMENT_DISMISS_KEY = "migul_announcement_dismissed_until_v1";
+    // Vân tay nội dung thông báo đang ẩn: nếu admin đổi nội dung mới thì hiện lại.
+    const ANNOUNCEMENT_DISMISS_TEXT_KEY = "migul_announcement_dismissed_text_v1";
+
+    let currentAnnouncementText = "";
+
+    // Hiển thị dải thông báo nổi nếu admin bật và user chưa tắt (còn hạn 1 ngày).
+    function renderAnnouncement(settings = {}) {
+      const enabled = settings.announcementEnabled === true;
+      const text = String(settings.announcementText || "").trim();
+
+      currentAnnouncementText = text;
+
+      if (!enabled || !text) {
+        announcementBar.hidden = true;
+        announcementBar.classList.remove("show");
+        document.body.classList.remove("has-announcement");
+        return;
+      }
+
+      // Kiểm tra user đã tắt trong 1 ngày chưa (và cùng nội dung).
+      let dismissedUntil = 0;
+      let dismissedText = "";
+
+      try {
+        dismissedUntil =
+          Number(localStorage.getItem(ANNOUNCEMENT_DISMISS_KEY)) || 0;
+        dismissedText =
+          localStorage.getItem(ANNOUNCEMENT_DISMISS_TEXT_KEY) || "";
+      } catch {
+        dismissedUntil = 0;
+        dismissedText = "";
+      }
+
+      const stillHidden =
+        dismissedUntil > Date.now() && dismissedText === text;
+
+      if (stillHidden) {
+        announcementBar.hidden = true;
+        announcementBar.classList.remove("show");
+        document.body.classList.remove("has-announcement");
+        return;
+      }
+
+      announcementContent.textContent = text;
+      announcementBar.hidden = false;
+      announcementBar.classList.add("show");
+      document.body.classList.add("has-announcement");
+    }
+
+    // User bấm "Tắt Trong 1 Ngày": ẩn banner 24 giờ (lưu localStorage).
+    function dismissAnnouncement() {
+      const oneDayMs = 24 * 60 * 60 * 1000;
+
+      try {
+        localStorage.setItem(
+          ANNOUNCEMENT_DISMISS_KEY,
+          String(Date.now() + oneDayMs)
+        );
+        localStorage.setItem(
+          ANNOUNCEMENT_DISMISS_TEXT_KEY,
+          currentAnnouncementText
+        );
+      } catch {
+        // Bỏ qua nếu trình duyệt chặn localStorage.
+      }
+
+      announcementBar.hidden = true;
+      announcementBar.classList.remove("show");
+      document.body.classList.remove("has-announcement");
+    }
+
+    announcementDismiss.addEventListener("click", dismissAnnouncement);
 
     function renderKeyCount(count, state = "ready") {
       const safeCount = Math.max(0, Number(count) || 0);
