@@ -25,7 +25,7 @@ window.APP_CONFIG = {
   ADMIN_EMAIL: "hatrungson230209@gmail.com",
 
   // Để trống để tự dùng đúng URL admin.html hiện tại.
-  // Có thể điền: "http://getkeyfree.unaux.com/admin.html"
+  // Có thể điền: "https://hypergetkeymigul.vercel.app/"
   ADMIN_REDIRECT_URL: "",
 
   SESSION_STORAGE_KEY: "migul_key_session_token_v1",
