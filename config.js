@@ -7,11 +7,11 @@ window.APP_CONFIG = {
 
   // Project URL của Supabase.
   // Ví dụ: https://abcdefgh.supabase.co
-  SUPABASE_URL: "https://lklomkdyjsmxjklkwbuw.supabase.co",
+  SUPABASE_URL: "https://lklomkdyjsmxjklkwbuw.supabase.co/auth/v1/.well-known/jwks.json",
 
   // Publishable Key trong Supabase > Project Settings > API Keys.
   // Key này được phép đặt ở frontend. Không dùng Secret Key hoặc service_role.
-  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_RyrfCsP4JFU4cf_cBtF77g_GleTAOSm",
+  SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrbG9ta2R5anNteGprbGt3YnV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3NDYyMzcsImV4cCI6MjEwMDMyMjIzN30.a_OpqtI78QzAh-E7hj777g2OZFqp4sM61bKoj8P9T_k",
 
   EDGE_FUNCTION_NAME: "key-api",
 
