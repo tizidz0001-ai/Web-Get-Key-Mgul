@@ -396,13 +396,44 @@
       return data;
     }
 
-    // Lấy token từ URL (?token=...). Token do Edge Function tạo là UUID.
-    function getTokenFromUrl() {
-      const params = new URLSearchParams(window.location.search);
-      const token = String(params.get("token") || "").trim();
+    // Ghép 32 ký tự hex thành UUID chuẩn (8-4-4-4-12).
+    function hexToUuid(hex) {
+      const h = String(hex || "").toLowerCase();
 
+      if (!/^[0-9a-f]{32}$/.test(h)) {
+        return "";
+      }
+
+      return (
+        h.slice(0, 8) + "-" +
+        h.slice(8, 12) + "-" +
+        h.slice(12, 16) + "-" +
+        h.slice(16, 20) + "-" +
+        h.slice(20)
+      );
+    }
+
+    // Lấy token từ URL. Ưu tiên dạng mới /k/{mã} (mã = UUID bỏ gạch, 32 hex);
+    // vẫn hỗ trợ dạng cũ ?token=<uuid> để không phá link đang lưu.
+    function getTokenFromUrl() {
       const uuidPattern =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+      // Dạng mới: /k/<32 hex>. Path có thể là /k/xxxx hoặc /k/xxxx/
+      const pathMatch =
+        window.location.pathname.match(/\/k\/([0-9a-fA-F]{32})\/?$/);
+
+      if (pathMatch) {
+        const fromPath = hexToUuid(pathMatch[1]);
+
+        if (uuidPattern.test(fromPath)) {
+          return fromPath;
+        }
+      }
+
+      // Dạng cũ: ?token=<uuid>
+      const params = new URLSearchParams(window.location.search);
+      const token = String(params.get("token") || "").trim();
 
       return uuidPattern.test(token) ? token : "";
     }
@@ -438,10 +469,12 @@
       }
 
       // Xóa token khỏi thanh địa chỉ: tải lại trang sẽ không còn token.
+      // Token nằm trong path (/k/{mã}) nên phải xóa cả path, không giữ
+      // pathname (nếu giữ /k/{mã} thì tải lại trang sẽ claim lại).
       window.history.replaceState(
         {},
         document.title,
-        window.location.pathname
+        "/"
       );
 
       copyButton.disabled = true;
