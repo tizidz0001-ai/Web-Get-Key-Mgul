@@ -239,7 +239,8 @@
         📋 Sao Chép Key
       </button>
 
-      <a class="btn btn-secondary" href="/index.html"></a>
+      <!-- Đã sửa lỗi: Thẻ a đóng mở đúng cách -->
+      <a class="btn btn-secondary" href="/index.html?key_required=1">
         ← Quay Lại
       </a>
     </div>
@@ -251,7 +252,6 @@
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
 
   <script>
     (function () {
@@ -304,15 +304,12 @@
     const DEVICE_ID_STORAGE_KEY =
       config.DEVICE_ID_STORAGE_KEY || "migul_device_id_v1";
 
-    // Định danh thiết bị bền trong localStorage. Dùng CHUNG khóa với index.html
-    // (cùng origin) để server đếm hạn mức theo cặp (IP + thiết bị).
     function getDeviceId() {
       let id = "";
 
       try {
         id = String(localStorage.getItem(DEVICE_ID_STORAGE_KEY) || "").trim();
       } catch {
-        // localStorage bị chặn: trả về rỗng, server coi là "unknown".
         return "";
       }
 
@@ -396,7 +393,6 @@
       return data;
     }
 
-    // Ghép 32 ký tự hex thành UUID chuẩn (8-4-4-4-12).
     function hexToUuid(hex) {
       const h = String(hex || "").toLowerCase();
 
@@ -413,13 +409,10 @@
       );
     }
 
-    // Lấy token từ URL. Ưu tiên dạng mới /k/{mã} (mã = UUID bỏ gạch, 32 hex);
-    // vẫn hỗ trợ dạng cũ ?token=<uuid> để không phá link đang lưu.
     function getTokenFromUrl() {
       const uuidPattern =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-      // Dạng mới: /k/<32 hex>. Path có thể là /k/xxxx hoặc /k/xxxx/
       const pathMatch =
         window.location.pathname.match(/\/k\/([0-9a-fA-F]{32})\/?$/);
 
@@ -431,7 +424,6 @@
         }
       }
 
-      // Dạng cũ: ?token=<uuid>
       const params = new URLSearchParams(window.location.search);
       const token = String(params.get("token") || "").trim();
 
@@ -446,11 +438,9 @@
     }
 
     function redirectToStart() {
-    window.location.replace("/index.html?key_required=1");
+      window.location.replace("/index.html?key_required=1");
     }
 
-    // Token dùng một lần: hết hạn ngay khi tải lại trang.
-    // Không có token trên URL = phải vượt link lại từ đầu.
     function showExpired() {
       keyValue.textContent = "Token Đã Hết Hạn";
       statusText.textContent = "Hết Hạn Token";
@@ -462,15 +452,11 @@
     async function loadKey() {
       const token = getTokenFromUrl();
 
-      // Không có token hợp lệ (mở thẳng / tải lại trang) => hết hạn.
       if (!token) {
         showExpired();
         return;
       }
 
-      // Xóa token khỏi thanh địa chỉ: tải lại trang sẽ không còn token.
-      // Token nằm trong path (/k/{mã}) nên phải xóa cả path, không giữ
-      // pathname (nếu giữ /k/{mã} thì tải lại trang sẽ claim lại).
       window.history.replaceState(
         {},
         document.title,
@@ -511,7 +497,6 @@
           return;
         }
 
-        // Token thật sự hết hạn / đã dùng / không tồn tại: bảo vượt lại.
         if (
           code === "INVALID_SESSION" ||
           code === "SESSION_EXPIRED" ||
@@ -521,7 +506,6 @@
           return;
         }
 
-        // Token bị claim từ IP khác IP đã tạo (chia sẻ link / đổi mạng giữa chừng).
         if (code === "TOKEN_IP_MISMATCH") {
           keyValue.textContent = "Link Không Hợp Lệ";
           statusText.textContent = "Sai IP";
@@ -532,7 +516,6 @@
           return;
         }
 
-        // Đã đạt trần key/ngày mà chưa từng có key để trả lại.
         if (code === "LIMIT_REACHED") {
           keyValue.textContent = "Đã Đạt Giới Hạn";
           statusText.textContent = "Hết Lượt Hôm Nay";
@@ -542,7 +525,16 @@
           return;
         }
 
-        // Lỗi server khác (claim_key hỏng...): hiện mã lỗi thật để sửa đúng.
+        // FIX QUAN TRỌNG: Nếu gặp lỗi DATABASE_REQUEST_FAILED, đẩy người dùng về trang chủ
+        if (code === "DATABASE_REQUEST_FAILED") {
+           keyValue.textContent = "Lỗi Hệ Thống";
+           statusText.textContent = "Vui lòng thử lại";
+           showToast("Lỗi cơ sở dữ liệu. Hãy quay lại trang chủ và làm lại từ đầu.");
+           setTimeout(redirectToStart, 2500);
+           return;
+        }
+
+        // Lỗi server khác
         keyValue.textContent = "Không Thể Tải Key";
         statusText.textContent = "Lỗi: " + (code || "UNKNOWN");
         showToast("Không Thể Tải Key. Mã Lỗi: " + (code || "UNKNOWN"));
@@ -575,6 +567,5 @@
 
     loadKey();
   </script>
-
 </body>
 </html>
