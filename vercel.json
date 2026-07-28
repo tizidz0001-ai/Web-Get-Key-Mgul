@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/k/:code", "destination": "/key.html" }
+  ]
+}

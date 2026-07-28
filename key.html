@@ -521,6 +521,27 @@
           return;
         }
 
+        // Token bị claim từ IP khác IP đã tạo (chia sẻ link / đổi mạng giữa chừng).
+        if (code === "TOKEN_IP_MISMATCH") {
+          keyValue.textContent = "Link Không Hợp Lệ";
+          statusText.textContent = "Sai IP";
+          showToast(
+            "Link Này Phải Mở Trên Cùng Mạng Đã Tạo. Vui Lòng Vượt Link Lại Từ Đầu."
+          );
+          setTimeout(redirectToStart, 1800);
+          return;
+        }
+
+        // Đã đạt trần key/ngày mà chưa từng có key để trả lại.
+        if (code === "LIMIT_REACHED") {
+          keyValue.textContent = "Đã Đạt Giới Hạn";
+          statusText.textContent = "Hết Lượt Hôm Nay";
+          showToast(
+            "Bạn Đã Lấy Đủ Số Key Trong Ngày. Vui Lòng Quay Lại Sau 00:00."
+          );
+          return;
+        }
+
         // Lỗi server khác (claim_key hỏng...): hiện mã lỗi thật để sửa đúng.
         keyValue.textContent = "Không Thể Tải Key";
         statusText.textContent = "Lỗi: " + (code || "UNKNOWN");

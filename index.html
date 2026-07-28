@@ -892,6 +892,10 @@
       }
     }
   </style>
+
+  <!-- Cloudflare Turnstile (CAPTCHA vô hình) — chặn bot/script gọi create-session.
+       Render tường minh (explicit) để tự điều khiển lấy token khi bấm nút. -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 
 <body>
@@ -980,6 +984,10 @@
               <span>Hỗ Trợ</span>
             </a>
           </div>
+
+          <!-- Widget Cloudflare Turnstile (vô hình). Chỉ render khi đã cấu hình
+               TURNSTILE_SITE_KEY trong config.js. Token lấy lúc bấm "Lấy Key". -->
+          <div id="turnstileWidget" style="display:none"></div>
         </div>
 
         <aside class="stock-card" aria-label="Số lượng key hiện có">
@@ -1127,6 +1135,99 @@
       config.KEY_CACHE_STORAGE_KEY || "migul_claimed_key_cache_v1";
     const DEVICE_ID_STORAGE_KEY =
       config.DEVICE_ID_STORAGE_KEY || "migul_device_id_v1";
+    const TURNSTILE_SITE_KEY =
+      String(config.TURNSTILE_SITE_KEY || "").trim();
+
+    // ID widget Turnstile (đã render invisible). null = chưa render.
+    let turnstileWidgetId = null;
+
+    // Render widget Turnstile (chế độ invisible/execute) khi API đã tải xong.
+    // Không có site key => bỏ qua hoàn toàn (Turnstile chưa bật).
+    function initTurnstile() {
+      if (!TURNSTILE_SITE_KEY) {
+        return;
+      }
+
+      if (typeof window.turnstile === "undefined") {
+        // api.js chưa tải xong: thử lại lát nữa.
+        setTimeout(initTurnstile, 300);
+        return;
+      }
+
+      const holder = document.getElementById("turnstileWidget");
+
+      if (!holder || turnstileWidgetId !== null) {
+        return;
+      }
+
+      try {
+        turnstileWidgetId = window.turnstile.render(holder, {
+          sitekey: TURNSTILE_SITE_KEY,
+          size: "invisible"
+        });
+      } catch (error) {
+        console.error("TURNSTILE_RENDER_ERROR", error);
+      }
+    }
+
+    // Lấy Turnstile token cho lần bấm hiện tại. Trả "" nếu Turnstile chưa bật
+    // (không có site key) => server sẽ tự quyết (nếu server có secret thì chặn).
+    // Có bật => chạy challenge và chờ token (tối đa ~15s).
+    function getTurnstileToken() {
+      return new Promise((resolve) => {
+        if (!TURNSTILE_SITE_KEY || typeof window.turnstile === "undefined") {
+          resolve("");
+          return;
+        }
+
+        if (turnstileWidgetId === null) {
+          initTurnstile();
+        }
+
+        if (turnstileWidgetId === null) {
+          resolve("");
+          return;
+        }
+
+        let settled = false;
+
+        const finish = (value) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          resolve(value);
+        };
+
+        // Reset để mỗi lần bấm sinh token mới (token Turnstile dùng 1 lần).
+        try {
+          window.turnstile.reset(turnstileWidgetId);
+        } catch {
+          // Bỏ qua nếu chưa cần reset.
+        }
+
+        try {
+          window.turnstile.execute(turnstileWidgetId, {
+            callback: (token) => finish(String(token || "")),
+            "error-callback": () => finish(""),
+            "timeout-callback": () => finish("")
+          });
+        } catch (error) {
+          console.error("TURNSTILE_EXECUTE_ERROR", error);
+          finish("");
+          return;
+        }
+
+        // Chốt chặn: không để treo mãi nếu Turnstile không phản hồi.
+        setTimeout(() => finish(""), 15000);
+      });
+    }
+
+    // Cloudflare gọi hàm này khi api.js tải xong (onload trong URL script).
+    window.onTurnstileLoad = initTurnstile;
+
+    // Phòng khi script tải trước lúc JS này chạy: thử render luôn.
+    initTurnstile();
 
     // Định danh thiết bị bền trong localStorage. Dùng chung cho create-session
     // và trang key.html (cùng origin) để server đếm hạn mức theo (IP + thiết bị).
@@ -1485,10 +1586,19 @@
       setGetKeyLoading(true);
 
       try {
+        // Lấy Turnstile token (chống bot). Nếu đã bật Turnstile (có site key)
+        // mà không lấy được token => không tạo session, báo cho user thử lại.
+        const turnstileToken = await getTurnstileToken();
+
+        if (TURNSTILE_SITE_KEY && !turnstileToken) {
+          throw new Error("CAPTCHA_FAILED");
+        }
+
         // Đo thời gian API phản hồi thực tế để đếm ngược đúng bấy nhiêu giây.
         const startedAt = Date.now();
         const session = await callKeyApi("create-session", {
-          deviceId: getDeviceId()
+          deviceId: getDeviceId(),
+          turnstileToken
         });
         const elapsedSeconds = (Date.now() - startedAt) / 1000;
 
@@ -1531,6 +1641,12 @@
             "Lỗi Cơ Sở Dữ Liệu. Vui Lòng Thử Lại Sau.",
           CREATE_SESSION_FAILED:
             "Không Thể Tạo Phiên Nhận Key.",
+          CAPTCHA_FAILED:
+            "Xác Minh Chống Bot Thất Bại. Vui Lòng Thử Lại.",
+          SESSION_RATE_LIMITED:
+            "Bạn Tạo Link Quá Nhiều Lần. Vui Lòng Thử Lại Sau 1 Giờ.",
+          TURNSTILE_TOKEN_MISSING:
+            "Chưa Qua Xác Minh Chống Bot. Vui Lòng Thử Lại.",
           SUPABASE_NOT_CONFIGURED:
             "Bạn Chưa Điền SUPABASE_URL Trong config.js."
         };
