@@ -19,7 +19,7 @@ window.APP_CONFIG = {
   // Lấy ở Cloudflare Dashboard > Turnstile > tạo widget cho domain của bạn.
   // Để TRỐNG = tắt Turnstile (không chặn bot). Điền vào = bật bảo vệ.
   // Lưu ý: phải đặt TURNSTILE_SECRET_KEY trong Supabase Secrets để verify.
-  TURNSTILE_SITE_KEY: "0x4AAAAAAD_qZgzx7LqdFqVG",
+  TURNSTILE_SITE_KEY: "",
 
   // Chỉ email này có thể mở chức năng quản trị.
   ADMIN_EMAIL: "hatrungson230209@gmail.com",
