@@ -25,5 +25,8 @@ window.APP_CONFIG = {
   SESSION_STORAGE_KEY: "migul_key_session_token_v1",
   KEY_CACHE_STORAGE_KEY: "migul_claimed_key_cache_v1",
 
+  // Định danh thiết bị bền (localStorage) để giới hạn số key mỗi (IP + thiết bị).
+  DEVICE_ID_STORAGE_KEY: "migul_device_id_v1",
+
   DISABLE_WHEN_OUT_OF_STOCK: true
 };

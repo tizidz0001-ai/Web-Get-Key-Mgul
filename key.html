@@ -301,6 +301,37 @@
 
     let currentKey = "";
 
+    const DEVICE_ID_STORAGE_KEY =
+      config.DEVICE_ID_STORAGE_KEY || "migul_device_id_v1";
+
+    // Định danh thiết bị bền trong localStorage. Dùng CHUNG khóa với index.html
+    // (cùng origin) để server đếm hạn mức theo cặp (IP + thiết bị).
+    function getDeviceId() {
+      let id = "";
+
+      try {
+        id = String(localStorage.getItem(DEVICE_ID_STORAGE_KEY) || "").trim();
+      } catch {
+        // localStorage bị chặn: trả về rỗng, server coi là "unknown".
+        return "";
+      }
+
+      if (!id) {
+        id =
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+        try {
+          localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
+        } catch {
+          // Không lưu được cũng không sao, phiên này vẫn có id tạm.
+        }
+      }
+
+      return id;
+    }
+
     document.title =
       `${config.APP_NAME || "Get Key Free Fire iPA"} - Key Của Bạn`;
 
@@ -418,7 +449,10 @@
       statusText.textContent = "Đang Xử Lý";
 
       try {
-        const data = await callKeyApi("claim", { token });
+        const data = await callKeyApi("claim", {
+          token,
+          deviceId: getDeviceId()
+        });
 
         if (!data.key) {
           throw new Error("KEY_NOT_FOUND");

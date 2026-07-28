@@ -1125,6 +1125,36 @@
       config.SESSION_STORAGE_KEY || "migul_key_session_token_v1";
     const KEY_CACHE_STORAGE_KEY =
       config.KEY_CACHE_STORAGE_KEY || "migul_claimed_key_cache_v1";
+    const DEVICE_ID_STORAGE_KEY =
+      config.DEVICE_ID_STORAGE_KEY || "migul_device_id_v1";
+
+    // Định danh thiết bị bền trong localStorage. Dùng chung cho create-session
+    // và trang key.html (cùng origin) để server đếm hạn mức theo (IP + thiết bị).
+    function getDeviceId() {
+      let id = "";
+
+      try {
+        id = String(localStorage.getItem(DEVICE_ID_STORAGE_KEY) || "").trim();
+      } catch {
+        // localStorage bị chặn: trả về rỗng, server coi là "unknown".
+        return "";
+      }
+
+      if (!id) {
+        id =
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+        try {
+          localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
+        } catch {
+          // Không lưu được cũng không sao, phiên này vẫn có id tạm.
+        }
+      }
+
+      return id;
+    }
 
     const displayAppName = config.APP_NAME || "Get Key Free Fire iPA";
     appName.textContent = displayAppName;
@@ -1457,7 +1487,9 @@
       try {
         // Đo thời gian API phản hồi thực tế để đếm ngược đúng bấy nhiêu giây.
         const startedAt = Date.now();
-        const session = await callKeyApi("create-session");
+        const session = await callKeyApi("create-session", {
+          deviceId: getDeviceId()
+        });
         const elapsedSeconds = (Date.now() - startedAt) / 1000;
 
         if (!session.token || !session.shortUrl) {
