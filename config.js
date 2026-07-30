@@ -17,8 +17,15 @@ window.APP_CONFIG = {
 
   // Cloudflare Turnstile SITE KEY (public, dán ở frontend được).
   // Lấy ở Cloudflare Dashboard > Turnstile > tạo widget cho domain của bạn.
-  // Để TRỐNG = tắt Turnstile (không chặn bot). Điền vào = bật bảo vệ.
-  // Lưu ý: phải đặt TURNSTILE_SECRET_KEY trong Supabase Secrets để verify.
+  //
+  // QUAN TRỌNG (đã đổi hành vi để vá lỗ hổng bị lấy nhiều key cùng lúc):
+  // Server (edge function key-api) giờ BẮT BUỘC phải có TURNSTILE_SECRET_KEY
+  // trong Supabase Secrets, nếu không action "create-session" sẽ bị CHẶN
+  // hoàn toàn (trả lỗi CAPTCHA_FAILED cho mọi người, kể cả người dùng thật).
+  // => Phải điền SITE_KEY ở đây VÀ đặt SECRET_KEY tương ứng trong Supabase
+  // Edge Functions > key-api > Secrets thì trang mới hoạt động lại được.
+  // (Chỉ dùng TURNSTILE_REQUIRE=false trong Supabase Secrets nếu bạn CHỦ ĐỘNG
+  // muốn tạm tắt Turnstile để test — không khuyến khích dùng khi đã public.)
   TURNSTILE_SITE_KEY: "",
 
   // Chỉ email này có thể mở chức năng quản trị.
