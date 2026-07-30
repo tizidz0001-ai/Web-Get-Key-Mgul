@@ -690,6 +690,221 @@
       background: rgba(255, 255, 255, 0.2);
     }
 
+
+
+    /* Popup link tạo thành công - giao diện giống bản cũ, đồng bộ tông web */
+    .link-ready-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(4, 7, 14, 0.78);
+      backdrop-filter: blur(9px);
+      -webkit-backdrop-filter: blur(9px);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity .22s ease, visibility .22s ease;
+    }
+
+    .link-ready-overlay.show {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .link-ready-box {
+      width: min(470px, 100%);
+      padding: 30px 26px 25px;
+      border: 1px solid rgba(121, 200, 223, .24);
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 50% -20%, rgba(140, 124, 242, .22), transparent 48%),
+        linear-gradient(155deg, rgba(18, 25, 44, .98), rgba(9, 14, 27, .98));
+      box-shadow:
+        0 28px 80px rgba(0, 0, 0, .56),
+        0 0 32px rgba(105, 205, 232, .09),
+        inset 0 1px 0 rgba(255, 255, 255, .055);
+      text-align: center;
+      transform: translateY(14px) scale(.97);
+      transition: transform .24s ease;
+    }
+
+    .link-ready-overlay.show .link-ready-box {
+      transform: translateY(0) scale(1);
+    }
+
+    .link-ready-icon {
+      width: 58px;
+      height: 58px;
+      margin: 0 auto 13px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(121, 200, 223, .18);
+      border-radius: 18px;
+      color: #dff8ff;
+      background: linear-gradient(135deg, rgba(140,124,242,.18), rgba(105,205,232,.12));
+      box-shadow: 0 12px 30px rgba(101,115,205,.13);
+    }
+
+    .link-ready-icon svg {
+      width: 31px;
+      height: 31px;
+    }
+
+    .link-ready-title {
+      margin: 0;
+      display: inline-block;
+      color: transparent;
+      background: linear-gradient(
+        90deg,
+        #ff4d4d 0%,
+        #ff9f43 14%,
+        #ffe66d 28%,
+        #4cd964 42%,
+        #38d4ff 56%,
+        #5b7cff 70%,
+        #b65cff 84%,
+        #ff5ca8 100%
+      );
+      background-size: 260% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      font-size: clamp(22px, 6vw, 29px);
+      font-weight: 950;
+      letter-spacing: -.025em;
+      animation: rainbowSweep 4.8s linear infinite;
+    }
+
+    .link-ready-subtitle {
+      margin: 10px 0 19px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .link-ready-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 17px;
+    }
+
+    .link-ready-step {
+      min-height: 80px;
+      padding: 12px 7px;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 8px;
+      border: 1px solid rgba(255,255,255,.075);
+      border-radius: 12px;
+      background: rgba(255,255,255,.028);
+      color: #9aa8c0;
+    }
+
+    .link-ready-step-number {
+      width: 29px;
+      height: 29px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      color: #dfe6ff;
+      background: linear-gradient(135deg, rgba(140,124,242,.22), rgba(105,205,232,.14));
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    .link-ready-step-text {
+      font-size: 11px;
+      line-height: 1.35;
+      font-weight: 800;
+    }
+
+    .link-ready-url-wrap {
+      min-height: 56px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 9px 8px 13px;
+      border: 1px solid rgba(121,200,223,.20);
+      border-radius: 12px;
+      background: rgba(3, 8, 17, .62);
+    }
+
+    .link-ready-url {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+      color: #8fe8ff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .link-copy-btn {
+      min-height: 36px;
+      padding: 0 13px;
+      border: 1px solid rgba(121,200,223,.30);
+      border-radius: 9px;
+      color: #cceff8;
+      background: rgba(121,200,223,.07);
+      font: inherit;
+      font-size: 11px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .link-open-btn {
+      width: 100%;
+      min-height: 50px;
+      margin-top: 12px;
+      border: 0;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      color: #fff;
+      background: linear-gradient(120deg, #8c7cf2, #7497e7 48%, #69cde8);
+      box-shadow: 0 12px 28px rgba(101,115,205,.24);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: .025em;
+      transition: transform .2s ease, filter .2s ease;
+    }
+
+    .link-open-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    .link-close-btn {
+      width: 100%;
+      min-height: 40px;
+      margin-top: 9px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      color: #91a0b9;
+      background: rgba(255,255,255,.025);
+      font: inherit;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    @media (max-width: 480px) {
+      .link-ready-box { padding: 25px 15px 20px; }
+      .link-ready-step { min-height: 74px; padding-inline: 4px; }
+      .link-ready-step-text { font-size: 10px; }
+    }
+
 .toast {
       position: fixed;
       left: 50%;
@@ -1039,6 +1254,73 @@
     </section>
   </main>
 
+
+
+  <!-- Bảng hiện sau khi tạo link thành công -->
+  <div
+    class="link-ready-overlay"
+    id="linkReadyOverlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="linkReadyTitle"
+  >
+    <div class="link-ready-box">
+      <div class="link-ready-icon" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M10.5 13.5l3-3"></path>
+          <path d="M7.1 16.9l-1.4 1.4a4 4 0 0 1-5.7-5.7l4.2-4.2a4 4 0 0 1 5.7 0"></path>
+          <path d="M16.9 7.1l1.4-1.4a4 4 0 1 1 5.7 5.7l-4.2 4.2a4 4 0 0 1-5.7 0"></path>
+        </svg>
+      </div>
+
+      <h2 class="link-ready-title" id="linkReadyTitle">Link Đã Tạo Thành Công!</h2>
+      <p class="link-ready-subtitle">
+        Sao Chép Link → Làm Nhiệm Vụ → Nhận Key Tại Trang Đích
+      </p>
+
+      <div class="link-ready-steps" aria-hidden="true">
+        <div class="link-ready-step">
+          <span class="link-ready-step-number">01</span>
+          <span class="link-ready-step-text">Sao Chép Link</span>
+        </div>
+        <div class="link-ready-step">
+          <span class="link-ready-step-number">02</span>
+          <span class="link-ready-step-text">Làm Nhiệm Vụ</span>
+        </div>
+        <div class="link-ready-step">
+          <span class="link-ready-step-number">03</span>
+          <span class="link-ready-step-text">Nhận Key</span>
+        </div>
+      </div>
+
+      <div class="link-ready-url-wrap">
+        <div class="link-ready-url" id="generatedShortUrl">...</div>
+        <button class="link-copy-btn" id="copyShortUrlButton" type="button">
+          Sao Chép
+        </button>
+      </div>
+
+      <a
+        class="link-open-btn"
+        id="openShortUrlButton"
+        href="#"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M14 5h5v5"></path>
+          <path d="M10 14L19 5"></path>
+          <path d="M19 13v6H5V5h6"></path>
+        </svg>
+        <span>Làm Nhiệm Vụ</span>
+      </a>
+
+      <button class="link-close-btn" id="closeLinkReadyButton" type="button">
+        Đóng
+      </button>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <div class="countdown-overlay" id="countdownOverlay" role="dialog" aria-modal="true" aria-live="polite">
@@ -1122,6 +1404,67 @@
     const announcementBar = document.getElementById("announcementBar");
     const announcementContent = document.getElementById("announcementContent");
     const announcementDismiss = document.getElementById("announcementDismiss");
+
+
+    const linkReadyOverlay = document.getElementById("linkReadyOverlay");
+    const generatedShortUrl = document.getElementById("generatedShortUrl");
+    const copyShortUrlButton = document.getElementById("copyShortUrlButton");
+    const openShortUrlButton = document.getElementById("openShortUrlButton");
+    const closeLinkReadyButton = document.getElementById("closeLinkReadyButton");
+
+    let currentShortUrl = "";
+
+    function showLinkReady(shortUrl) {
+      currentShortUrl = String(shortUrl || "").trim();
+      generatedShortUrl.textContent = currentShortUrl;
+      generatedShortUrl.title = currentShortUrl;
+      openShortUrlButton.href = currentShortUrl || "#";
+      linkReadyOverlay.classList.add("show");
+      document.body.style.overflow = "hidden";
+    }
+
+    function hideLinkReady() {
+      linkReadyOverlay.classList.remove("show");
+      document.body.style.overflow = "";
+    }
+
+    async function copyCurrentShortUrl() {
+      if (!currentShortUrl) return;
+
+      try {
+        await navigator.clipboard.writeText(currentShortUrl);
+      } catch {
+        const temp = document.createElement("textarea");
+        temp.value = currentShortUrl;
+        temp.setAttribute("readonly", "");
+        temp.style.position = "fixed";
+        temp.style.opacity = "0";
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        temp.remove();
+      }
+
+      const oldText = copyShortUrlButton.textContent;
+      copyShortUrlButton.textContent = "Đã Chép";
+      showToast("Đã Sao Chép Link.");
+      setTimeout(() => {
+        copyShortUrlButton.textContent = oldText || "Sao Chép";
+      }, 1500);
+    }
+
+    copyShortUrlButton.addEventListener("click", copyCurrentShortUrl);
+    closeLinkReadyButton.addEventListener("click", hideLinkReady);
+
+    linkReadyOverlay.addEventListener("click", (event) => {
+      if (event.target === linkReadyOverlay) hideLinkReady();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && linkReadyOverlay.classList.contains("show")) {
+        hideLinkReady();
+      }
+    });
 
     // Chu vi vòng tròn tiến trình (r = 52).
     const RING_CIRCUMFERENCE = 2 * Math.PI * 52;
@@ -1570,105 +1913,54 @@
         return;
       }
 
-      // Mở tab ngay khi bấm để tránh trình duyệt chặn popup.
-      const taskTab = window.open("about:blank", "_blank");
-
-      if (!taskTab) {
-        showToast("Hãy Cho Phép Website Mở Tab Mới.");
-        return;
-      }
-
-      taskTab.opener = null;
-      taskTab.document.title = "Đang Tạo Link...";
-      taskTab.document.body.innerHTML =
-        '<p style="font-family:system-ui;text-align:center;margin-top:60px">Đang Tạo Link Vượt Riêng Cho Bạn...</p>';
-
       setGetKeyLoading(true);
 
       try {
-        // Lấy Turnstile token (chống bot). Nếu đã bật Turnstile (có site key)
-        // mà không lấy được token => không tạo session, báo cho user thử lại.
         const turnstileToken = await getTurnstileToken();
 
         if (TURNSTILE_SITE_KEY && !turnstileToken) {
           throw new Error("CAPTCHA_FAILED");
         }
 
-        // Đo thời gian API phản hồi thực tế để đếm ngược đúng bấy nhiêu giây.
-        const startedAt = Date.now();
         const session = await callKeyApi("create-session", {
           deviceId: getDeviceId(),
           turnstileToken
         });
-        const elapsedSeconds = (Date.now() - startedAt) / 1000;
 
-        // Server KHÔNG còn trả session.token ra frontend để tránh bypass.
-        // Trang chính chỉ cần outer shortUrl để đưa người dùng vào chuỗi vượt link.
+        // Bản strict không đưa token phiên ra frontend. Chỉ cần shortUrl.
         if (!session.shortUrl) {
           throw new Error("SHORT_URL_NOT_FOUND");
         }
 
-        // Không lưu token vào localStorage. Token chỉ xuất hiện ở URL đích sau
-        // khi người dùng đi hết chuỗi rút gọn.
-
-        // Đếm ngược đúng số giây API vừa mất, xong thì tự mở link vượt.
-        setGetKeyLoading(false);
-        runCountdown(elapsedSeconds, () => {
-          taskTab.location.replace(session.shortUrl);
-        });
+        // Giống bản cũ: tạo xong link thì hiện bảng, KHÔNG tự bật tab.
+        showLinkReady(session.shortUrl);
       } catch (error) {
-        taskTab.close();
-        console.error(error);
+        console.error("CREATE_SESSION_ERROR", error);
 
+        const code = String(error?.code || error?.message || "UNKNOWN");
         const messages = {
           OUT_OF_KEYS: "Kho Key Đã Hết. Vui Lòng Quay Lại Sau.",
-          SHORTENER_NOT_CONFIGURED:
-            "Chưa Cấu Hình Đủ Hai API Key TrafficVN Trong Supabase Secrets.",
-          SHORTENER_STEP_1_NOT_CONFIGURED:
-            "Chưa Có API Key TrafficVN 1.",
-          SHORTENER_STEP_2_NOT_CONFIGURED:
-            "Chưa Có API Key TrafficVN 2.",
-          SHORTENER_STEP_1_REQUEST_FAILED:
-            "TrafficVN 1 Không Thể Tạo Link. Vui Lòng Thử Lại.",
-          SHORTENER_STEP_2_REQUEST_FAILED:
-            "TrafficVN 2 Không Thể Tạo Link. Vui Lòng Thử Lại.",
-          SHORTENER_STEP_1_INVALID_RESPONSE:
-            "TrafficVN 1 Trả Về Dữ Liệu Không Hợp Lệ.",
-          SHORTENER_STEP_2_INVALID_RESPONSE:
-            "TrafficVN 2 Trả Về Dữ Liệu Không Hợp Lệ.",
-          SHORTENER_REQUEST_FAILED:
-            "TrafficVN Không Thể Tạo Link. Vui Lòng Thử Lại.",
-          SHORTENER_ALL_FAILED:
-            "Tất Cả Web Rút Gọn Đều Lỗi. Vui Lòng Thử Lại.",
-          SHORTENER_INCOMPLETE:
-            "Không Tạo Đủ Số Lớp Rút Gọn. Hệ Thống Đã Hủy Link Để Tránh Bỏ Qua Nhiệm Vụ.",
-          DATABASE_REQUEST_FAILED:
-            "Lỗi Cơ Sở Dữ Liệu. Vui Lòng Thử Lại Sau.",
-          CREATE_SESSION_FAILED:
-            "Không Thể Tạo Phiên Nhận Key.",
-          CAPTCHA_FAILED:
-            "Xác Minh Chống Bot Thất Bại. Vui Lòng Thử Lại.",
-          SESSION_RATE_LIMITED:
-            "Bạn Tạo Link Quá Nhiều Lần. Vui Lòng Thử Lại Sau 1 Giờ.",
-          TURNSTILE_TOKEN_MISSING:
-            "Chưa Qua Xác Minh Chống Bot. Vui Lòng Thử Lại.",
-          SUPABASE_NOT_CONFIGURED:
-            "Bạn Chưa Điền SUPABASE_URL Trong config.js."
+          SHORTENER_NOT_CONFIGURED: "Chưa Cấu Hình Web Rút Gọn Hoặc Số Lớp Rút Gọn.",
+          SHORTENER_ALL_FAILED: "Không Thể Tạo Link Rút Gọn. Vui Lòng Thử Lại.",
+          SHORTENER_INCOMPLETE: "Không Tạo Đủ Số Lớp Rút Gọn. Vui Lòng Kiểm Tra Cấu Hình Admin.",
+          DATABASE_REQUEST_FAILED: "Lỗi Cơ Sở Dữ Liệu. Vui Lòng Thử Lại Sau.",
+          CREATE_SESSION_FAILED: "Không Thể Tạo Phiên Nhận Key.",
+          CAPTCHA_FAILED: "Xác Minh Chống Bot Thất Bại. Vui Lòng Thử Lại.",
+          SESSION_RATE_LIMITED: "Bạn Tạo Link Quá Nhiều Lần. Vui Lòng Thử Lại Sau 1 Giờ.",
+          TURNSTILE_TOKEN_MISSING: "Chưa Qua Xác Minh Chống Bot. Vui Lòng Thử Lại.",
+          SUPABASE_NOT_CONFIGURED: "Bạn Chưa Điền SUPABASE_URL Trong config.js.",
+          SHORT_URL_NOT_FOUND: "Server Không Trả Về Link Rút Gọn."
         };
 
-        let text =
-          messages[error.code] ||
-          messages[error.message] ||
-          (/^SHORTENER_LAYER_\d+_FAILED$/.test(String(error.code || error.message || ""))
-            ? `Một Lớp Rút Gọn Bị Lỗi (${error.code || error.message}). Hệ Thống Đã Hủy Link, Không Cho Phép Bỏ Qua Lớp.`
-            : `Không Thể Tạo Link (${error.code || "UNKNOWN"}).`);
+        let text = messages[code];
 
-        // Kèm chi tiết TrafficVN trả về (nếu có) để dễ dò lỗi cấu hình.
-        if (error.detail) {
-          text += ` [${String(error.detail).slice(0, 200)}]`;
+        if (!text && /^SHORTENER_LAYER_\d+_FAILED$/.test(code)) {
+          const layer = code.match(/\d+/)?.[0] || "?";
+          text = `Lớp Rút Gọn ${layer} Đang Lỗi. Vui Lòng Kiểm Tra API Trong Admin.`;
         }
 
-        showToast(text);
+        // Không đẩy raw response/API key/link dài ra giao diện như bản trước.
+        showToast(text || `Không Thể Tạo Link (${code}).`);
       } finally {
         setGetKeyLoading(false);
         updateKeyCount();
