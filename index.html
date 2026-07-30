@@ -1202,7 +1202,7 @@
 
           <!-- Widget Cloudflare Turnstile (vô hình). Chỉ render khi đã cấu hình
                TURNSTILE_SITE_KEY trong config.js. Token lấy lúc bấm "Lấy Key". -->
-          <div id="turnstileWidget" style="display:none"></div>
+          <div id="turnstileWidget" style="min-height:0; margin-top:12px; display:flex; justify-content:flex-start; position:relative; z-index:50;"></div>
         </div>
 
         <aside class="stock-card" aria-label="Số lượng key hiện có">
@@ -1481,18 +1481,39 @@
     const TURNSTILE_SITE_KEY =
       String(config.TURNSTILE_SITE_KEY || "").trim();
 
-    // ID widget Turnstile (đã render invisible). null = chưa render.
+    // ID widget Turnstile. null = chưa render.
     let turnstileWidgetId = null;
+    let turnstileBusy = false;
+    let turnstileHasExecuted = false;
+    let turnstilePendingResolve = null;
+    let turnstilePendingTimer = null;
 
-    // Render widget Turnstile (chế độ invisible/execute) khi API đã tải xong.
-    // Không có site key => bỏ qua hoàn toàn (Turnstile chưa bật).
+    function finishTurnstile(value) {
+      if (turnstilePendingTimer) {
+        clearTimeout(turnstilePendingTimer);
+        turnstilePendingTimer = null;
+      }
+
+      const resolve = turnstilePendingResolve;
+      turnstilePendingResolve = null;
+      turnstileBusy = false;
+
+      if (typeof resolve === "function") {
+        resolve(String(value || ""));
+      }
+    }
+
+    // Render ở chế độ MANUAL EXECUTE.
+    // QUAN TRỌNG: không để holder display:none. Nếu Cloudflare đánh giá trình
+    // duyệt cần tương tác (thường gặp hơn trên PC/DevTools/extension), widget
+    // phải có chỗ để hiện checkbox. appearance: interaction-only giúp nó chỉ
+    // hiện khi thật sự cần người dùng tương tác.
     function initTurnstile() {
       if (!TURNSTILE_SITE_KEY) {
         return;
       }
 
       if (typeof window.turnstile === "undefined") {
-        // api.js chưa tải xong: thử lại lát nữa.
         setTimeout(initTurnstile, 300);
         return;
       }
@@ -1506,70 +1527,97 @@
       try {
         turnstileWidgetId = window.turnstile.render(holder, {
           sitekey: TURNSTILE_SITE_KEY,
-          size: "invisible"
+          execution: "execute",
+          appearance: "interaction-only",
+          retry: "never",
+          callback: (token) => {
+            finishTurnstile(token);
+          },
+          "error-callback": (errorCode) => {
+            console.warn("TURNSTILE_CHALLENGE_ERROR", errorCode);
+            finishTurnstile("");
+            return true;
+          },
+          "timeout-callback": () => {
+            console.warn("TURNSTILE_CHALLENGE_TIMEOUT");
+            finishTurnstile("");
+          },
+          "expired-callback": () => {
+            // Token hết hạn trước khi dùng: lần bấm tiếp theo sẽ reset và chạy lại.
+          }
         });
       } catch (error) {
         console.error("TURNSTILE_RENDER_ERROR", error);
       }
     }
 
-    // Lấy Turnstile token cho lần bấm hiện tại. Trả "" nếu Turnstile chưa bật
-    // (không có site key) => server sẽ tự quyết (nếu server có secret thì chặn).
-    // Có bật => chạy challenge và chờ token (tối đa ~15s).
-    function getTurnstileToken() {
-      return new Promise((resolve) => {
-        if (!TURNSTILE_SITE_KEY || typeof window.turnstile === "undefined") {
-          resolve("");
-          return;
-        }
+    // Đợi api.js + widget sẵn sàng thay vì trả token rỗng ngay trên máy chậm.
+    async function waitForTurnstileReady(maxWaitMs = 10000) {
+      const started = Date.now();
 
-        if (turnstileWidgetId === null) {
-          initTurnstile();
-        }
-
-        if (turnstileWidgetId === null) {
-          resolve("");
-          return;
-        }
-
-        let settled = false;
-
-        const finish = (value) => {
-          if (settled) {
-            return;
+      while (Date.now() - started < maxWaitMs) {
+        if (typeof window.turnstile !== "undefined") {
+          if (turnstileWidgetId === null) {
+            initTurnstile();
           }
-          settled = true;
-          resolve(value);
-        };
 
-        // Reset để mỗi lần bấm sinh token mới (token Turnstile dùng 1 lần).
-        try {
-          window.turnstile.reset(turnstileWidgetId);
-        } catch {
-          // Bỏ qua nếu chưa cần reset.
+          if (turnstileWidgetId !== null) {
+            return true;
+          }
         }
 
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      }
+
+      return false;
+    }
+
+    // Mỗi lần bấm chỉ cho đúng MỘT challenge chạy.
+    // Bản cũ render mặc định execution="render" (tự chạy) rồi lại gọi execute(),
+    // nên Console báo "widget is already executing" và có thể dẫn đến 600010.
+    async function getTurnstileToken() {
+      if (!TURNSTILE_SITE_KEY) {
+        return "";
+      }
+
+      const ready = await waitForTurnstileReady();
+
+      if (!ready || typeof window.turnstile === "undefined") {
+        return "";
+      }
+
+      if (turnstileBusy) {
+        // Không khởi chạy challenge thứ hai khi challenge hiện tại còn chạy.
+        return "";
+      }
+
+      return new Promise((resolve) => {
+        turnstileBusy = true;
+        turnstilePendingResolve = resolve;
+
         try {
-          window.turnstile.execute(turnstileWidgetId, {
-            callback: (token) => finish(String(token || "")),
-            "error-callback": () => finish(""),
-            "timeout-callback": () => finish("")
-          });
+          // Token Turnstile là single-use. Từ lần chạy thứ hai trở đi phải reset
+          // widget cũ trước khi tạo token mới.
+          if (turnstileHasExecuted) {
+            window.turnstile.reset(turnstileWidgetId);
+          }
+
+          turnstileHasExecuted = true;
+          window.turnstile.execute(turnstileWidgetId);
         } catch (error) {
           console.error("TURNSTILE_EXECUTE_ERROR", error);
-          finish("");
+          finishTurnstile("");
           return;
         }
 
-        // Chốt chặn: không để treo mãi nếu Turnstile không phản hồi.
-        setTimeout(() => finish(""), 15000);
+        turnstilePendingTimer = setTimeout(() => {
+          console.warn("TURNSTILE_CLIENT_TIMEOUT");
+          finishTurnstile("");
+        }, 30000);
       });
     }
 
-    // Cloudflare gọi hàm này khi api.js tải xong (onload trong URL script).
-    window.onTurnstileLoad = initTurnstile;
-
-    // Phòng khi script tải trước lúc JS này chạy: thử render luôn.
+    // Phòng trường hợp api.js tải trước hoặc sau đoạn script này.
     initTurnstile();
 
     // Định danh thiết bị bền trong localStorage. Dùng chung cho create-session
