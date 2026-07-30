@@ -690,238 +690,6 @@
       background: rgba(255, 255, 255, 0.2);
     }
 
-
-    /* Popup hiện link sau khi bấm "Lấy Key" */
-    .link-ready-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 65;
-      display: grid;
-      place-items: center;
-      padding: 18px;
-      background: rgba(1, 8, 10, 0.78);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity 0.22s ease, visibility 0.22s ease;
-    }
-
-    .link-ready-overlay.show {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-
-    .link-ready-box {
-      width: min(440px, 100%);
-      padding: 30px 28px 31px;
-      border: 1px solid rgba(140, 124, 242, 0.28);
-      border-radius: 12px;
-      background: #0d1622;
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-        0 0 22px rgba(105, 205, 232, 0.10),
-        0 0 32px rgba(140, 124, 242, 0.14),
-        0 22px 65px rgba(0, 0, 0, 0.55);
-      text-align: center;
-      transform: translateY(12px) scale(0.98);
-      transition: transform 0.24s ease;
-    }
-
-    .link-ready-overlay.show .link-ready-box {
-      transform: translateY(0) scale(1);
-    }
-
-    .link-ready-icon {
-      width: 54px;
-      height: 54px;
-      margin: 0 auto 12px;
-      display: grid;
-      place-items: center;
-      color: #f7f9fb;
-    }
-
-    .link-ready-icon svg {
-      width: 46px;
-      height: 46px;
-      stroke-width: 1.8;
-      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.08));
-    }
-
-    .link-ready-title {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 950;
-      letter-spacing: 0.02em;
-      color: transparent;
-      background:
-        linear-gradient(
-          90deg,
-          #ff4d4d 0%,
-          #ff9f43 14%,
-          #ffe66d 28%,
-          #4cd964 42%,
-          #38d4ff 56%,
-          #5b7cff 70%,
-          #b65cff 84%,
-          #ff5ca8 100%
-        );
-      background-size: 260% 100%;
-      background-position: 100% 50%;
-      -webkit-background-clip: text;
-      background-clip: text;
-      filter: drop-shadow(0 0 9px rgba(116, 92, 255, 0.18));
-      animation: rainbowSweep 4.8s linear infinite;
-    }
-
-    .link-ready-subtitle {
-      margin: 9px 0 20px;
-      color: #8ea0bb;
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .link-ready-steps {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      margin-bottom: 18px;
-    }
-
-    .link-ready-step {
-      min-height: 82px;
-      padding: 13px 8px 10px;
-      display: grid;
-      place-items: center;
-      align-content: center;
-      gap: 9px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 6px;
-      background: rgba(4, 10, 17, 0.46);
-      color: #95a7c0;
-    }
-
-    .link-ready-step-number {
-      color: #8c7cf2;
-      font-size: 13px;
-      font-weight: 950;
-    }
-
-    .link-ready-step-text {
-      font-size: 11px;
-      line-height: 1.45;
-    }
-
-    .link-ready-url-wrap {
-      min-height: 56px;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 10px 8px 14px;
-      border: 1px solid rgba(105, 205, 232, 0.20);
-      border-radius: 8px;
-      background: rgba(2, 9, 14, 0.72);
-    }
-
-    .link-ready-url {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      text-align: left;
-      color: #8fe8ff;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 11px;
-      font-weight: 800;
-    }
-
-    .link-copy-btn {
-      box-shadow: 0 8px 20px rgba(101, 115, 205, 0.12);
-      min-height: 34px;
-      padding: 0 13px;
-      border: 1px solid rgba(105, 205, 232, 0.42);
-      border-radius: 6px;
-      color: #dff7ff;
-      background: linear-gradient(135deg, rgba(140, 124, 242, 0.20), rgba(105, 205, 232, 0.12));
-      font: inherit;
-      font-size: 11px;
-      font-weight: 900;
-      cursor: pointer;
-      transition: 0.2s ease;
-    }
-
-    .link-copy-btn:hover {
-      background: rgba(0, 240, 209, 0.14);
-      border-color: #dff7ff;
-    }
-
-    .link-open-btn {
-      width: 100%;
-      min-height: 49px;
-      margin-top: 12px;
-      border: 1px solid #00f0d1;
-      border-radius: 8px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 9px;
-      color: #dff7ff;
-      background: rgba(0, 240, 209, 0.065);
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 950;
-      letter-spacing: 0.035em;
-      transition: 0.2s ease;
-    }
-
-    .link-open-btn:hover {
-      filter: brightness(1.06);
-      box-shadow:
-        0 14px 30px rgba(101, 115, 205, 0.28),
-        0 0 18px rgba(105, 205, 232, 0.12);
-    }
-
-    .link-close-btn {
-      width: 100%;
-      min-height: 38px;
-      margin-top: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 6px;
-      color: #8fa2bb;
-      background: rgba(255, 255, 255, 0.02);
-      font: inherit;
-      font-size: 11px;
-      cursor: pointer;
-      transition: 0.2s ease;
-    }
-
-    .link-close-btn:hover {
-      color: #c2d0e2;
-      border-color: rgba(255, 255, 255, 0.16);
-    }
-
-    @media (max-width: 480px) {
-      .link-ready-box {
-        padding: 25px 16px 22px;
-      }
-
-      .link-ready-step {
-        min-height: 76px;
-        padding-inline: 5px;
-      }
-
-      .link-ready-step-text {
-        font-size: 10px;
-      }
-
-      .link-ready-url-wrap {
-        grid-template-columns: minmax(0, 1fr) auto;
-      }
-    }
-
 .toast {
       position: fixed;
       left: 50%;
@@ -1271,73 +1039,6 @@
     </section>
   </main>
 
-
-  <!-- Popup link sẵn sàng: chỉ hiện sau khi server tạo link thành công -->
-  <div
-    class="link-ready-overlay"
-    id="linkReadyOverlay"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="linkReadyTitle"
-  >
-    <div class="link-ready-box">
-      <div class="link-ready-icon" aria-hidden="true">
-        <svg class="icon" viewBox="0 0 24 24">
-          <path d="M10.5 13.5l3-3"></path>
-          <path d="M7.1 16.9l-1.4 1.4a4 4 0 0 1-5.7-5.7l4.2-4.2a4 4 0 0 1 5.7 0"></path>
-          <path d="M16.9 7.1l1.4-1.4a4 4 0 1 1 5.7 5.7l-4.2 4.2a4 4 0 0 1-5.7 0"></path>
-        </svg>
-      </div>
-
-      <h2 class="link-ready-title" id="linkReadyTitle">Link Đã Tạo Thành Công!</h2>
-      <p class="link-ready-subtitle">
-        Sao chép link → mở trình duyệt → vượt quảng cáo → nhận key
-      </p>
-
-      <div class="link-ready-steps" aria-hidden="true">
-        <div class="link-ready-step">
-          <span class="link-ready-step-number">①</span>
-          <span class="link-ready-step-text">Sao chép link</span>
-        </div>
-        <div class="link-ready-step">
-          <span class="link-ready-step-number">②</span>
-          <span class="link-ready-step-text">Mở &amp; vượt quảng cáo</span>
-        </div>
-        <div class="link-ready-step">
-          <span class="link-ready-step-number">③</span>
-          <span class="link-ready-step-text">Nhận key</span>
-        </div>
-      </div>
-
-      <div class="link-ready-url-wrap">
-        <div class="link-ready-url" id="generatedShortUrl">...</div>
-        <button class="link-copy-btn" id="copyShortUrlButton" type="button">
-          Sao chép
-        </button>
-      </div>
-
-      <a
-        class="link-open-btn"
-        id="openShortUrlButton"
-        href="#"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M14 5h5v5"></path>
-          <path d="M10 14L19 5"></path>
-          <path d="M19 13v6H5V5h6"></path>
-        </svg>
-        <span>LÀM NHIỆM VỤ</span>
-      </a>
-
-      <button class="link-close-btn" id="closeLinkReadyButton" type="button">
-        Đóng
-      </button>
-    </div>
-  </div>
-
-
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <div class="countdown-overlay" id="countdownOverlay" role="dialog" aria-modal="true" aria-live="polite">
@@ -1421,76 +1122,6 @@
     const announcementBar = document.getElementById("announcementBar");
     const announcementContent = document.getElementById("announcementContent");
     const announcementDismiss = document.getElementById("announcementDismiss");
-
-    const linkReadyOverlay = document.getElementById("linkReadyOverlay");
-    const generatedShortUrl = document.getElementById("generatedShortUrl");
-    const copyShortUrlButton = document.getElementById("copyShortUrlButton");
-    const openShortUrlButton = document.getElementById("openShortUrlButton");
-    const closeLinkReadyButton = document.getElementById("closeLinkReadyButton");
-
-    let currentShortUrl = "";
-
-    function showLinkReady(shortUrl) {
-      currentShortUrl = String(shortUrl || "").trim();
-      generatedShortUrl.textContent = currentShortUrl;
-      generatedShortUrl.title = currentShortUrl;
-      openShortUrlButton.href = currentShortUrl || "#";
-      linkReadyOverlay.classList.add("show");
-      document.body.style.overflow = "hidden";
-    }
-
-    function hideLinkReady() {
-      linkReadyOverlay.classList.remove("show");
-      document.body.style.overflow = "";
-    }
-
-    async function copyCurrentShortUrl() {
-      if (!currentShortUrl) {
-        return;
-      }
-
-      try {
-        await navigator.clipboard.writeText(currentShortUrl);
-        copyShortUrlButton.textContent = "Đã chép";
-        showToast("Đã Sao Chép Link.");
-
-        setTimeout(() => {
-          copyShortUrlButton.textContent = "Sao chép";
-        }, 1600);
-      } catch {
-        const temp = document.createElement("textarea");
-        temp.value = currentShortUrl;
-        temp.setAttribute("readonly", "");
-        temp.style.position = "fixed";
-        temp.style.opacity = "0";
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand("copy");
-        temp.remove();
-        copyShortUrlButton.textContent = "Đã chép";
-        showToast("Đã Sao Chép Link.");
-
-        setTimeout(() => {
-          copyShortUrlButton.textContent = "Sao chép";
-        }, 1600);
-      }
-    }
-
-    copyShortUrlButton.addEventListener("click", copyCurrentShortUrl);
-    closeLinkReadyButton.addEventListener("click", hideLinkReady);
-
-    linkReadyOverlay.addEventListener("click", (event) => {
-      if (event.target === linkReadyOverlay) {
-        hideLinkReady();
-      }
-    });
-
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && linkReadyOverlay.classList.contains("show")) {
-        hideLinkReady();
-      }
-    });
-
 
     // Chu vi vòng tròn tiến trình (r = 52).
     const RING_CIRCUMFERENCE = 2 * Math.PI * 52;
@@ -1939,31 +1570,54 @@
         return;
       }
 
+      // Mở tab ngay khi bấm để tránh trình duyệt chặn popup.
+      const taskTab = window.open("about:blank", "_blank");
+
+      if (!taskTab) {
+        showToast("Hãy Cho Phép Website Mở Tab Mới.");
+        return;
+      }
+
+      taskTab.opener = null;
+      taskTab.document.title = "Đang Tạo Link...";
+      taskTab.document.body.innerHTML =
+        '<p style="font-family:system-ui;text-align:center;margin-top:60px">Đang Tạo Link Vượt Riêng Cho Bạn...</p>';
+
       setGetKeyLoading(true);
 
       try {
-        // Lấy Turnstile token chống bot trước khi tạo phiên.
+        // Lấy Turnstile token (chống bot). Nếu đã bật Turnstile (có site key)
+        // mà không lấy được token => không tạo session, báo cho user thử lại.
         const turnstileToken = await getTurnstileToken();
 
         if (TURNSTILE_SITE_KEY && !turnstileToken) {
           throw new Error("CAPTCHA_FAILED");
         }
 
+        // Đo thời gian API phản hồi thực tế để đếm ngược đúng bấy nhiêu giây.
+        const startedAt = Date.now();
         const session = await callKeyApi("create-session", {
           deviceId: getDeviceId(),
           turnstileToken
         });
+        const elapsedSeconds = (Date.now() - startedAt) / 1000;
 
-        if (!session.token || !session.shortUrl) {
+        // Server KHÔNG còn trả session.token ra frontend để tránh bypass.
+        // Trang chính chỉ cần outer shortUrl để đưa người dùng vào chuỗi vượt link.
+        if (!session.shortUrl) {
           throw new Error("SHORT_URL_NOT_FOUND");
         }
 
-        saveSession(session);
+        // Không lưu token vào localStorage. Token chỉ xuất hiện ở URL đích sau
+        // khi người dùng đi hết chuỗi rút gọn.
 
-        // Không tự mở tab nữa. Sau khi tạo link thành công,
-        // hiển thị popup giống mẫu để user tự sao chép hoặc mở link.
-        showLinkReady(session.shortUrl);
+        // Đếm ngược đúng số giây API vừa mất, xong thì tự mở link vượt.
+        setGetKeyLoading(false);
+        runCountdown(elapsedSeconds, () => {
+          taskTab.location.replace(session.shortUrl);
+        });
       } catch (error) {
+        taskTab.close();
         console.error(error);
 
         const messages = {
@@ -1986,6 +1640,8 @@
             "TrafficVN Không Thể Tạo Link. Vui Lòng Thử Lại.",
           SHORTENER_ALL_FAILED:
             "Tất Cả Web Rút Gọn Đều Lỗi. Vui Lòng Thử Lại.",
+          SHORTENER_INCOMPLETE:
+            "Không Tạo Đủ Số Lớp Rút Gọn. Hệ Thống Đã Hủy Link Để Tránh Bỏ Qua Nhiệm Vụ.",
           DATABASE_REQUEST_FAILED:
             "Lỗi Cơ Sở Dữ Liệu. Vui Lòng Thử Lại Sau.",
           CREATE_SESSION_FAILED:
@@ -2003,8 +1659,11 @@
         let text =
           messages[error.code] ||
           messages[error.message] ||
-          `Không Thể Tạo Link (${error.code || "UNKNOWN"}).`;
+          (/^SHORTENER_LAYER_\d+_FAILED$/.test(String(error.code || error.message || ""))
+            ? `Một Lớp Rút Gọn Bị Lỗi (${error.code || error.message}). Hệ Thống Đã Hủy Link, Không Cho Phép Bỏ Qua Lớp.`
+            : `Không Thể Tạo Link (${error.code || "UNKNOWN"}).`);
 
+        // Kèm chi tiết TrafficVN trả về (nếu có) để dễ dò lỗi cấu hình.
         if (error.detail) {
           text += ` [${String(error.detail).slice(0, 200)}]`;
         }
