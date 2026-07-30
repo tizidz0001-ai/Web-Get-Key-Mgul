@@ -26,7 +26,7 @@ window.APP_CONFIG = {
   // Edge Functions > key-api > Secrets thì trang mới hoạt động lại được.
   // (Chỉ dùng TURNSTILE_REQUIRE=false trong Supabase Secrets nếu bạn CHỦ ĐỘNG
   // muốn tạm tắt Turnstile để test — không khuyến khích dùng khi đã public.)
-  TURNSTILE_SITE_KEY: "",
+  TURNSTILE_SITE_KEY: "0x4AAAAAAEBdDkwtIJ79Y50E",
 
   // Chỉ email này có thể mở chức năng quản trị.
   ADMIN_EMAIL: "hatrungson230209@gmail.com",
