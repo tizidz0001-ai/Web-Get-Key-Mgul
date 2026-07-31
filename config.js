@@ -35,6 +35,7 @@ window.APP_CONFIG = {
   // Có thể điền: "https://hypergetkeymigul.vercel.app/"
   ADMIN_REDIRECT_URL: "",
 
+  // Không lưu claim token thật ở frontend. Hai key dưới chỉ giữ để tương thích UI cũ.
   SESSION_STORAGE_KEY: "migul_key_session_token_v1",
   KEY_CACHE_STORAGE_KEY: "migul_claimed_key_cache_v1",
 

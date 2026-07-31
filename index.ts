@@ -1,26 +1,52 @@
 // BẢN ADMIN CÓ XÁC THỰC MẬT KHẨU (SERVER-SIDE)
-// Test bằng {"action":"version"} phải trả KEY_API_ADMIN_SECURED_V12_20260728
-// KEY_API_VERSION: KEY_API_ADMIN_SECURED_V12_20260728
+// Test bằng {"action":"version"} phải trả KEY_API_HARDENED_V13_20260801
+// KEY_API_VERSION: KEY_API_HARDENED_V13_20260801
 //
 // V11: admin cấu hình nhiều web rút gọn + số lớp (1-6), luân phiên, bỏ qua lớp lỗi.
-// V12: chống lạm dụng — Turnstile ở create-session, ràng token với IP tạo nó,
-//      rate-limit session/IP/giờ, trần 5 key/IP/ngày (RPC claim_key_limited).
+// V12: Turnstile + IP binding + rate limit.
+// V13: không trả token phiên, claim ticket HMAC, atomic claim trong DB,
+//      rate-limit fail-closed, admin email/IP server-side và CORS theo origin.
 //
 // BẮT BUỘC đặt biến môi trường (Supabase > Edge Functions > key-api > Secrets):
 //   ADMIN_PASSWORD      = mật khẩu admin (tối thiểu 8 ký tự)
-//   ADMIN_TOKEN_SECRET  = chuỗi bí mật ngẫu nhiên dài để ký token (tùy chọn,
-//                         nếu bỏ trống sẽ tự suy ra từ ADMIN_PASSWORD + service key)
+//   ADMIN_TOKEN_SECRET  = chuỗi bí mật ngẫu nhiên dài để ký token admin
+//   ADMIN_EMAIL         = email admin được phép đăng nhập
+//   CLAIM_TICKET_SECRET = chuỗi bí mật ngẫu nhiên dài để ký vé claim
+//   ALLOWED_ORIGIN      = origin web chính, ví dụ https://example.com
 
-const KEY_API_VERSION = "KEY_API_ADMIN_SECURED_V12_20260728";
+const KEY_API_VERSION = "KEY_API_HARDENED_V13_20260801";
 
 // Token admin sống trong bao lâu (mili giây). Mặc định 12 giờ.
-const ADMIN_TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
+const ADMIN_TOKEN_TTL_MS = 4 * 60 * 60 * 1000;
+
+function readAllowedOrigin(): string {
+  const explicit = String(
+    Deno.env.get("ALLOWED_ORIGIN") || "",
+  ).trim();
+
+  const candidate = explicit || String(
+    Deno.env.get("KEY_PAGE_URL") || "",
+  ).trim();
+
+  if (!candidate) return "";
+
+  try {
+    return new URL(candidate).origin;
+  } catch {
+    return "";
+  }
+}
+
+const ALLOWED_ORIGIN = readAllowedOrigin();
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  // Không dùng *: browser chỉ được phép gọi từ đúng web chính.
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN || "null",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "600",
+  "Vary": "Origin",
 };
 
 function jsonResponse(data: unknown, status = 200) {
@@ -30,6 +56,9 @@ function jsonResponse(data: unknown, status = 200) {
       ...corsHeaders,
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+      "X-Frame-Options": "DENY",
     },
   });
 }
@@ -116,6 +145,24 @@ function readAdminPassword(): string {
   ).trim();
 }
 
+function readAdminEmail(): string {
+  return String(
+    Deno.env.get("ADMIN_EMAIL") || "",
+  ).trim().toLowerCase();
+}
+
+function getClaimTicketSecret(): string {
+  const explicit = String(
+    Deno.env.get("CLAIM_TICKET_SECRET") || "",
+  ).trim();
+
+  if (explicit.length >= 32) return explicit;
+
+  // Fallback vẫn là secret server-side; khuyến nghị đặt riêng biến ở trên.
+  const { serviceRoleKey } = getServerConfig();
+  return `claim-ticket::${serviceRoleKey}`;
+}
+
 function getTokenSecret(): string {
   const explicit = String(
     Deno.env.get("ADMIN_TOKEN_SECRET") || "",
@@ -180,6 +227,35 @@ async function hmacSha256Hex(
   return bytesToHex(new Uint8Array(signature));
 }
 
+async function sha256Hex(message: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    textEncoder.encode(message),
+  );
+  return bytesToHex(new Uint8Array(digest));
+}
+
+async function signClaimTicket(token: string, expMs: number): Promise<string> {
+  return await hmacSha256Hex(
+    getClaimTicketSecret(),
+    `v1.${token}.${expMs}`,
+  );
+}
+
+async function verifyClaimTicket(
+  token: string,
+  expMs: number,
+  signature: string,
+): Promise<boolean> {
+  if (!Number.isSafeInteger(expMs) || expMs <= Date.now()) return false;
+  // Không nhận vé sống quá xa tương lai, hạn chế vé giả/reuse do cấu hình sai.
+  if (expMs > Date.now() + 2 * 60 * 60 * 1000) return false;
+  if (!/^[0-9a-f]{64}$/i.test(signature)) return false;
+
+  const expected = await signClaimTicket(token, expMs);
+  return timingSafeEqual(signature.toLowerCase(), expected.toLowerCase());
+}
+
 // So sánh chuỗi theo thời gian hằng số để chống timing attack.
 function timingSafeEqual(a: string, b: string): boolean {
   const aBytes = textEncoder.encode(a);
@@ -199,12 +275,13 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 // Token dạng: base64url(payloadJson) + "." + hmacHex
-async function issueAdminToken(): Promise<string> {
+async function issueAdminToken(clientIp: string): Promise<string> {
   const payload = JSON.stringify({
     role: "admin",
     iat: Date.now(),
     exp: Date.now() + ADMIN_TOKEN_TTL_MS,
     nonce: crypto.randomUUID(),
+    ip: clientIp,
   });
 
   const encodedPayload = base64UrlEncode(payload);
@@ -219,6 +296,7 @@ async function issueAdminToken(): Promise<string> {
 
 async function verifyAdminToken(
   token: unknown,
+  request?: Request,
 ): Promise<boolean> {
   const raw = String(token || "").trim();
 
@@ -262,6 +340,18 @@ async function verifyAdminToken(
 
   if (!exp || exp <= Date.now()) {
     return false;
+  }
+
+  if (request) {
+    const bindIp = String(
+      Deno.env.get("ADMIN_BIND_IP") || "true",
+    ).trim().toLowerCase() !== "false";
+
+    if (bindIp) {
+      const tokenIp = String(payload.ip || "");
+      const currentIp = getClientIp(request);
+      if (!tokenIp || !currentIp || tokenIp !== currentIp) return false;
+    }
   }
 
   return true;
@@ -497,9 +587,20 @@ async function verifyTurnstile(
 
     const data = (await response.json()) as {
       success?: boolean;
+      hostname?: string;
+      action?: string;
     };
 
-    return data.success === true;
+    if (data.success !== true) return false;
+    if (data.action !== "create-session") return false;
+
+    const expectedHostname = String(
+      Deno.env.get("TURNSTILE_EXPECTED_HOSTNAME") || "",
+    ).trim();
+
+    if (expectedHostname && data.hostname !== expectedHostname) return false;
+
+    return true;
   } catch (error) {
     console.error("TURNSTILE_VERIFY_ERROR", error);
     return false;
@@ -1254,6 +1355,60 @@ async function createLayeredShortUrl(
   };
 }
 
+async function bumpRequestLimit(
+  scope: string,
+  subject: string,
+  maxCount: number,
+  windowSeconds: number,
+): Promise<boolean> {
+  const result = await dbRequest(
+    "rpc/bump_request_limit",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        p_scope: scope,
+        p_subject: subject || "unknown",
+        p_max: maxCount,
+        p_window_seconds: windowSeconds,
+      }),
+    },
+  );
+
+  const row = Array.isArray(result.data)
+    ? (result.data[0] as Record<string, unknown> | undefined)
+    : (result.data as Record<string, unknown> | null);
+
+  return row?.allowed === true;
+}
+
+async function writeSecurityLog(
+  request: Request,
+  eventType: string,
+  details: Record<string, unknown> = {},
+  token = "",
+): Promise<void> {
+  try {
+    await dbRequest("security_logs", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        event_type: eventType.slice(0, 80),
+        ip: getClientIp(request).slice(0, 128),
+        token_hash: token ? await sha256Hex(token) : null,
+        user_agent: String(request.headers.get("user-agent") || "").slice(0, 500),
+        details,
+      }),
+    });
+  } catch (error) {
+    console.error("SECURITY_LOG_FAILED", error);
+  }
+}
+
+function hasExpectedOrigin(request: Request): boolean {
+  if (!ALLOWED_ORIGIN) return false;
+  return String(request.headers.get("origin") || "") === ALLOWED_ORIGIN;
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", {
@@ -1311,6 +1466,11 @@ Deno.serve(async (request) => {
     }
 
     if (action === "create-session") {
+      if (!hasExpectedOrigin(request)) {
+        await writeSecurityLog(request, "CREATE_SESSION_BAD_ORIGIN");
+        return jsonResponse({ success: false, error: "FORBIDDEN_ORIGIN", version: KEY_API_VERSION }, 403);
+      }
+
       const keyPageUrl =
         String(
           Deno.env.get(
@@ -1347,6 +1507,11 @@ Deno.serve(async (request) => {
       // IP thật của người tạo phiên (server tự đọc, không tin client).
       const creatorIp = getClientIp(request);
 
+      if (!creatorIp) {
+        await writeSecurityLog(request, "CREATE_SESSION_NO_IP");
+        return jsonResponse({ success: false, error: "CLIENT_IP_UNAVAILABLE", version: KEY_API_VERSION }, 503);
+      }
+
       // LỚP 1 — Cloudflare Turnstile: chặn bot/script.
       // LUÔN kiểm tra (kể cả khi chưa cấu hình secret) — verifyTurnstile() tự
       // quyết định fail-open/fail-closed dựa trên TURNSTILE_REQUIRE. Trước
@@ -1375,46 +1540,27 @@ Deno.serve(async (request) => {
         );
       }
 
-      // LỚP 2 — Hạn chế số session/IP/giờ (chống đốt quota rút gọn + phình
-      // bảng session). Atomic trong DB. Mặc định 30/giờ.
+      // LỚP 2 — rate-limit server-side, FAIL-CLOSED nếu DB/RPC lỗi.
       try {
-        const bump =
-          await dbRequest(
-            "rpc/bump_session_limit",
-            {
-              method: "POST",
-              body: JSON.stringify({
-                p_ip: creatorIp,
-                p_max: 30,
-              }),
-            },
-          );
-
-        // RPC trả table(allowed, current_count) => PostgREST cho mảng
-        // [{allowed: true, current_count: 1}]. Đọc đúng field .allowed.
-        const bumpRow =
-          Array.isArray(bump.data)
-            ? (bump.data[0] as Record<string, unknown> | undefined)
-            : (bump.data as Record<string, unknown> | null);
-
-        const allowed =
-          !bumpRow || bumpRow.allowed === true;
+        const allowed = await bumpRequestLimit(
+          "create-session",
+          creatorIp,
+          20,
+          60 * 60,
+        );
 
         if (!allowed) {
+          await writeSecurityLog(request, "CREATE_SESSION_RATE_LIMIT");
           return jsonResponse(
-            {
-              success: false,
-              error: "SESSION_RATE_LIMITED",
-              version: KEY_API_VERSION,
-            },
+            { success: false, error: "SESSION_RATE_LIMITED", version: KEY_API_VERSION },
             429,
           );
         }
       } catch (error) {
-        // RPC chưa tồn tại / lỗi DB: không chặn tạo session, chỉ log.
-        console.error(
-          "BUMP_SESSION_LIMIT_FAILED",
-          error,
+        console.error("CREATE_SESSION_RATE_LIMIT_CHECK_FAILED", error);
+        return jsonResponse(
+          { success: false, error: "SECURITY_CHECK_UNAVAILABLE", version: KEY_API_VERSION },
+          503,
         );
       }
 
@@ -1470,6 +1616,18 @@ Deno.serve(async (request) => {
           base.origin,
         );
 
+        const expMs = new Date(
+          String(session.expires_at || ""),
+        ).getTime();
+
+        if (!Number.isSafeInteger(expMs) || expMs <= Date.now()) {
+          throw new Error("CREATE_SESSION_FAILED");
+        }
+
+        const claimSig = await signClaimTicket(token, expMs);
+        destination.searchParams.set("exp", String(expMs));
+        destination.searchParams.set("sig", claimSig);
+
         // Đọc cấu hình rút gọn do admin lưu (danh sách web + số lớp).
         const adminSettings =
           await readAdminSettings();
@@ -1484,7 +1642,6 @@ Deno.serve(async (request) => {
         return jsonResponse({
           success: true,
           version: KEY_API_VERSION,
-          token,
           expiresAt:
             session.expires_at || null,
           shortUrl:
@@ -1518,7 +1675,6 @@ Deno.serve(async (request) => {
           {
             success: false,
             error: code,
-            detail,
             version: KEY_API_VERSION,
           },
           502,
@@ -1527,6 +1683,11 @@ Deno.serve(async (request) => {
     }
 
     if (action === "claim") {
+      if (!hasExpectedOrigin(request)) {
+        await writeSecurityLog(request, "CLAIM_BAD_ORIGIN");
+        return jsonResponse({ success: false, error: "FORBIDDEN_ORIGIN", version: KEY_API_VERSION }, 403);
+      }
+
       const token =
         String(
           body.token || "",
@@ -1534,12 +1695,19 @@ Deno.serve(async (request) => {
 
       if (!token) {
         return jsonResponse(
-          {
-            success: false,
-            error: "TOKEN_REQUIRED",
-            version: KEY_API_VERSION,
-          },
+          { success: false, error: "TOKEN_REQUIRED", version: KEY_API_VERSION },
           400,
+        );
+      }
+
+      const ticketExp = Number(body.ticketExp || 0);
+      const ticketSig = String(body.ticketSig || "").trim();
+
+      if (!(await verifyClaimTicket(token, ticketExp, ticketSig))) {
+        await writeSecurityLog(request, "CLAIM_INVALID_TICKET", {}, token);
+        return jsonResponse(
+          { success: false, error: ticketExp <= Date.now() ? "CLAIM_TICKET_EXPIRED" : "INVALID_CLAIM_TICKET", version: KEY_API_VERSION },
+          403,
         );
       }
 
@@ -1547,6 +1715,23 @@ Deno.serve(async (request) => {
       // (client gửi từ localStorage). Cả hai đều do client kiểm soát nên đây
       // là chống lạm dụng best-effort, không phải chặn tuyệt đối.
       const clientIp = getClientIp(request);
+
+      if (!clientIp) {
+        await writeSecurityLog(request, "CLAIM_NO_IP", {}, token);
+        return jsonResponse({ success: false, error: "CLIENT_IP_UNAVAILABLE", version: KEY_API_VERSION }, 503);
+      }
+
+      try {
+        const allowed = await bumpRequestLimit("claim", clientIp, 40, 10 * 60);
+        if (!allowed) {
+          await writeSecurityLog(request, "CLAIM_RATE_LIMIT", {}, token);
+          return jsonResponse({ success: false, error: "CLAIM_RATE_LIMITED", version: KEY_API_VERSION }, 429);
+        }
+      } catch (error) {
+        console.error("CLAIM_RATE_LIMIT_CHECK_FAILED", error);
+        return jsonResponse({ success: false, error: "SECURITY_CHECK_UNAVAILABLE", version: KEY_API_VERSION }, 503);
+      }
+
       const deviceId =
         String(
           body.deviceId || "",
@@ -1613,6 +1798,7 @@ Deno.serve(async (request) => {
             "KEY_NOT_FOUND",
             "LIMIT_REACHED",
             "TOKEN_IP_MISMATCH",
+            "CLAIM_CONFLICT",
           ]
         ) {
           if (
@@ -1623,6 +1809,8 @@ Deno.serve(async (request) => {
             code = candidate;
           }
         }
+
+        await writeSecurityLog(request, `CLAIM_${code}`, {}, token);
 
         return jsonResponse(
           {
@@ -1637,10 +1825,32 @@ Deno.serve(async (request) => {
 
     // Đăng nhập admin: đổi mật khẩu lấy token có chữ ký HMAC.
     if (action === "admin-login") {
+      if (!hasExpectedOrigin(request)) {
+        await writeSecurityLog(request, "ADMIN_LOGIN_BAD_ORIGIN");
+        return jsonResponse({ success: false, error: "FORBIDDEN_ORIGIN", version: KEY_API_VERSION }, 403);
+      }
+
       const adminPassword = readAdminPassword();
+      const adminEmail = readAdminEmail();
+      const clientIp = getClientIp(request);
+
+      if (!clientIp) {
+        return jsonResponse({ success: false, error: "CLIENT_IP_UNAVAILABLE", version: KEY_API_VERSION }, 503);
+      }
+
+      try {
+        const allowed = await bumpRequestLimit("admin-login", clientIp, 8, 15 * 60);
+        if (!allowed) {
+          await writeSecurityLog(request, "ADMIN_LOGIN_RATE_LIMIT");
+          return jsonResponse({ success: false, error: "ADMIN_LOGIN_RATE_LIMITED", version: KEY_API_VERSION }, 429);
+        }
+      } catch (error) {
+        console.error("ADMIN_LOGIN_RATE_LIMIT_CHECK_FAILED", error);
+        return jsonResponse({ success: false, error: "SECURITY_CHECK_UNAVAILABLE", version: KEY_API_VERSION }, 503);
+      }
 
       // Chưa cấu hình mật khẩu = chặn hoàn toàn, không cho vào.
-      if (!adminPassword || adminPassword.length < 8) {
+      if (!adminPassword || adminPassword.length < 8 || !adminEmail) {
         console.error("ADMIN_PASSWORD_NOT_CONFIGURED");
 
         return jsonResponse(
@@ -1654,8 +1864,13 @@ Deno.serve(async (request) => {
       }
 
       const submitted = String(body.password || "");
+      const submittedEmail = String(body.email || "").trim().toLowerCase();
 
-      if (!timingSafeEqual(submitted, adminPassword)) {
+      if (
+        submittedEmail !== adminEmail ||
+        !timingSafeEqual(submitted, adminPassword)
+      ) {
+        await writeSecurityLog(request, "ADMIN_LOGIN_FAILED");
         return jsonResponse(
           {
             success: false,
@@ -1666,7 +1881,7 @@ Deno.serve(async (request) => {
         );
       }
 
-      const adminToken = await issueAdminToken();
+      const adminToken = await issueAdminToken(clientIp);
 
       const [stats, settings] = await Promise.all([
         readStats(),
@@ -1700,7 +1915,7 @@ Deno.serve(async (request) => {
       // GATE: mọi hành động quản trị đều phải có token hợp lệ.
       const adminToken = extractAdminToken(request, body);
 
-      if (!(await verifyAdminToken(adminToken))) {
+      if (!(await verifyAdminToken(adminToken, request))) {
         return jsonResponse(
           {
             success: false,

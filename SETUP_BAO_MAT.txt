@@ -1,0 +1,57 @@
+TRINH TU CAP NHAT BAN BAO MAT V13
+================================
+
+1) SUPABASE > SQL EDITOR
+- Chay TOAN BO file claim_limits.sql.
+- Nen chay SQL truoc khi deploy Edge Function moi.
+
+2) SUPABASE > EDGE FUNCTIONS > key-api
+- Thay code bang index.ts.
+- Deploy lai function.
+
+3) SUPABASE > EDGE FUNCTIONS > SECRETS
+Bat buoc/co san:
+- SUPABASE_URL = URL project Supabase
+- SUPABASE_SERVICE_ROLE_KEY = service role/secret server key (KHONG dua vao frontend)
+- KEY_PAGE_URL = https://TEN-MIEN-CUA-BAN/key.html
+- ADMIN_PASSWORD = mat khau admin toi thieu 8 ky tu
+- ADMIN_EMAIL = email admin duoc phep dang nhap
+- ADMIN_TOKEN_SECRET = chuoi ngau nhien dai it nhat 32 ky tu
+- CLAIM_TICKET_SECRET = chuoi ngau nhien dai it nhat 32 ky tu, khac ADMIN_TOKEN_SECRET
+- ALLOWED_ORIGIN = https://TEN-MIEN-CUA-BAN
+- TURNSTILE_SECRET_KEY = secret key cua Cloudflare Turnstile
+- TURNSTILE_REQUIRE = true
+- TURNSTILE_EXPECTED_HOSTNAME = TEN-MIEN-CUA-BAN (khong co https:// va khong co path)
+- ADMIN_BIND_IP = true  (khuyen nghi; neu IP admin thay doi lien tuc co the dat false)
+
+Co the tao secret ngau nhien tren may bang:
+  openssl rand -hex 32
+
+4) config.js
+- Dien TURNSTILE_SITE_KEY = site key cong khai cua Cloudflare Turnstile.
+- SUPABASE_PUBLISHABLE_KEY la publishable/anon key, duoc phep o frontend.
+- TUYET DOI khong dat service_role/secret key vao config.js.
+
+5) VERCEL / HOSTING
+Thay cac file:
+- index.html
+- key.html
+- admin.html
+- config.js
+- vercel.json
+
+6) LUU Y
+- Link rut gon CU tao truoc khi nang cap V13 se khong claim duoc vi khong co ve ky exp+sig. Hay tao link moi.
+- create-session V13 chi tra shortUrl, khong tra token claim.
+- Claim key yeu cau ve HMAC do server ky + dung IP + session con han.
+- SQL claim la atomic: session bi khoa, key bi khoa, key claimed va session bi tieu trong cung transaction.
+- Neu RPC rate-limit bi loi, backend FAIL-CLOSED (khong am tham cho qua).
+
+7) TEST NHANH
+- Goi claim chi voi token, khong co exp+sig => INVALID_CLAIM_TICKET.
+- Goi create-session tu domain khac => FORBIDDEN_ORIGIN.
+- Spam create-session > 20 lan/gio/IP => SESSION_RATE_LIMITED.
+- Spam claim > 40 lan/10 phut/IP => CLAIM_RATE_LIMITED.
+- Sai admin login > 8 lan/15 phut/IP => ADMIN_LOGIN_RATE_LIMITED.
+- 2 request cung token dong thoi => chi 1 request co the claim key.
+- anon/authenticated goi truc tiep claim_key/claim_key_limited => bi tu choi quyen.

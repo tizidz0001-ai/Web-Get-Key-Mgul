@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#080c15" />
+  <meta name="referrer" content="no-referrer" />
   <title>Get Key Free Fire iPA - Key Của Bạn</title>
   <style>
     :root {
@@ -409,25 +410,40 @@
       );
     }
 
-    function getTokenFromUrl() {
+    function getClaimTicketFromUrl() {
       const uuidPattern =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
       const pathMatch =
         window.location.pathname.match(/\/k\/([0-9a-fA-F]{32})\/?$/);
 
-      if (pathMatch) {
-        const fromPath = hexToUuid(pathMatch[1]);
+      let token = "";
 
-        if (uuidPattern.test(fromPath)) {
-          return fromPath;
-        }
+      if (pathMatch) {
+        token = hexToUuid(pathMatch[1]);
       }
 
       const params = new URLSearchParams(window.location.search);
-      const token = String(params.get("token") || "").trim();
 
-      return uuidPattern.test(token) ? token : "";
+      // Fallback token query chỉ để tương thích format URL, nhưng claim vẫn
+      // BẮT BUỘC có exp + sig do server ký.
+      if (!uuidPattern.test(token)) {
+        token = String(params.get("token") || "").trim();
+      }
+
+      const ticketExp = Number(params.get("exp") || 0);
+      const ticketSig = String(params.get("sig") || "").trim();
+
+      if (
+        !uuidPattern.test(token) ||
+        !Number.isSafeInteger(ticketExp) ||
+        ticketExp <= 0 ||
+        !/^[0-9a-f]{64}$/i.test(ticketSig)
+      ) {
+        return null;
+      }
+
+      return { token, ticketExp, ticketSig };
     }
 
     function renderKey(key, label = "Còn Hiệu Lực") {
@@ -450,9 +466,9 @@
     }
 
     async function loadKey() {
-      const token = getTokenFromUrl();
+      const ticket = getClaimTicketFromUrl();
 
-      if (!token) {
+      if (!ticket) {
         showExpired();
         return;
       }
@@ -469,7 +485,9 @@
 
       try {
         const data = await callKeyApi("claim", {
-          token,
+          token: ticket.token,
+          ticketExp: ticket.ticketExp,
+          ticketSig: ticket.ticketSig,
           deviceId: getDeviceId()
         });
 
@@ -500,7 +518,9 @@
         if (
           code === "INVALID_SESSION" ||
           code === "SESSION_EXPIRED" ||
-          code === "TOKEN_REQUIRED"
+          code === "TOKEN_REQUIRED" ||
+          code === "INVALID_CLAIM_TICKET" ||
+          code === "CLAIM_TICKET_EXPIRED"
         ) {
           showExpired();
           return;
@@ -522,6 +542,20 @@
           showToast(
             "Bạn Đã Lấy Đủ Số Key Trong Ngày. Vui Lòng Quay Lại Sau 00:00."
           );
+          return;
+        }
+
+        if (code === "CLAIM_RATE_LIMITED") {
+          keyValue.textContent = "Thao Tác Quá Nhanh";
+          statusText.textContent = "Tạm Khóa Claim";
+          showToast("Bạn Gửi Quá Nhiều Yêu Cầu. Vui Lòng Thử Lại Sau.");
+          return;
+        }
+
+        if (code === "FORBIDDEN_ORIGIN" || code === "SECURITY_CHECK_UNAVAILABLE") {
+          keyValue.textContent = "Yêu Cầu Không Hợp Lệ";
+          statusText.textContent = "Bảo Mật Đã Chặn";
+          showToast("Yêu Cầu Đã Bị Hệ Thống Bảo Mật Từ Chối.");
           return;
         }
 
