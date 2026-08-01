@@ -222,8 +222,8 @@
     <h1>Key Của Bạn</h1>
 
     <p class="subtitle">
-      Sao Chép Key Bên Dưới Ngay Bây Giờ. Key Chỉ Hiển Thị Một Lần,
-      Tải Lại Trang Sẽ Mất Và Bạn Phải Vượt Link Lại Từ Đầu.
+      Sao Chép Key Bên Dưới Ngay Bây Giờ. Key Gần Nhất Sẽ Được Lưu
+      Trên Trình Duyệt Này Để Có Thể Hiển Thị Lại Khi Link Hết Hiệu Lực.
     </p>
 
     <section class="key-box">
@@ -248,7 +248,7 @@
 
     <p class="small-note">
       Muốn Nhận Key Mới, Bạn Phải Quay Lại Trang Chính Và Vượt Link
-      Lại Từ Đầu.
+      Lại Từ Đầu. Key Cũ Chỉ Có Thể Hiển Thị Lại Trên Trình Duyệt Đã Nhận Key.
     </p>
   </main>
 
@@ -304,6 +304,9 @@
 
     const DEVICE_ID_STORAGE_KEY =
       config.DEVICE_ID_STORAGE_KEY || "migul_device_id_v1";
+
+    const KEY_CACHE_STORAGE_KEY =
+      config.KEY_CACHE_STORAGE_KEY || "migul_claimed_key_cache_v1";
 
     function getDeviceId() {
       let id = "";
@@ -446,11 +449,81 @@
       return { token, ticketExp, ticketSig };
     }
 
-    function renderKey(key, label = "Còn Hiệu Lực") {
-      currentKey = key;
-      keyValue.textContent = key;
+    function readLastKey() {
+      try {
+        const raw = String(
+          localStorage.getItem(KEY_CACHE_STORAGE_KEY) || ""
+        ).trim();
+
+        if (!raw) {
+          return "";
+        }
+
+        const cached = JSON.parse(raw);
+        const key = String(cached?.key || "").trim();
+
+        if (!key || key.length > 4096) {
+          return "";
+        }
+
+        return key;
+      } catch {
+        return "";
+      }
+    }
+
+    function saveLastKey(key) {
+      const cleanKey = String(key || "").trim();
+
+      if (!cleanKey || cleanKey.length > 4096) {
+        return;
+      }
+
+      try {
+        localStorage.setItem(
+          KEY_CACHE_STORAGE_KEY,
+          JSON.stringify({
+            key: cleanKey,
+            savedAt: new Date().toISOString()
+          })
+        );
+      } catch {
+        // Trình duyệt chặn localStorage: vẫn hiển thị key trong phiên hiện tại.
+      }
+    }
+
+    function renderKey(
+      key,
+      label = "Còn Hiệu Lực",
+      shouldCache = false
+    ) {
+      const cleanKey = String(key || "").trim();
+
+      currentKey = cleanKey;
+      keyValue.textContent = cleanKey;
       statusText.textContent = label;
-      copyButton.disabled = false;
+      copyButton.disabled = !cleanKey;
+
+      if (shouldCache) {
+        saveLastKey(cleanKey);
+      }
+    }
+
+    function showLastKeyOrFallback(message) {
+      const lastKey = readLastKey();
+
+      if (lastKey) {
+        renderKey(lastKey, "Key Gần Nhất");
+        showToast(message || "Đang Hiển Thị Lại Key Gần Nhất Trên Thiết Bị Này.");
+        return true;
+      }
+
+      currentKey = "";
+      keyValue.textContent = "Không Có Key Cũ";
+      statusText.textContent = "Chưa Có Lịch Sử";
+      copyButton.disabled = true;
+      showToast("Thiết Bị Này Chưa Lưu Key Nào Trước Đó.");
+      return false;
     }
 
     function redirectToStart() {
@@ -458,11 +531,9 @@
     }
 
     function showExpired() {
-      keyValue.textContent = "Token Đã Hết Hạn";
-      statusText.textContent = "Hết Hạn Token";
-      copyButton.disabled = true;
-      showToast("Token Đã Hết Hạn. Vui Lòng Vượt Link Lại Từ Đầu.");
-      setTimeout(redirectToStart, 1600);
+      showLastKeyOrFallback(
+        "Link Này Không Còn Hiệu Lực. Đang Hiển Thị Lại Key Gần Nhất."
+      );
     }
 
     async function loadKey() {
@@ -495,7 +566,7 @@
           throw new Error("KEY_NOT_FOUND");
         }
 
-        renderKey(data.key);
+        renderKey(data.key, "Còn Hiệu Lực", true);
       } catch (error) {
         console.error(error);
 
@@ -537,10 +608,8 @@
         }
 
         if (code === "LIMIT_REACHED") {
-          keyValue.textContent = "Đã Đạt Giới Hạn";
-          statusText.textContent = "Hết Lượt Hôm Nay";
-          showToast(
-            "Bạn Đã Lấy Đủ Số Key Trong Ngày. Vui Lòng Quay Lại Sau 00:00."
+          showLastKeyOrFallback(
+            "Bạn Đã Đạt Giới Hạn Hôm Nay. Đang Hiển Thị Lại Key Gần Nhất."
           );
           return;
         }
