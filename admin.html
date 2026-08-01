@@ -349,7 +349,7 @@
 
     .shortener-row {
       display: grid;
-      grid-template-columns: auto 1fr 1.4fr 1.4fr auto;
+      grid-template-columns: auto .95fr 1fr 1.5fr 1.25fr auto;
       gap: 10px;
       align-items: center;
       padding: 14px;
@@ -740,9 +740,9 @@
           <div>
             <h2>Cấu Hình Rút Gọn Link</h2>
             <p>
-              Thêm Nhiều Web Vượt Link. Chọn Số Lớp Rút Gọn (1-6). Các Lớp Luân
-              Phiên Theo Thứ Tự Web: Lớp 1 = Web 1, Lớp 2 = Web 2, Lớp 3 = Web 1...
-              Nếu Một Lớp Lỗi Sẽ Bỏ Qua Và Dùng Link Đã Rút Được.
+              Thêm Nhiều Web Vượt Link Và Chọn Số Lớp Rút Gọn (1-6). Với GTraffic,
+              Chỉ Cần Một Dòng GTraffic Và Chọn 2 Lớp; Hệ Thống Sẽ Tự Dùng API Đó
+              Hai Lần Liên Tiếp. Nếu Một Lớp Lỗi, Hệ Thống Sẽ Không Trả Link Thiếu Lớp.
             </p>
           </div>
         </div>
@@ -760,6 +760,12 @@
               <option value="6">6 Lớp</option>
             </select>
           </div>
+        </div>
+
+        <div class="security-note">
+          Thiết Lập Khuyên Dùng Cho GTraffic: Chọn <strong>2 Lớp</strong>, Chỉ Giữ
+          <strong>1 Dòng</strong>, Chọn Loại API <strong>GTraffic</strong>, API URL Là
+          <code>https://manager.gtraffic.io/api/cong-khai/tao-lien-ket</code>.
         </div>
 
         <div class="shortener-list" id="shortenerList"></div>
@@ -1435,12 +1441,12 @@
       list.forEach((item) => addShortenerRow(item));
     }
 
-    // Thêm một dòng web rút gọn (bật/tắt + name + apiUrl + apiKey + nút xóa).
+    // Thêm một dòng web rút gọn.
+    // GTraffic được chọn rõ loại API để backend dùng tham số apikey và đọc trường id.
     function addShortenerRow(data = {}) {
       const row = document.createElement("div");
       row.className = "shortener-row";
 
-      // Công tắc BẬT/TẮT: chỉ API đang bật mới được dùng để rút gọn.
       const enableLabel = document.createElement("label");
       enableLabel.className = "shortener-toggle";
 
@@ -1455,21 +1461,45 @@
 
       enableLabel.append(enableInput, enableText);
 
+      const providerSelect = document.createElement("select");
+      providerSelect.dataset.field = "providerType";
+      providerSelect.setAttribute("aria-label", "Loại API Rút Gọn");
+
+      [
+        ["auto", "Tự Nhận Diện"],
+        ["gtraffic", "GTraffic"],
+        ["trafficvn", "TrafficVN / API Thường"]
+      ].forEach(([value, label]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        providerSelect.appendChild(option);
+      });
+
+      providerSelect.value = String(
+        data.providerType || data.type || "auto"
+      ).toLowerCase();
+
+      if (!["auto", "gtraffic", "trafficvn"].includes(providerSelect.value)) {
+        providerSelect.value = "auto";
+      }
+
       const nameInput = document.createElement("input");
       nameInput.type = "text";
-      nameInput.placeholder = "Tên Web (Tùy Chọn)";
+      nameInput.placeholder = "Tên Web";
       nameInput.value = String(data.name || "");
       nameInput.dataset.field = "name";
 
       const apiUrlInput = document.createElement("input");
       apiUrlInput.type = "url";
-      apiUrlInput.placeholder = "API URL, VD: https://web1.com/api";
+      apiUrlInput.placeholder = "API URL";
       apiUrlInput.value = String(data.apiUrl || "");
       apiUrlInput.dataset.field = "apiUrl";
 
       const apiKeyInput = document.createElement("input");
-      apiKeyInput.type = "text";
-      apiKeyInput.placeholder = "API Key";
+      apiKeyInput.type = "password";
+      apiKeyInput.autocomplete = "off";
+      apiKeyInput.placeholder = "API Key / Token";
       apiKeyInput.value = String(data.apiKey || "");
       apiKeyInput.dataset.field = "apiKey";
 
@@ -1481,20 +1511,50 @@
         row.remove();
       });
 
-      // Làm mờ dòng khi API bị tắt để dễ nhìn.
+      const applyProviderPreset = () => {
+        if (providerSelect.value !== "gtraffic") {
+          return;
+        }
+
+        if (!nameInput.value.trim()) {
+          nameInput.value = "GTraffic";
+        }
+
+        const currentUrl = apiUrlInput.value.trim();
+
+        if (
+          !currentUrl ||
+          currentUrl === "https://gtraffic.io/st"
+        ) {
+          apiUrlInput.value =
+            "https://manager.gtraffic.io/api/cong-khai/tao-lien-ket";
+        }
+      };
+
       const applyDisabledStyle = () => {
         row.classList.toggle("off", !enableInput.checked);
         enableText.textContent = enableInput.checked ? "Bật" : "Tắt";
       };
 
+      providerSelect.addEventListener("change", applyProviderPreset);
       enableInput.addEventListener("change", applyDisabledStyle);
+
+      applyProviderPreset();
       applyDisabledStyle();
 
-      row.append(enableLabel, nameInput, apiUrlInput, apiKeyInput, removeButton);
+      row.append(
+        enableLabel,
+        providerSelect,
+        nameInput,
+        apiUrlInput,
+        apiKeyInput,
+        removeButton
+      );
+
       shortenerList.appendChild(row);
     }
 
-    // Gom các dòng web thành mảng { name, apiUrl, apiKey, enabled }.
+    // Gom các dòng web thành mảng gửi về Edge Function.
     function collectShorteners() {
       const rows =
         shortenerList.querySelectorAll(".shortener-row");
@@ -1504,13 +1564,12 @@
       rows.forEach((row) => {
         const get = (field) => {
           const el = row.querySelector(`[data-field="${field}"]`);
-          return el ? el.value.trim() : "";
+          return el ? String(el.value || "").trim() : "";
         };
 
         const apiUrl = get("apiUrl");
         const apiKey = get("apiKey");
 
-        // Bỏ dòng trống hoàn toàn; giữ dòng có nhập.
         if (!apiUrl && !apiKey) {
           return;
         }
@@ -1519,6 +1578,7 @@
           row.querySelector('[data-field="enabled"]');
 
         result.push({
+          providerType: get("providerType") || "auto",
           name: get("name"),
           apiUrl,
           apiKey,
@@ -1994,7 +2054,7 @@
 
         setMessage(
           shortenerMessage,
-          "Đã Lưu Cấu Hình Rút Gọn Thành Công.",
+          `Đã Lưu Cấu Hình Rút Gọn ${Number(shortenerLayers.value) || 2} Lớp Thành Công.`,
           "success"
         );
       } catch (error) {
