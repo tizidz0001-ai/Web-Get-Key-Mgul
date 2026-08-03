@@ -1,57 +1,94 @@
-TRINH TU CAP NHAT BAN BAO MAT V13
-================================
+HUONG DAN CAP NHAT V15 - GTRAFFIC + RUT GON LONG NHAU
+======================================================
 
-1) SUPABASE > SQL EDITOR
-- Chay TOAN BO file claim_limits.sql.
-- Nen chay SQL truoc khi deploy Edge Function moi.
+BAN NAY GIU NGUYEN TOAN BO BAO MAT V14_30S_ONE_TIME:
+- Khong the vao thang link dich de lay key.
+- Bat buoc du toi thieu 30 giay theo dong ho server.
+- Key/session/landing code chi dung mot lan.
+- Reload trang sau khi hien key se mat key va URL cu het hieu luc.
+- Rang buoc IP, thiet bi, journey secret, user-agent va Turnstile.
 
-2) SUPABASE > EDGE FUNCTIONS > key-api
-- Thay code bang index.ts.
-- Deploy lai function.
+V15 BO SUNG:
+- Ho tro truc tiep API GTraffic dang:
+  https://gtraffic.io/st?apikey=API_KEY&url=
+- API key duoc nhap rieng trong admin. Gia tri API key trong link mau se duoc
+  backend thay bang API key admin da luu.
+- Chon 1-6 lan rut gon de len nhau trong admin.
+- Vi du chon 3 lan:
+  Link dich -> GTraffic lan 1 -> GTraffic lan 2 -> GTraffic lan 3 -> user.
+- Phai tao DU tat ca so lan da chon. Chi mot lan loi thi session bi xoa va
+  khong co key nao duoc cap.
 
-3) SUPABASE > EDGE FUNCTIONS > SECRETS
-Bat buoc/co san:
-- SUPABASE_URL = URL project Supabase
-- SUPABASE_SERVICE_ROLE_KEY = service role/secret server key (KHONG dua vao frontend)
-- KEY_PAGE_URL = https://TEN-MIEN-CUA-BAN/key.html
-- ADMIN_PASSWORD = mat khau admin toi thieu 8 ky tu
-- ADMIN_EMAIL = email admin duoc phep dang nhap
-- ADMIN_TOKEN_SECRET = chuoi ngau nhien dai it nhat 32 ky tu
-- CLAIM_TICKET_SECRET = chuoi ngau nhien dai it nhat 32 ky tu, khac ADMIN_TOKEN_SECRET
-- ALLOWED_ORIGIN = https://TEN-MIEN-CUA-BAN
-- TURNSTILE_SECRET_KEY = secret key cua Cloudflare Turnstile
-- TURNSTILE_REQUIRE = true
-- TURNSTILE_EXPECTED_HOSTNAME = TEN-MIEN-CUA-BAN (khong co https:// va khong co path)
-- ADMIN_BIND_IP = true  (khuyen nghi; neu IP admin thay doi lien tuc co the dat false)
+1) FILE CAN CAP NHAT
+- Supabase Edge Function key-api: thay bang index.ts va Deploy.
+- Vercel/hosting: thay admin.html.
+- Cac file index.html, key.html, config.js, vercel.json va claim_limits.sql
+  duoc giu san trong goi de deploy dong bo, nhung chuc nang GTraffic chi bat
+  buoc thay index.ts + admin.html.
 
-Co the tao secret ngau nhien tren may bang:
-  openssl rand -hex 32
+2) KHONG CAN CHAY LAI SQL
+- Neu ban da chay claim_limits.sql cua V14_30S thi khong can chay lai.
+- Cau truc DB van dung cot shorteners va shortener_layers cu.
 
-4) config.js
-- Dien TURNSTILE_SITE_KEY = site key cong khai cua Cloudflare Turnstile.
-- SUPABASE_PUBLISHABLE_KEY la publishable/anon key, duoc phep o frontend.
-- TUYET DOI khong dat service_role/secret key vao config.js.
+3) KIEM TRA PHIEN BAN EDGE FUNCTION
+Gui POST den key-api:
+  {"action":"version"}
 
-5) VERCEL / HOSTING
-Thay cac file:
-- index.html
-- key.html
-- admin.html
-- config.js
-- vercel.json
+Phai tra:
+  KEY_API_HARDENED_V15_GTRAFFIC_20260804
 
-6) LUU Y
-- Link rut gon CU tao truoc khi nang cap V13 se khong claim duoc vi khong co ve ky exp+sig. Hay tao link moi.
-- create-session V13 chi tra shortUrl, khong tra token claim.
-- Claim key yeu cau ve HMAC do server ky + dung IP + session con han.
-- SQL claim la atomic: session bi khoa, key bi khoa, key claimed va session bi tieu trong cung transaction.
-- Neu RPC rate-limit bi loi, backend FAIL-CLOSED (khong am tham cho qua).
+4) CAU HINH TRONG ADMIN
+Vao Admin > Cau Hinh Rut Gon Link.
 
-7) TEST NHANH
-- Goi claim chi voi token, khong co exp+sig => INVALID_CLAIM_TICKET.
-- Goi create-session tu domain khac => FORBIDDEN_ORIGIN.
-- Spam create-session > 20 lan/gio/IP => SESSION_RATE_LIMITED.
-- Spam claim > 40 lan/10 phut/IP => CLAIM_RATE_LIMITED.
-- Sai admin login > 8 lan/15 phut/IP => ADMIN_LOGIN_RATE_LIMITED.
-- 2 request cung token dong thoi => chi 1 request co the claim key.
-- anon/authenticated goi truc tiep claim_key/claim_key_limited => bi tu choi quyen.
+Dong GTraffic dien nhu sau:
+- Ten API: GTraffic
+- Link API:
+  https://gtraffic.io/st?apikey=API_KEY&url=
+- API Key: dan API key GTraffic that cua ban vao o rieng.
+- Bat: On
+- So Lan Rut Gon De Len Nhau: chon 1 den 6 lan.
+- Bam Luu Cau Hinh Rut Gon.
+
+Ban cung co the dan link dang co san key:
+  https://gtraffic.io/st?apikey=KEY_CU&url=
+Backend van se thay KEY_CU bang gia tri trong o API Key de tranh sai cau hinh.
+
+5) BAO MAT API KEY
+- KHONG dat API key GTraffic vao config.js.
+- KHONG ghi API key that vao admin.html hoac GitHub public.
+- API key duoc luu qua API admin server-side trong site_settings.
+- get-settings cong khai khong tra ve danh sach shorteners/API key.
+- Neu API key tung bi dang cong khai tren GitHub, video hoac anh chup, hay tao
+  key moi trong GTraffic va thay key cu.
+
+6) CAC SECRET V14 VAN PHAI GIU NGUYEN
+- SUPABASE_URL
+- SUPABASE_SERVICE_ROLE_KEY
+- KEY_PAGE_URL
+- ADMIN_PASSWORD
+- ADMIN_EMAIL
+- ADMIN_TOKEN_SECRET
+- CLAIM_TICKET_SECRET
+- ALLOWED_ORIGIN
+- TURNSTILE_SECRET_KEY
+- TURNSTILE_REQUIRE=true
+- TURNSTILE_EXPECTED_HOSTNAME
+- ADMIN_BIND_IP=true
+- MIN_JOURNEY_SECONDS=30
+
+7) TEST
+- Chon 1 lan: link tra ve phai la link GTraffic.
+- Chon 2 lan: API GTraffic duoc goi lan 2 voi link rut gon lan 1 lam URL dich.
+- Chon 3-6 lan: tuong tu, moi lan de len ket qua lan truoc.
+- API sai/het han: web bao khong the tao du so lan rut gon; session bi xoa.
+- Vao thang key.html hoac URL cu: khong hien key.
+- Den trang dich duoi 30 giay: hien "Key Loi .. Vui Long Vuot Lai".
+- Claim thanh cong roi reload: key khong hien lai.
+
+
+GIAO DIEN TRANG V15 WHITE
+============================
+- Da doi index.html, key.html va admin.html sang nen trang.
+- Nut neo-brutalist: nen xanh/cam/vang, vien den dam, bong do cung nhu GTraffic.
+- Khong thay doi luong bao mat, API, SQL hoac co che one-time key.
+- Chi can thay 3 file HTML de cap nhat giao dien; cac file con lai giu nguyen de deploy tron bo.

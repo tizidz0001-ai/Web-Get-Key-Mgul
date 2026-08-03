@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="referrer" content="no-referrer" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
   <title>Quản Trị Get Key</title>
 
   <style>
@@ -349,7 +350,7 @@
 
     .shortener-row {
       display: grid;
-      grid-template-columns: auto .95fr 1fr 1.5fr 1.25fr auto;
+      grid-template-columns: auto 1fr 1.4fr 1.4fr auto;
       gap: 10px;
       align-items: center;
       padding: 14px;
@@ -576,6 +577,170 @@
       }
     }
   </style>
+
+  <!-- GTRAFFIC WHITE / NEO-BRUTALIST THEME -->
+  <style id="gtraffic-white-theme">
+    :root {
+      color-scheme: light !important;
+      --gt-ink: #0f172a;
+      --gt-blue: #10cfea;
+      --gt-yellow: #ffd84d;
+      --gt-pink: #f58fc4;
+      --gt-green: #bff2d7;
+      --gt-paper: #ffffff;
+      --gt-soft: #f3f2ef;
+    }
+
+    html { color-scheme: light !important; }
+
+    body {
+      color: var(--gt-ink) !important;
+      background-color: var(--gt-paper) !important;
+      background-image: radial-gradient(rgba(15, 23, 42, .12) 1px, transparent 1px) !important;
+      background-size: 22px 22px !important;
+    }
+
+    .wrap { width: min(1180px, 100%) !important; }
+
+    .card {
+      color: var(--gt-ink) !important;
+      border: 3px solid var(--gt-ink) !important;
+      border-radius: 4px !important;
+      background: var(--gt-paper) !important;
+      box-shadow: 8px 8px 0 var(--gt-ink) !important;
+      backdrop-filter: none !important;
+    }
+
+    h1, h2, p, label,
+    .stat span, .stat strong,
+    .selected-count, .page-info,
+    .date-text, .key-code,
+    .shortener-index,
+    .shortener-toggle,
+    .admin-email-box span,
+    .admin-email-box strong,
+    .security-note {
+      color: var(--gt-ink) !important;
+    }
+
+    h1, h2 { text-transform: uppercase !important; }
+
+    .lock-icon {
+      color: var(--gt-ink) !important;
+      border: 3px solid var(--gt-ink) !important;
+      border-radius: 3px !important;
+      background: var(--gt-blue) !important;
+      box-shadow: 4px 4px 0 var(--gt-ink) !important;
+    }
+
+    .section,
+    .stat,
+    .admin-email-box,
+    .security-note,
+    .shortener-row,
+    .drop-zone,
+    .table-wrap {
+      color: var(--gt-ink) !important;
+      border: 2px solid var(--gt-ink) !important;
+      border-radius: 3px !important;
+      background: var(--gt-paper) !important;
+      box-shadow: 4px 4px 0 var(--gt-ink) !important;
+    }
+
+    .section { margin-top: 24px !important; padding: 22px !important; }
+    .stat:nth-child(1) { background: var(--gt-pink) !important; }
+    .stat:nth-child(2) { background: var(--gt-green) !important; }
+    .stat:nth-child(3) { background: #fff4b9 !important; }
+    .stat:nth-child(4) { background: #b9ddff !important; }
+
+    input,
+    textarea,
+    select {
+      color: var(--gt-ink) !important;
+      border: 2px solid var(--gt-ink) !important;
+      border-radius: 3px !important;
+      background: var(--gt-paper) !important;
+      box-shadow: 3px 3px 0 #cfd4dc !important;
+    }
+
+    input::placeholder,
+    textarea::placeholder { color: #687386 !important; opacity: 1 !important; }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--gt-ink) !important;
+      box-shadow: 4px 4px 0 var(--gt-blue) !important;
+    }
+
+    button,
+    a {
+      min-height: 46px !important;
+      color: var(--gt-ink) !important;
+      border: 3px solid var(--gt-ink) !important;
+      border-radius: 3px !important;
+      background: var(--gt-yellow) !important;
+      box-shadow: 5px 5px 0 var(--gt-ink) !important;
+      font-weight: 950 !important;
+      text-transform: uppercase !important;
+      transition: transform .12s ease, box-shadow .12s ease !important;
+    }
+
+    button.primary { color: var(--gt-ink) !important; background: var(--gt-blue) !important; }
+    button.danger { color: var(--gt-ink) !important; background: #ff9daf !important; }
+    button.ghost { color: var(--gt-ink) !important; background: var(--gt-green) !important; }
+    .toggle-password { background: var(--gt-paper) !important; }
+
+    button:hover,
+    a:hover {
+      color: var(--gt-ink) !important;
+      transform: translate(2px, 2px) !important;
+      box-shadow: 3px 3px 0 var(--gt-ink) !important;
+    }
+
+    button:active,
+    a:active {
+      transform: translate(5px, 5px) !important;
+      box-shadow: none !important;
+    }
+
+    button:disabled { background: #d8dde5 !important; opacity: .7 !important; }
+
+    .drop-zone { background: #fff4b9 !important; }
+    .drop-zone.drag { background: var(--gt-green) !important; }
+
+    table { color: var(--gt-ink) !important; background: var(--gt-paper) !important; }
+    th {
+      color: var(--gt-ink) !important;
+      border-bottom: 2px solid var(--gt-ink) !important;
+      background: var(--gt-yellow) !important;
+    }
+    td { color: var(--gt-ink) !important; border-bottom: 1px solid #b9c0cb !important; }
+    tbody tr:hover { background: #eefbff !important; }
+
+    .status-badge {
+      color: var(--gt-ink) !important;
+      border: 2px solid var(--gt-ink) !important;
+      border-radius: 3px !important;
+    }
+    .status-available { background: var(--gt-green) !important; }
+    .status-claimed { background: #fff4b9 !important; }
+    .status-disabled { background: #ffb8c6 !important; }
+
+    .message.success { color: #087a53 !important; }
+    .message.error { color: #b91c36 !important; }
+
+    .checkbox { accent-color: #0876ff !important; }
+
+    @media (max-width: 760px) {
+      body { padding: 12px !important; }
+      .wrap { margin: 10px auto 20px !important; }
+      .card { padding: 23px 15px !important; box-shadow: 5px 5px 0 var(--gt-ink) !important; }
+      .section { padding: 16px !important; }
+      .stats { gap: 14px !important; }
+    }
+  </style>
+
 </head>
 
 <body>
@@ -601,7 +766,7 @@
           type="email"
           autocomplete="username"
           placeholder="admin@gmail.com"
-          value="hatrungson230209@gmail.com"
+          value=""
         />
       </div>
 
@@ -637,8 +802,8 @@
       <div class="message" id="loginMessage"></div>
 
       <div class="security-note">
-        Đăng Nhập Bằng Email Và Mật Khẩu Của Tài Khoản Admin. Chỉ Đúng
-        Email Admin Mới Được Phép Truy Cập Trang Quản Trị.
+        Xác Thực Được Kiểm Tra Ở Edge Function. Không Đặt Mật Khẩu, Service Role
+        Hoặc API Secret Trong File HTML/JavaScript Frontend.
       </div>
     </section>
 
@@ -740,39 +905,33 @@
           <div>
             <h2>Cấu Hình Rút Gọn Link</h2>
             <p>
-              Thêm Nhiều Web Vượt Link Và Chọn Số Lớp Rút Gọn (1-6). Với GTraffic,
-              Chỉ Cần Một Dòng GTraffic Và Chọn 2 Lớp; Hệ Thống Sẽ Tự Dùng API Đó
-              Hai Lần Liên Tiếp. Nếu Một Lớp Lỗi, Hệ Thống Sẽ Không Trả Link Thiếu Lớp.
+              Nhập Link API GTraffic Dạng <strong>https://gtraffic.io/st?apikey=API_KEY&amp;url=</strong>
+              Và API Key Riêng. Chọn Số Lần Rút Gọn Đè Lên Nhau; Kết Quả Lần Trước
+              Sẽ Tự Làm Link Đích Cho Lần Sau. Tất Cả Các Lần Phải Thành Công Mới Trả Link Cho User.
             </p>
           </div>
         </div>
 
         <div class="grid">
           <div>
-            <label for="shortenerLayers">Số Lớp Rút Gọn</label>
+            <label for="shortenerLayers">Số Lần Rút Gọn Đè Lên Nhau</label>
 
             <select id="shortenerLayers">
-              <option value="1">1 Lớp</option>
-              <option value="2">2 Lớp</option>
-              <option value="3">3 Lớp</option>
-              <option value="4">4 Lớp</option>
-              <option value="5">5 Lớp</option>
-              <option value="6">6 Lớp</option>
+              <option value="1">1 Lần</option>
+              <option value="2">2 Lần</option>
+              <option value="3">3 Lần</option>
+              <option value="4">4 Lần</option>
+              <option value="5">5 Lần</option>
+              <option value="6">6 Lần</option>
             </select>
           </div>
-        </div>
-
-        <div class="security-note">
-          Thiết Lập Khuyên Dùng Cho GTraffic: Chọn <strong>2 Lớp</strong>, Chỉ Giữ
-          <strong>1 Dòng</strong>, Chọn Loại API <strong>GTraffic</strong>, API URL Là
-          <code>https://manager.gtraffic.io/api/cong-khai/tao-lien-ket</code>.
         </div>
 
         <div class="shortener-list" id="shortenerList"></div>
 
         <div class="actions">
           <button class="ghost" id="addShortenerButton" type="button">
-            + Thêm Web
+            + Thêm API Khác
           </button>
 
           <button class="primary" id="saveShortenersButton" type="button">
@@ -1000,7 +1159,7 @@
     const ADMIN_EMAIL =
       String(
         config.ADMIN_EMAIL ||
-        "hatrungson230209@gmail.com"
+        ""
       )
         .trim()
         .toLowerCase();
@@ -1013,6 +1172,10 @@
 
     const emailInput =
       document.getElementById("emailInput");
+
+    if (ADMIN_EMAIL) {
+      emailInput.value = ADMIN_EMAIL;
+    }
 
     const passwordInput =
       document.getElementById("passwordInput");
@@ -1243,6 +1406,10 @@
           "Không Thể Lưu Các Đường Link.",
         INVALID_SETTINGS_URL:
           "Link Không Hợp Lệ. Link Phải Bắt Đầu Bằng http:// Hoặc https://.",
+        SHORTENER_INVALID_API_URL:
+          "Link API Rút Gọn Không Hợp Lệ. Hãy Dùng Dạng https://gtraffic.io/st?apikey=API_KEY&url=.",
+        SHORTENER_NOT_CONFIGURED:
+          "Bạn Chưa Nhập Đủ Link API Và API Key GTraffic.",
         INVALID_STATUS:
           "Trạng Thái Key Không Hợp Lệ.",
         LIST_KEYS_FAILED:
@@ -1413,7 +1580,7 @@
         settings.announcementEnabled === true;
     }
 
-    // Đổ cấu hình rút gọn: số lớp + danh sách web.
+    // Đổ cấu hình rút gọn: số lần lồng + danh sách API.
     function renderShorteners(settings = {}) {
       const layers =
         Math.min(
@@ -1434,19 +1601,24 @@
           : [];
 
       if (list.length === 0) {
-        addShortenerRow();
+        addShortenerRow({
+          name: "GTraffic",
+          apiUrl: "https://gtraffic.io/st?apikey=API_KEY&url=",
+          apiKey: "",
+          enabled: true
+        });
         return;
       }
 
       list.forEach((item) => addShortenerRow(item));
     }
 
-    // Thêm một dòng web rút gọn.
-    // GTraffic được chọn rõ loại API để backend dùng tham số apikey và đọc trường id.
+    // Thêm một dòng API rút gọn (bật/tắt + tên + mẫu URL + API key + nút xóa).
     function addShortenerRow(data = {}) {
       const row = document.createElement("div");
       row.className = "shortener-row";
 
+      // Công tắc BẬT/TẮT: chỉ API đang bật mới được dùng để rút gọn.
       const enableLabel = document.createElement("label");
       enableLabel.className = "shortener-toggle";
 
@@ -1461,45 +1633,23 @@
 
       enableLabel.append(enableInput, enableText);
 
-      const providerSelect = document.createElement("select");
-      providerSelect.dataset.field = "providerType";
-      providerSelect.setAttribute("aria-label", "Loại API Rút Gọn");
-
-      [
-        ["auto", "Tự Nhận Diện"],
-        ["gtraffic", "GTraffic"],
-        ["trafficvn", "TrafficVN / API Thường"]
-      ].forEach(([value, label]) => {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = label;
-        providerSelect.appendChild(option);
-      });
-
-      providerSelect.value = String(
-        data.providerType || data.type || "auto"
-      ).toLowerCase();
-
-      if (!["auto", "gtraffic", "trafficvn"].includes(providerSelect.value)) {
-        providerSelect.value = "auto";
-      }
-
       const nameInput = document.createElement("input");
       nameInput.type = "text";
-      nameInput.placeholder = "Tên Web";
+      nameInput.placeholder = "Tên API, VD: GTraffic";
       nameInput.value = String(data.name || "");
       nameInput.dataset.field = "name";
 
       const apiUrlInput = document.createElement("input");
-      apiUrlInput.type = "url";
-      apiUrlInput.placeholder = "API URL";
+      apiUrlInput.type = "text";
+      apiUrlInput.placeholder = "https://gtraffic.io/st?apikey=API_KEY&url=";
       apiUrlInput.value = String(data.apiUrl || "");
       apiUrlInput.dataset.field = "apiUrl";
 
       const apiKeyInput = document.createElement("input");
-      apiKeyInput.type = "password";
+      apiKeyInput.type = "text";
+      apiKeyInput.placeholder = "API Key GTraffic";
       apiKeyInput.autocomplete = "off";
-      apiKeyInput.placeholder = "API Key / Token";
+      apiKeyInput.spellcheck = false;
       apiKeyInput.value = String(data.apiKey || "");
       apiKeyInput.dataset.field = "apiKey";
 
@@ -1511,50 +1661,20 @@
         row.remove();
       });
 
-      const applyProviderPreset = () => {
-        if (providerSelect.value !== "gtraffic") {
-          return;
-        }
-
-        if (!nameInput.value.trim()) {
-          nameInput.value = "GTraffic";
-        }
-
-        const currentUrl = apiUrlInput.value.trim();
-
-        if (
-          !currentUrl ||
-          currentUrl === "https://gtraffic.io/st"
-        ) {
-          apiUrlInput.value =
-            "https://manager.gtraffic.io/api/cong-khai/tao-lien-ket";
-        }
-      };
-
+      // Làm mờ dòng khi API bị tắt để dễ nhìn.
       const applyDisabledStyle = () => {
         row.classList.toggle("off", !enableInput.checked);
         enableText.textContent = enableInput.checked ? "Bật" : "Tắt";
       };
 
-      providerSelect.addEventListener("change", applyProviderPreset);
       enableInput.addEventListener("change", applyDisabledStyle);
-
-      applyProviderPreset();
       applyDisabledStyle();
 
-      row.append(
-        enableLabel,
-        providerSelect,
-        nameInput,
-        apiUrlInput,
-        apiKeyInput,
-        removeButton
-      );
-
+      row.append(enableLabel, nameInput, apiUrlInput, apiKeyInput, removeButton);
       shortenerList.appendChild(row);
     }
 
-    // Gom các dòng web thành mảng gửi về Edge Function.
+    // Gom các dòng API thành mảng { name, apiUrl, apiKey, enabled }.
     function collectShorteners() {
       const rows =
         shortenerList.querySelectorAll(".shortener-row");
@@ -1564,12 +1684,13 @@
       rows.forEach((row) => {
         const get = (field) => {
           const el = row.querySelector(`[data-field="${field}"]`);
-          return el ? String(el.value || "").trim() : "";
+          return el ? el.value.trim() : "";
         };
 
         const apiUrl = get("apiUrl");
         const apiKey = get("apiKey");
 
+        // Bỏ dòng trống hoàn toàn; giữ dòng có nhập.
         if (!apiUrl && !apiKey) {
           return;
         }
@@ -1578,7 +1699,6 @@
           row.querySelector('[data-field="enabled"]');
 
         result.push({
-          providerType: get("providerType") || "auto",
           name: get("name"),
           apiUrl,
           apiKey,
@@ -2054,7 +2174,7 @@
 
         setMessage(
           shortenerMessage,
-          `Đã Lưu Cấu Hình Rút Gọn ${Number(shortenerLayers.value) || 2} Lớp Thành Công.`,
+          "Đã Lưu Cấu Hình Rút Gọn Thành Công.",
           "success"
         );
       } catch (error) {

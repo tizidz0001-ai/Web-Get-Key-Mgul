@@ -19,8 +19,9 @@ window.APP_CONFIG = {
   // Lấy ở Cloudflare Dashboard > Turnstile > tạo widget cho domain của bạn.
   //
   // QUAN TRỌNG (đã đổi hành vi để vá lỗ hổng bị lấy nhiều key cùng lúc):
-  // Server (edge function key-api) giờ BẮT BUỘC phải có TURNSTILE_SECRET_KEY
-  // trong Supabase Secrets, nếu không action "create-session" sẽ bị CHẶN
+  // Server (edge function key-api) BẮT BUỘC có TURNSTILE_SECRET_KEY. V14 xác
+  // minh hai action: "create-session" ở index.html và "claim-key" ở key.html.
+  // Nếu thiếu secret thì cả tạo link lẫn nhận key đều bị CHẶN
   // hoàn toàn (trả lỗi CAPTCHA_FAILED cho mọi người, kể cả người dùng thật).
   // => Phải điền SITE_KEY ở đây VÀ đặt SECRET_KEY tương ứng trong Supabase
   // Edge Functions > key-api > Secrets thì trang mới hoạt động lại được.
@@ -35,12 +36,16 @@ window.APP_CONFIG = {
   // Có thể điền: "https://hypergetkeymigul.vercel.app/"
   ADMIN_REDIRECT_URL: "",
 
-  // Không lưu claim token thật ở frontend. Hai key dưới chỉ giữ để tương thích UI cũ.
+  // Không lưu session token hoặc key đã cấp ở frontend. Hai tên dưới chỉ
+  // được dùng để xóa dữ liệu còn sót từ phiên bản cũ.
   SESSION_STORAGE_KEY: "migul_key_session_token_v1",
   KEY_CACHE_STORAGE_KEY: "migul_claimed_key_cache_v1",
 
-  // Định danh thiết bị bền (localStorage) để giới hạn số key mỗi (IP + thiết bị).
+  // Định danh thiết bị + bí mật hành trình được lưu trên cùng origin.
+  // Backend chỉ lưu SHA-256, không lưu giá trị thô. Link sao chép sang trình
+  // duyệt/client khác sẽ bị chặn bằng DEVICE_MISMATCH/JOURNEY_MISMATCH.
   DEVICE_ID_STORAGE_KEY: "migul_device_id_v1",
+  JOURNEY_SECRET_STORAGE_KEY: "migul_journey_secret_v14",
 
   DISABLE_WHEN_OUT_OF_STOCK: true
 };

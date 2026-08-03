@@ -1,11 +1,16 @@
 // BẢN ADMIN CÓ XÁC THỰC MẬT KHẨU (SERVER-SIDE)
-// Test bằng {"action":"version"} phải trả KEY_API_HARDENED_V13_20260801
-// KEY_API_VERSION: KEY_API_HARDENED_V13_20260801
+// Test bằng {"action":"version"} phải trả KEY_API_HARDENED_V15_GTRAFFIC_20260804
+// KEY_API_VERSION: KEY_API_HARDENED_V15_GTRAFFIC_20260804
 //
 // V11: admin cấu hình nhiều web rút gọn + số lớp (1-6), luân phiên, bỏ qua lớp lỗi.
 // V12: Turnstile + IP binding + rate limit.
 // V13: không trả token phiên, claim ticket HMAC, atomic claim trong DB,
 //      rate-limit fail-closed, admin email/IP server-side và CORS theo origin.
+// V14: landing code ngẫu nhiên không lộ session token, session chỉ claim được
+//      sau khi tạo link rút gọn thành công, ràng IP + thiết bị + journey secret
+//      + user-agent, chờ tối thiểu và Turnstile lần 2 tại trang nhận key.
+// V15: hỗ trợ trực tiếp mẫu API GTraffic dạng
+//      https://gtraffic.io/st?apikey=API_KEY&url= và rút gọn lồng nhiều lần.
 //
 // BẮT BUỘC đặt biến môi trường (Supabase > Edge Functions > key-api > Secrets):
 //   ADMIN_PASSWORD      = mật khẩu admin (tối thiểu 8 ký tự)
@@ -14,7 +19,7 @@
 //   CLAIM_TICKET_SECRET = chuỗi bí mật ngẫu nhiên dài để ký vé claim
 //   ALLOWED_ORIGIN      = origin web chính, ví dụ https://example.com
 
-const KEY_API_VERSION = "KEY_API_HARDENED_V13_20260801";
+const KEY_API_VERSION = "KEY_API_HARDENED_V15_GTRAFFIC_20260804";
 
 // Token admin sống trong bao lâu (mili giây). Mặc định 12 giờ.
 const ADMIN_TOKEN_TTL_MS = 4 * 60 * 60 * 1000;
@@ -235,25 +240,54 @@ async function sha256Hex(message: string): Promise<string> {
   return bytesToHex(new Uint8Array(digest));
 }
 
-async function signClaimTicket(token: string, expMs: number): Promise<string> {
+async function signLandingTicket(landingCode: string, expMs: number): Promise<string> {
   return await hmacSha256Hex(
     getClaimTicketSecret(),
-    `v1.${token}.${expMs}`,
+    `landing.v14.${landingCode}.${expMs}`,
   );
 }
 
-async function verifyClaimTicket(
-  token: string,
+async function verifyLandingTicket(
+  landingCode: string,
   expMs: number,
   signature: string,
 ): Promise<boolean> {
+  if (!/^[0-9a-f]{64}$/i.test(landingCode)) return false;
   if (!Number.isSafeInteger(expMs) || expMs <= Date.now()) return false;
-  // Không nhận vé sống quá xa tương lai, hạn chế vé giả/reuse do cấu hình sai.
   if (expMs > Date.now() + 2 * 60 * 60 * 1000) return false;
   if (!/^[0-9a-f]{64}$/i.test(signature)) return false;
 
-  const expected = await signClaimTicket(token, expMs);
+  const expected = await signLandingTicket(landingCode.toLowerCase(), expMs);
   return timingSafeEqual(signature.toLowerCase(), expected.toLowerCase());
+}
+
+function randomHex(byteLength: number): string {
+  const bytes = new Uint8Array(byteLength);
+  crypto.getRandomValues(bytes);
+  return bytesToHex(bytes);
+}
+
+function readMinimumJourneySeconds(): number {
+  const value = Number(Deno.env.get("MIN_JOURNEY_SECONDS") || 30);
+  // Luôn bắt buộc tối thiểu 30 giây. Dù Secret bị đặt nhầm thấp hơn,
+  // backend và SQL vẫn không cho phép claim sớm hơn 30 giây.
+  if (!Number.isFinite(value)) return 30;
+  return Math.min(1800, Math.max(30, Math.floor(value)));
+}
+
+function normalizeDeviceId(input: unknown): string {
+  const value = String(input || "").trim();
+  if (value.length < 8 || value.length > 200) return "";
+  return value;
+}
+
+function normalizeJourneySecret(input: unknown): string {
+  const value = String(input || "").trim().toLowerCase();
+  return /^[0-9a-f]{64}$/.test(value) ? value : "";
+}
+
+function readUserAgent(request: Request): string {
+  return String(request.headers.get("user-agent") || "").trim().slice(0, 500);
 }
 
 // So sánh chuỗi theo thời gian hằng số để chống timing attack.
@@ -525,8 +559,8 @@ function getClientIp(request: Request): string {
 // vượt link — đây chính là nguyên nhân bị lấy nhiều key trong cùng khung giờ.
 //
 // Mặc định BÂY GIỜ là FAIL-CLOSED: nếu chưa đặt TURNSTILE_SECRET_KEY thì
-// CHẶN LUÔN action "create-session" (báo lỗi rõ ràng để admin biết mà cấu
-// hình), thay vì âm thầm cho qua.
+// CHẶN action đang xác minh (create-session hoặc claim-key), thay vì âm thầm
+// cho qua khi thiếu secret.
 //
 // Nếu vì lý do nào đó bạn CHỦ ĐỘNG muốn tắt Turnstile tạm thời (ví dụ đang
 // test), đặt biến môi trường TURNSTILE_REQUIRE = "false". Mặc định (không đặt
@@ -534,6 +568,7 @@ function getClientIp(request: Request): string {
 async function verifyTurnstile(
   token: string,
   ip: string,
+  expectedAction: "create-session" | "claim-key",
 ): Promise<boolean> {
   const secret = String(
     Deno.env.get("TURNSTILE_SECRET_KEY") || "",
@@ -547,7 +582,7 @@ async function verifyTurnstile(
   if (!secret) {
     if (turnstileRequired) {
       console.error(
-        "TURNSTILE_SECRET_KEY_NOT_SET_BLOCKING_CREATE_SESSION",
+        `TURNSTILE_SECRET_KEY_NOT_SET_BLOCKING_${expectedAction.toUpperCase()}`,
       );
       return false;
     }
@@ -592,7 +627,7 @@ async function verifyTurnstile(
     };
 
     if (data.success !== true) return false;
-    if (data.action !== "create-session") return false;
+    if (data.action !== expectedAction) return false;
 
     const expectedHostname = String(
       Deno.env.get("TURNSTILE_EXPECTED_HOSTNAME") || "",
@@ -1044,6 +1079,63 @@ function extractShortUrl(
   return walk(input);
 }
 
+function buildShortenerRequestUrl(
+  apiUrlTemplate: string,
+  apiKey: string,
+  destinationUrl: string,
+): URL {
+  const cleanTemplate = String(apiUrlTemplate || "").trim();
+  const cleanApiKey = String(apiKey || "").trim();
+
+  if (!cleanTemplate || !cleanApiKey) {
+    throw new Error("SHORTENER_NOT_CONFIGURED");
+  }
+
+  // Cho phép nhập cả hai kiểu:
+  // 1) https://gtraffic.io/st?apikey=API_KEY&url=
+  // 2) https://gtraffic.io/st?apikey={API_KEY}&url={URL}
+  // API key trong URL sẽ luôn bị thay bằng API key admin đã nhập riêng.
+  const preparedTemplate = cleanTemplate
+    .replace(/\{(?:api_?key|apikey|key)\}/gi, encodeURIComponent(cleanApiKey))
+    .replace(/\{(?:url|destination)\}/gi, encodeURIComponent(destinationUrl));
+
+  let requestUrl: URL;
+
+  try {
+    requestUrl = new URL(preparedTemplate);
+  } catch {
+    throw new Error("SHORTENER_INVALID_API_URL");
+  }
+
+  if (!["http:", "https:"].includes(requestUrl.protocol)) {
+    throw new Error("SHORTENER_INVALID_API_URL");
+  }
+
+  const hostname = requestUrl.hostname.toLowerCase();
+  const keyParam =
+    ["apikey", "api_key", "api", "key"]
+      .find((name) => requestUrl.searchParams.has(name)) ||
+    (hostname === "gtraffic.io" || hostname.endsWith(".gtraffic.io")
+      ? "apikey"
+      : "api");
+
+  // URLSearchParams tự mã hóa URL đích đúng một lần, kể cả khi link đích
+  // chứa dấu ?, &, =. Nhập mẫu kết thúc bằng &url= là được.
+  requestUrl.searchParams.set(keyParam, cleanApiKey);
+  requestUrl.searchParams.set("url", destinationUrl);
+
+  // Chỉ TrafficVN cũ mới cần fallback_url. GTraffic không bị thêm tham số này.
+  if (hostname.includes("trafficvn")) {
+    const fallbackUrl =
+      Deno.env.get("TRAFFICVN_FALLBACK_URL") ||
+      "http://getkeyfree.unaux.com/index.html";
+
+    requestUrl.searchParams.set("fallback_url", fallbackUrl);
+  }
+
+  return requestUrl;
+}
+
 async function createTrafficVnLink(
   destinationUrl: string,
   apiKey: string,
@@ -1052,40 +1144,29 @@ async function createTrafficVnLink(
 ) {
   const apiUrl =
     String(apiUrlOverride || "").trim() ||
-    Deno.env.get(
-      "TRAFFICVN_API_URL",
-    ) ||
+    Deno.env.get("TRAFFICVN_API_URL") ||
     "https://trafficvn.com/api";
 
   const fallbackUrl =
-    Deno.env.get(
-      "TRAFFICVN_FALLBACK_URL",
-    ) ||
+    Deno.env.get("TRAFFICVN_FALLBACK_URL") ||
     "http://getkeyfree.unaux.com/index.html";
 
-  if (!apiKey) {
-    throw new Error(
-      `SHORTENER_${step}_NOT_CONFIGURED`,
+  let requestUrl: URL;
+
+  try {
+    requestUrl = buildShortenerRequestUrl(
+      apiUrl,
+      apiKey,
+      destinationUrl,
     );
+  } catch (error) {
+    const code =
+      error instanceof Error
+        ? error.message
+        : `SHORTENER_${step}_NOT_CONFIGURED`;
+
+    throw new Error(code);
   }
-
-  const requestUrl =
-    new URL(apiUrl);
-
-  requestUrl.searchParams.set(
-    "api",
-    apiKey,
-  );
-
-  requestUrl.searchParams.set(
-    "url",
-    destinationUrl,
-  );
-
-  requestUrl.searchParams.set(
-    "fallback_url",
-    fallbackUrl,
-  );
 
   let response: Response;
 
@@ -1103,7 +1184,7 @@ async function createTrafficVnLink(
     );
   } catch (error) {
     console.error(
-      `TRAFFICVN_${step}_FETCH_ERROR`,
+      `SHORTENER_${step}_FETCH_ERROR`,
       error,
     );
 
@@ -1121,12 +1202,11 @@ async function createTrafficVnLink(
     throw err;
   }
 
-  const raw =
-    await response.text();
+  const raw = await response.text();
 
   if (!response.ok) {
     console.error(
-      `TRAFFICVN_${step}_HTTP_ERROR`,
+      `SHORTENER_${step}_HTTP_ERROR`,
       response.status,
       raw.slice(0, 1000),
     );
@@ -1141,27 +1221,23 @@ async function createTrafficVnLink(
     throw err;
   }
 
-  let parsed: unknown =
-    raw.trim();
+  let parsed: unknown = raw.trim();
 
   try {
     parsed = JSON.parse(raw);
   } catch {
-    // TrafficVN có thể trả URL dạng text.
+    // Một số API trả thẳng URL dạng text.
   }
 
-  let shortUrl =
-    extractShortUrl(
-      parsed,
-      destinationUrl,
-      fallbackUrl,
-    );
+  let shortUrl = extractShortUrl(
+    parsed,
+    destinationUrl,
+    fallbackUrl,
+  );
 
   if (!shortUrl) {
     const urls =
-      raw.match(
-        /https?:\/\/[^\s"'<>\\]+/gi,
-      ) || [];
+      raw.match(/https?:\/\/[^\s"'<>\\]+/gi) || [];
 
     for (const url of urls) {
       if (
@@ -1179,7 +1255,7 @@ async function createTrafficVnLink(
 
   if (!shortUrl) {
     console.error(
-      `TRAFFICVN_${step}_INVALID_RESPONSE`,
+      `SHORTENER_${step}_INVALID_RESPONSE`,
       raw.slice(0, 1500),
     );
 
@@ -1334,17 +1410,16 @@ async function createLayeredShortUrl(
     }
   }
 
-  // Không lớp nào thành công => coi như thất bại toàn bộ.
-  if (layersDone === 0) {
+  // V14 fail-closed: phải tạo ĐỦ số lớp admin cấu hình. Nếu chỉ 1/2 lớp
+  // thành công thì xóa session, không trả link và không cho claim key.
+  if (layersDone !== totalLayers) {
     const err = new Error(
-      "SHORTENER_ALL_FAILED",
+      layersDone === 0 ? "SHORTENER_ALL_FAILED" : "SHORTENER_INCOMPLETE",
     ) as Error & { detail?: string };
 
-    if (lastError) {
-      err.detail =
-        lastError.detail ||
-        lastError.message;
-    }
+    err.detail = lastError
+      ? (lastError.detail || lastError.message)
+      : `layers_done=${layersDone};required=${totalLayers}`;
 
     throw err;
   }
@@ -1466,88 +1541,62 @@ Deno.serve(async (request) => {
     }
 
     if (action === "create-session") {
+      // Mốc bắt đầu bảo mật lấy theo đồng hồ server ngay khi backend nhận
+      // yêu cầu tạo link. Không tin timestamp từ frontend vì có thể sửa bằng F12.
+      const journeyStartedAt = new Date().toISOString();
+
       if (!hasExpectedOrigin(request)) {
         await writeSecurityLog(request, "CREATE_SESSION_BAD_ORIGIN");
         return jsonResponse({ success: false, error: "FORBIDDEN_ORIGIN", version: KEY_API_VERSION }, 403);
       }
 
-      const keyPageUrl =
-        String(
-          Deno.env.get(
-            "KEY_PAGE_URL",
-          ) || "",
-        ).trim();
+      const keyPageUrl = String(Deno.env.get("KEY_PAGE_URL") || "").trim();
 
       if (!keyPageUrl) {
         return jsonResponse(
-          {
-            success: false,
-            error:
-              "SHORTENER_NOT_CONFIGURED",
-            version: KEY_API_VERSION,
-          },
+          { success: false, error: "SHORTENER_NOT_CONFIGURED", version: KEY_API_VERSION },
           500,
         );
       }
 
-      if (
-        await countKeys("available")
-        <= 0
-      ) {
+      if (await countKeys("available") <= 0) {
         return jsonResponse(
-          {
-            success: false,
-            error: "OUT_OF_KEYS",
-            version: KEY_API_VERSION,
-          },
+          { success: false, error: "OUT_OF_KEYS", version: KEY_API_VERSION },
           409,
         );
       }
 
-      // IP thật của người tạo phiên (server tự đọc, không tin client).
       const creatorIp = getClientIp(request);
+      const deviceId = normalizeDeviceId(body.deviceId);
+      const journeySecret = normalizeJourneySecret(body.journeySecret);
+      const userAgent = readUserAgent(request);
 
       if (!creatorIp) {
         await writeSecurityLog(request, "CREATE_SESSION_NO_IP");
         return jsonResponse({ success: false, error: "CLIENT_IP_UNAVAILABLE", version: KEY_API_VERSION }, 503);
       }
 
-      // LỚP 1 — Cloudflare Turnstile: chặn bot/script.
-      // LUÔN kiểm tra (kể cả khi chưa cấu hình secret) — verifyTurnstile() tự
-      // quyết định fail-open/fail-closed dựa trên TURNSTILE_REQUIRE. Trước
-      // đây code chỉ gọi verifyTurnstile khi ĐÃ có secret, nên lúc chưa cấu
-      // hình thì lớp 1 coi như không tồn tại — đây là một phần nguyên nhân
-      // gây lạm dụng.
-      const turnstileToken =
-        String(
-          body.turnstileToken || "",
-        ).trim();
+      if (!deviceId || !journeySecret || !userAgent) {
+        await writeSecurityLog(request, "CREATE_SESSION_BROWSER_PROOF_MISSING");
+        return jsonResponse({ success: false, error: "BROWSER_PROOF_REQUIRED", version: KEY_API_VERSION }, 400);
+      }
 
-      const turnstileOk =
-        await verifyTurnstile(
-          turnstileToken,
-          creatorIp,
-        );
+      const turnstileToken = String(body.turnstileToken || "").trim();
+      const turnstileOk = await verifyTurnstile(
+        turnstileToken,
+        creatorIp,
+        "create-session",
+      );
 
       if (!turnstileOk) {
         return jsonResponse(
-          {
-            success: false,
-            error: "CAPTCHA_FAILED",
-            version: KEY_API_VERSION,
-          },
+          { success: false, error: "CAPTCHA_FAILED", version: KEY_API_VERSION },
           403,
         );
       }
 
-      // LỚP 2 — rate-limit server-side, FAIL-CLOSED nếu DB/RPC lỗi.
       try {
-        const allowed = await bumpRequestLimit(
-          "create-session",
-          creatorIp,
-          20,
-          60 * 60,
-        );
+        const allowed = await bumpRequestLimit("create-session", creatorIp, 20, 60 * 60);
 
         if (!allowed) {
           await writeSecurityLog(request, "CREATE_SESSION_RATE_LIMIT");
@@ -1564,119 +1613,88 @@ Deno.serve(async (request) => {
         );
       }
 
-      const insertResult =
-        await dbRequest(
-          "key_sessions?select=token,expires_at",
-          {
-            method: "POST",
-            headers: {
-              Prefer:
-                "return=representation",
-            },
-            body: JSON.stringify({
-              creator_ip: creatorIp,
-            }),
-          },
-        );
+      const landingCode = randomHex(32);
+      const landingHash = await sha256Hex(landingCode);
+      const deviceHash = await sha256Hex(deviceId);
+      const journeyHash = await sha256Hex(journeySecret);
+      const userAgentHash = await sha256Hex(userAgent);
 
-      const sessionRows =
-        Array.isArray(
-          insertResult.data,
-        )
-          ? insertResult.data
-          : [];
+      const insertResult = await dbRequest(
+        "key_sessions?select=token,expires_at",
+        {
+          method: "POST",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({
+            creator_ip: creatorIp,
+            creator_device_hash: deviceHash,
+            journey_secret_hash: journeyHash,
+            creator_ua_hash: userAgentHash,
+            landing_code_hash: landingHash,
+            status: "creating",
+            created_at: journeyStartedAt,
+          }),
+        },
+      );
 
+      const sessionRows = Array.isArray(insertResult.data) ? insertResult.data : [];
       const session = (sessionRows[0] || {}) as Record<string, unknown>;
-
-      const token =
-        String(
-          session.token || "",
-        );
+      const token = String(session.token || "");
 
       if (!token) {
         return jsonResponse(
-          {
-            success: false,
-            error:
-              "CREATE_SESSION_FAILED",
-            version: KEY_API_VERSION,
-          },
+          { success: false, error: "CREATE_SESSION_FAILED", version: KEY_API_VERSION },
           500,
         );
       }
 
       try {
-        // Dựng URL đích dạng /k/{mã}. Mã = token UUID bỏ hết dấu gạch
-        // (32 ký tự hex) cho gọn giống link mẫu getkey.../k/<hash>.
-        // Lấy origin từ KEY_PAGE_URL nên KHÔNG cần đổi biến môi trường.
         const base = new URL(keyPageUrl);
-        const code = token.replace(/-/g, "");
-        const destination = new URL(
-          `/k/${code}`,
-          base.origin,
-        );
-
-        const expMs = new Date(
-          String(session.expires_at || ""),
-        ).getTime();
+        const destination = new URL(`/k/${landingCode}`, base.origin);
+        const expMs = new Date(String(session.expires_at || "")).getTime();
 
         if (!Number.isSafeInteger(expMs) || expMs <= Date.now()) {
           throw new Error("CREATE_SESSION_FAILED");
         }
 
-        const claimSig = await signClaimTicket(token, expMs);
+        const landingSig = await signLandingTicket(landingCode, expMs);
         destination.searchParams.set("exp", String(expMs));
-        destination.searchParams.set("sig", claimSig);
+        destination.searchParams.set("sig", landingSig);
 
-        // Đọc cấu hình rút gọn do admin lưu (danh sách web + số lớp).
-        const adminSettings =
-          await readAdminSettings();
+        const adminSettings = await readAdminSettings();
+        const links = await createLayeredShortUrl(
+          destination.toString(),
+          adminSettings.shorteners,
+          adminSettings.shortenerLayers,
+        );
 
-        const links =
-          await createLayeredShortUrl(
-            destination.toString(),
-            adminSettings.shorteners,
-            adminSettings.shortenerLayers,
-          );
+        // Chỉ sau khi rút gọn thành công mới chuyển session sang shortened.
+        // Claim trước thời điểm này sẽ bị SQL chặn bằng LINK_NOT_READY.
+        await dbRequest("rpc/mark_session_shortened_v14", {
+          method: "POST",
+          body: JSON.stringify({
+            p_token: token,
+            p_layers: links.layersDone,
+            p_min_seconds: readMinimumJourneySeconds(),
+          }),
+        });
 
         return jsonResponse({
           success: true,
           version: KEY_API_VERSION,
-          expiresAt:
-            session.expires_at || null,
-          shortUrl:
-            links.outerUrl,
-          shortenerLayers:
-            links.layersDone,
+          expiresAt: session.expires_at || null,
+          shortUrl: links.outerUrl,
+          shortenerLayers: links.layersDone,
         });
       } catch (error) {
-        const params =
-          new URLSearchParams({
-            token: `eq.${token}`,
-          });
+        const params = new URLSearchParams({ token: `eq.${token}` });
 
-        await dbRequest(
-          `key_sessions?${params.toString()}`,
-          {
-            method: "DELETE",
-          },
-        ).catch(() => undefined);
+        await dbRequest(`key_sessions?${params.toString()}`, { method: "DELETE" })
+          .catch(() => undefined);
 
-        const code =
-          error instanceof Error
-            ? error.message
-            : "SHORTENER_REQUEST_FAILED";
-
-        const detail =
-          (error as Error & { detail?: string })
-            .detail || null;
+        const code = error instanceof Error ? error.message : "SHORTENER_REQUEST_FAILED";
 
         return jsonResponse(
-          {
-            success: false,
-            error: code,
-            version: KEY_API_VERSION,
-          },
+          { success: false, error: code, version: KEY_API_VERSION },
           502,
         );
       }
@@ -1688,43 +1706,49 @@ Deno.serve(async (request) => {
         return jsonResponse({ success: false, error: "FORBIDDEN_ORIGIN", version: KEY_API_VERSION }, 403);
       }
 
-      const token =
-        String(
-          body.token || "",
-        ).trim();
-
-      if (!token) {
-        return jsonResponse(
-          { success: false, error: "TOKEN_REQUIRED", version: KEY_API_VERSION },
-          400,
-        );
-      }
-
+      const landingCode = String(body.landingCode || "").trim().toLowerCase();
       const ticketExp = Number(body.ticketExp || 0);
       const ticketSig = String(body.ticketSig || "").trim();
+      const deviceId = normalizeDeviceId(body.deviceId);
+      const journeySecret = normalizeJourneySecret(body.journeySecret);
+      const userAgent = readUserAgent(request);
 
-      if (!(await verifyClaimTicket(token, ticketExp, ticketSig))) {
-        await writeSecurityLog(request, "CLAIM_INVALID_TICKET", {}, token);
+      if (!(await verifyLandingTicket(landingCode, ticketExp, ticketSig))) {
+        await writeSecurityLog(request, "CLAIM_INVALID_LANDING_TICKET", {}, landingCode);
         return jsonResponse(
           { success: false, error: ticketExp <= Date.now() ? "CLAIM_TICKET_EXPIRED" : "INVALID_CLAIM_TICKET", version: KEY_API_VERSION },
           403,
         );
       }
 
-      // Danh tính để đếm hạn mức: IP (do proxy Supabase gắn) + device ID
-      // (client gửi từ localStorage). Cả hai đều do client kiểm soát nên đây
-      // là chống lạm dụng best-effort, không phải chặn tuyệt đối.
       const clientIp = getClientIp(request);
 
       if (!clientIp) {
-        await writeSecurityLog(request, "CLAIM_NO_IP", {}, token);
+        await writeSecurityLog(request, "CLAIM_NO_IP", {}, landingCode);
         return jsonResponse({ success: false, error: "CLIENT_IP_UNAVAILABLE", version: KEY_API_VERSION }, 503);
       }
 
+      if (!deviceId || !journeySecret || !userAgent) {
+        await writeSecurityLog(request, "CLAIM_BROWSER_PROOF_MISSING", {}, landingCode);
+        return jsonResponse({ success: false, error: "BROWSER_PROOF_REQUIRED", version: KEY_API_VERSION }, 400);
+      }
+
+      const claimTurnstileToken = String(body.turnstileToken || "").trim();
+      const claimTurnstileOk = await verifyTurnstile(
+        claimTurnstileToken,
+        clientIp,
+        "claim-key",
+      );
+
+      if (!claimTurnstileOk) {
+        await writeSecurityLog(request, "CLAIM_CAPTCHA_FAILED", {}, landingCode);
+        return jsonResponse({ success: false, error: "CAPTCHA_FAILED", version: KEY_API_VERSION }, 403);
+      }
+
       try {
-        const allowed = await bumpRequestLimit("claim", clientIp, 40, 10 * 60);
+        const allowed = await bumpRequestLimit("claim", clientIp, 20, 10 * 60);
         if (!allowed) {
-          await writeSecurityLog(request, "CLAIM_RATE_LIMIT", {}, token);
+          await writeSecurityLog(request, "CLAIM_RATE_LIMIT", {}, landingCode);
           return jsonResponse({ success: false, error: "CLAIM_RATE_LIMITED", version: KEY_API_VERSION }, 429);
         }
       } catch (error) {
@@ -1732,92 +1756,60 @@ Deno.serve(async (request) => {
         return jsonResponse({ success: false, error: "SECURITY_CHECK_UNAVAILABLE", version: KEY_API_VERSION }, 503);
       }
 
-      const deviceId =
-        String(
-          body.deviceId || "",
-        ).trim();
+      const landingHash = await sha256Hex(landingCode);
+      const deviceHash = await sha256Hex(deviceId);
+      const journeyHash = await sha256Hex(journeySecret);
+      const userAgentHash = await sha256Hex(userAgent);
 
       try {
-        const result =
-          await dbRequest(
-            "rpc/claim_key_limited",
-            {
-              method: "POST",
-              body: JSON.stringify({
-                p_token: token,
-                p_ip: clientIp,
-                p_device_id: deviceId,
-              }),
-            },
-          );
-
-        const rows =
-          Array.isArray(result.data)
-            ? result.data
-            : [];
-
-        const row = (rows[0] || {}) as Record<string, unknown>;
-
-        const key =
-          String(
-            row.key_value || "",
-          );
-
-        if (!key) {
-          throw new Error(
-            "KEY_NOT_FOUND",
-          );
-        }
-
-        return jsonResponse({
-          success: true,
-          version: KEY_API_VERSION,
-          key,
+        const result = await dbRequest("rpc/claim_key_limited_v14", {
+          method: "POST",
+          body: JSON.stringify({
+            p_landing_hash: landingHash,
+            p_ip: clientIp,
+            p_device_hash: deviceHash,
+            p_journey_hash: journeyHash,
+            p_ua_hash: userAgentHash,
+          }),
         });
+
+        const rows = Array.isArray(result.data) ? result.data : [];
+        const row = (rows[0] || {}) as Record<string, unknown>;
+        const key = String(row.key_value || "");
+
+        if (!key) throw new Error("KEY_NOT_FOUND");
+
+        return jsonResponse({ success: true, version: KEY_API_VERSION, key });
       } catch (error) {
-        const details =
-          JSON.stringify(
-            (
-              error as Error & {
-                details?: unknown;
-              }
-            ).details || "",
-          );
+        const details = JSON.stringify(
+          (error as Error & { details?: unknown }).details || "",
+        );
 
-        let code =
-          error instanceof Error
-            ? error.message
-            : "CLAIM_FAILED";
+        let code = error instanceof Error ? error.message : "CLAIM_FAILED";
 
-        for (
-          const candidate
-          of [
-            "INVALID_SESSION",
-            "SESSION_EXPIRED",
-            "OUT_OF_KEYS",
-            "KEY_NOT_FOUND",
-            "LIMIT_REACHED",
-            "TOKEN_IP_MISMATCH",
-            "CLAIM_CONFLICT",
-          ]
-        ) {
-          if (
-            details.includes(
-              candidate,
-            )
-          ) {
-            code = candidate;
-          }
+        for (const candidate of [
+          "INVALID_LANDING_CODE",
+          "INVALID_SESSION",
+          "SESSION_EXPIRED",
+          "LINK_NOT_READY",
+          "JOURNEY_TOO_FAST",
+          "TOKEN_IP_MISMATCH",
+          "DEVICE_MISMATCH",
+          "JOURNEY_MISMATCH",
+          "USER_AGENT_MISMATCH",
+          "OUT_OF_KEYS",
+          "KEY_NOT_FOUND",
+          "LIMIT_REACHED",
+          "CLAIM_CONFLICT",
+          "API_VERSION_OUTDATED",
+        ]) {
+          if (details.includes(candidate)) code = candidate;
         }
 
-        await writeSecurityLog(request, `CLAIM_${code}`, {}, token);
+        await writeSecurityLog(request, `CLAIM_${code}`, {}, landingCode);
 
         return jsonResponse(
-          {
-            success: false,
-            error: code,
-            version: KEY_API_VERSION,
-          },
+          { success: false, error: code, version: KEY_API_VERSION },
           400,
         );
       }
