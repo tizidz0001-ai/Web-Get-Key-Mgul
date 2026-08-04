@@ -652,11 +652,36 @@
     }
 
     function getLandingTicketFromUrl() {
-      const pathMatch =
+      // V15.2:
+      // /k/<landingCode>.<expMs>.<signature>
+      const signedPathMatch =
+        window.location.pathname.match(
+          /\/k\/([0-9a-fA-F]{64})\.(\d{12,16})\.([0-9a-fA-F]{64})\/?$/
+        );
+
+      if (signedPathMatch) {
+        const landingCode =
+          String(signedPathMatch[1] || "").toLowerCase();
+        const ticketExp = Number(signedPathMatch[2] || 0);
+        const ticketSig =
+          String(signedPathMatch[3] || "").toLowerCase();
+
+        if (
+          /^[0-9a-f]{64}$/.test(landingCode) &&
+          Number.isSafeInteger(ticketExp) &&
+          ticketExp > 0 &&
+          /^[0-9a-f]{64}$/.test(ticketSig)
+        ) {
+          return { landingCode, ticketExp, ticketSig };
+        }
+      }
+
+      // Tương thích link cũ V15.1 có ?exp=...&sig=...
+      const legacyPathMatch =
         window.location.pathname.match(/\/k\/([0-9a-fA-F]{64})\/?$/);
 
-      const landingCode = pathMatch
-        ? String(pathMatch[1] || "").toLowerCase()
+      const landingCode = legacyPathMatch
+        ? String(legacyPathMatch[1] || "").toLowerCase()
         : "";
 
       const params = new URLSearchParams(window.location.search);
