@@ -2348,13 +2348,33 @@
         };
 
         let text = messages[code];
+        const detail = String(error?.detail || "").toLowerCase();
+
+        if (
+          detail.includes("http_401") ||
+          detail.includes("http_403")
+        ) {
+          text =
+            "GTraffic Đã Từ Chối Yêu Cầu API. Hãy Đổi Token Hoặc Kiểm Tra GTraffic Có Chặn Supabase Edge Không.";
+        } else if (
+          detail.includes("invalid_response") ||
+          detail.includes("no_valid_url_in_response")
+        ) {
+          text =
+            "GTraffic Có Phản Hồi Nhưng Không Trả Về Link Ngắn Hợp Lệ.";
+        } else if (
+          detail.includes("fetch_error")
+        ) {
+          text =
+            "Máy Chủ Supabase Không Kết Nối Được Tới GTraffic.";
+        }
 
         if (!text && /^SHORTENER_LAYER_\d+_FAILED$/.test(code)) {
           const layer = code.match(/\d+/)?.[0] || "?";
           text = `Lớp Rút Gọn ${layer} Đang Lỗi. Vui Lòng Kiểm Tra API Trong Admin.`;
         }
 
-        // Không đẩy raw response/API key/link dài ra giao diện như bản trước.
+        console.error("SHORTENER_DETAIL", error?.detail || "");
         showToast(text || `Không Thể Tạo Link (${code}).`);
       } finally {
         setGetKeyLoading(false);

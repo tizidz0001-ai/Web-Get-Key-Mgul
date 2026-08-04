@@ -1,6 +1,6 @@
 // BẢN ADMIN CÓ XÁC THỰC MẬT KHẨU (SERVER-SIDE)
-// Test bằng {"action":"version"} phải trả KEY_API_HARDENED_V15_GTRAFFIC_20260804
-// KEY_API_VERSION: KEY_API_HARDENED_V15_GTRAFFIC_20260804
+// Test bằng {"action":"version"} phải trả KEY_API_HARDENED_V15_1_GTRAFFIC_FIX_20260804
+// KEY_API_VERSION: KEY_API_HARDENED_V15_1_GTRAFFIC_FIX_20260804
 //
 // V11: admin cấu hình nhiều web rút gọn + số lớp (1-6), luân phiên, bỏ qua lớp lỗi.
 // V12: Turnstile + IP binding + rate limit.
@@ -19,7 +19,7 @@
 //   CLAIM_TICKET_SECRET = chuỗi bí mật ngẫu nhiên dài để ký vé claim
 //   ALLOWED_ORIGIN      = origin web chính, ví dụ https://example.com
 
-const KEY_API_VERSION = "KEY_API_HARDENED_V15_GTRAFFIC_20260804";
+const KEY_API_VERSION = "KEY_API_HARDENED_V15_1_GTRAFFIC_FIX_20260804";
 
 // Token admin sống trong bao lâu (mili giây). Mặc định 12 giờ.
 const ADMIN_TOKEN_TTL_MS = 4 * 60 * 60 * 1000;
@@ -1177,9 +1177,15 @@ async function createTrafficVnLink(
         method: "GET",
         headers: {
           Accept:
-            "application/json, text/plain, */*",
+            "application/json, text/plain, text/html;q=0.9, */*;q=0.8",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150 Safari/537.36",
+          Referer: `${requestUrl.origin}/`,
+          "Cache-Control": "no-cache",
         },
-        redirect: "follow",
+        // Một số API Quick Link trả 301/302 với Location là link ngắn.
+        // Không follow ngay để không làm mất header Location.
+        redirect: "manual",
       },
     );
   } catch (error) {
@@ -1202,7 +1208,38 @@ async function createTrafficVnLink(
     throw err;
   }
 
-  const raw = await response.text();
+  // GTraffic có thể trả link ngắn trong header Location thay vì body.
+  const redirectLocation =
+    response.headers.get("location") ||
+    response.headers.get("x-short-url") ||
+    response.headers.get("x-shortened-url") ||
+    response.headers.get("content-location") ||
+    "";
+
+  if (
+    response.status >= 300 &&
+    response.status < 400 &&
+    redirectLocation
+  ) {
+    try {
+      const redirectUrl =
+        new URL(redirectLocation, requestUrl.origin).toString();
+
+      if (
+        isUsableShortUrl(
+          redirectUrl,
+          destinationUrl,
+          fallbackUrl,
+        )
+      ) {
+        return redirectUrl;
+      }
+    } catch {
+      // Tiếp tục đọc body để lấy lỗi chi tiết.
+    }
+  }
+
+  const raw = (await response.text()).replace(/^\uFEFF/, "");
 
   if (!response.ok) {
     console.error(
@@ -1234,6 +1271,32 @@ async function createTrafficVnLink(
     destinationUrl,
     fallbackUrl,
   );
+
+  // Một số Quick Link trả thẳng đường dẫn tương đối, ví dụ /AbCd12.
+  if (!shortUrl) {
+    const plain = raw
+      .trim()
+      .replace(/^["']|["']$/g, "");
+
+    if (/^\/[A-Za-z0-9][A-Za-z0-9_\-/.?=&%]*$/.test(plain)) {
+      try {
+        const absolute =
+          new URL(plain, requestUrl.origin).toString();
+
+        if (
+          isUsableShortUrl(
+            absolute,
+            destinationUrl,
+            fallbackUrl,
+          )
+        ) {
+          shortUrl = absolute;
+        }
+      } catch {
+        // Bỏ qua và tiếp tục tìm URL tuyệt đối trong body.
+      }
+    }
+  }
 
   if (!shortUrl) {
     const urls =
@@ -1691,10 +1754,31 @@ Deno.serve(async (request) => {
         await dbRequest(`key_sessions?${params.toString()}`, { method: "DELETE" })
           .catch(() => undefined);
 
-        const code = error instanceof Error ? error.message : "SHORTENER_REQUEST_FAILED";
+        const code =
+          error instanceof Error
+            ? error.message
+            : "SHORTENER_REQUEST_FAILED";
+
+        let detail =
+          String(
+            (error as Error & { detail?: string })
+              .detail || "",
+          )
+            .replace(/[?&](?:apikey|api_key|api|key)=[^&\s]+/gi, "$&")
+            .replace(
+              /([?&](?:apikey|api_key|api|key)=)[^&\s]+/gi,
+              "$1[REDACTED]",
+            )
+            .replace(/[a-f0-9]{32,64}/gi, "[REDACTED]")
+            .slice(0, 350);
 
         return jsonResponse(
-          { success: false, error: code, version: KEY_API_VERSION },
+          {
+            success: false,
+            error: code,
+            detail,
+            version: KEY_API_VERSION,
+          },
           502,
         );
       }

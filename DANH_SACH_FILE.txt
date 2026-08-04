@@ -1,0 +1,10 @@
+DANH SÁCH FILE TRONG BỘ FINAL
+=============================
+index.html          Trang chủ: giao diện trắng, hoa anh đào, tạo link.
+key.html            Trang nhận key: 30 giây, Turnstile, key chỉ hiện 1 lần.
+admin.html          Quản trị key và cấu hình GTraffic 1-6 lớp.
+config.js           Cấu hình frontend công khai.
+vercel.json         Rewrite /k/:code và security/no-cache headers.
+index.ts            Supabase Edge Function V15.1.
+claim_limits.sql    Bảng, RLS, rate limit và atomic one-time claim.
+SETUP_BAO_MAT.txt   Hướng dẫn cài đặt đầy đủ.

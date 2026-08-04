@@ -1,94 +1,124 @@
-HUONG DAN CAP NHAT V15 - GTRAFFIC + RUT GON LONG NHAU
-======================================================
+HƯỚNG DẪN CÀI ĐẶT BỘ FINAL V15.1
+=================================
 
-BAN NAY GIU NGUYEN TOAN BO BAO MAT V14_30S_ONE_TIME:
-- Khong the vao thang link dich de lay key.
-- Bat buoc du toi thieu 30 giay theo dong ho server.
-- Key/session/landing code chi dung mot lan.
-- Reload trang sau khi hien key se mat key va URL cu het hieu luc.
-- Rang buoc IP, thiet bi, journey secret, user-agent va Turnstile.
+PHIÊN BẢN EDGE FUNCTION:
+KEY_API_HARDENED_V15_1_GTRAFFIC_FIX_20260804
 
-V15 BO SUNG:
-- Ho tro truc tiep API GTraffic dang:
-  https://gtraffic.io/st?apikey=API_KEY&url=
-- API key duoc nhap rieng trong admin. Gia tri API key trong link mau se duoc
-  backend thay bang API key admin da luu.
-- Chon 1-6 lan rut gon de len nhau trong admin.
-- Vi du chon 3 lan:
-  Link dich -> GTraffic lan 1 -> GTraffic lan 2 -> GTraffic lan 3 -> user.
-- Phai tao DU tat ca so lan da chon. Chi mot lan loi thi session bi xoa va
-  khong co key nao duoc cap.
+I. CÁC CHỨC NĂNG ĐÃ GOM TRONG BỘ NÀY
+-------------------------------------
+1. Không cấp key khi người dùng vào thẳng key.html hoặc tự tạo URL /k/...
+2. Session chỉ được cho phép claim sau khi API tạo đủ link rút gọn.
+3. Bắt buộc tối thiểu 30 giây theo đồng hồ server, tính từ lúc bấm Lấy Key
+   và backend bắt đầu tạo session/link.
+4. Dưới 30 giây: không lấy key khỏi kho và báo:
+   "Key Lỗi .. Vui Lòng Vượt Lại".
+5. Key, session, UID/landing code chỉ sử dụng một lần.
+6. Sau khi key hiện, reload/đóng tab/mở lại URL sẽ không hiện lại key.
+7. Không lưu key vào localStorage, sessionStorage, cookie hoặc URL.
+8. Ràng buộc IP, device ID, journey secret, User-Agent và Turnstile.
+9. Claim key nguyên tử trong SQL, chống hai request đồng thời.
+10. Admin cấu hình GTraffic:
+    https://gtraffic.io/st?apikey=API_KEY&url=
+11. API key GTraffic nhập riêng trong Admin, không đặt trong config.js.
+12. Chọn 1-6 lần rút gọn lồng nhau.
+13. Nếu bất kỳ lớp rút gọn nào lỗi, session bị xóa và không cấp key.
+14. Bản vá V15.1 nhận thêm:
+    - HTTP 301/302 + header Location
+    - URL dạng text
+    - URL tương đối
+    - Một số dạng JSON khác nhau
+15. Giao diện nền trắng kiểu GTraffic, ô Key màu vàng kem.
+16. Phần "Chưa Kết Nối" không có nền hồng, không có viền.
+17. Có hiệu ứng hoa anh đào rơi nhẹ phía sau nội dung.
 
-1) FILE CAN CAP NHAT
-- Supabase Edge Function key-api: thay bang index.ts va Deploy.
-- Vercel/hosting: thay admin.html.
-- Cac file index.html, key.html, config.js, vercel.json va claim_limits.sql
-  duoc giu san trong goi de deploy dong bo, nhung chuc nang GTraffic chi bat
-  buoc thay index.ts + admin.html.
+II. THỨ TỰ CẬP NHẬT BẮT BUỘC
+-----------------------------
+BƯỚC 1 - SUPABASE SQL EDITOR
+- Mở Supabase > SQL Editor.
+- Chạy TOÀN BỘ file claim_limits.sql.
+- Nếu đã chạy đúng file V14_30S trước đó thì không bắt buộc chạy lại,
+  nhưng chạy lại toàn bộ file này vẫn giúp đồng bộ function/policy.
 
-2) KHONG CAN CHAY LAI SQL
-- Neu ban da chay claim_limits.sql cua V14_30S thi khong can chay lai.
-- Cau truc DB van dung cot shorteners va shortener_layers cu.
+BƯỚC 2 - SUPABASE EDGE FUNCTION
+- Mở Edge Functions > key-api.
+- Thay toàn bộ code bằng index.ts.
+- Deploy lại function.
 
-3) KIEM TRA PHIEN BAN EDGE FUNCTION
-Gui POST den key-api:
-  {"action":"version"}
-
-Phai tra:
-  KEY_API_HARDENED_V15_GTRAFFIC_20260804
-
-4) CAU HINH TRONG ADMIN
-Vao Admin > Cau Hinh Rut Gon Link.
-
-Dong GTraffic dien nhu sau:
-- Ten API: GTraffic
-- Link API:
-  https://gtraffic.io/st?apikey=API_KEY&url=
-- API Key: dan API key GTraffic that cua ban vao o rieng.
-- Bat: On
-- So Lan Rut Gon De Len Nhau: chon 1 den 6 lan.
-- Bam Luu Cau Hinh Rut Gon.
-
-Ban cung co the dan link dang co san key:
-  https://gtraffic.io/st?apikey=KEY_CU&url=
-Backend van se thay KEY_CU bang gia tri trong o API Key de tranh sai cau hinh.
-
-5) BAO MAT API KEY
-- KHONG dat API key GTraffic vao config.js.
-- KHONG ghi API key that vao admin.html hoac GitHub public.
-- API key duoc luu qua API admin server-side trong site_settings.
-- get-settings cong khai khong tra ve danh sach shorteners/API key.
-- Neu API key tung bi dang cong khai tren GitHub, video hoac anh chup, hay tao
-  key moi trong GTraffic va thay key cu.
-
-6) CAC SECRET V14 VAN PHAI GIU NGUYEN
+BƯỚC 3 - SUPABASE EDGE FUNCTION SECRETS
+Giữ/đặt đầy đủ:
 - SUPABASE_URL
 - SUPABASE_SERVICE_ROLE_KEY
-- KEY_PAGE_URL
-- ADMIN_PASSWORD
-- ADMIN_EMAIL
-- ADMIN_TOKEN_SECRET
-- CLAIM_TICKET_SECRET
-- ALLOWED_ORIGIN
-- TURNSTILE_SECRET_KEY
+- KEY_PAGE_URL=https://TEN-MIEN-CUA-BAN/key.html
+- ADMIN_PASSWORD=mật khẩu admin tối thiểu 8 ký tự
+- ADMIN_EMAIL=email admin
+- ADMIN_TOKEN_SECRET=chuỗi ngẫu nhiên tối thiểu 32 ký tự
+- CLAIM_TICKET_SECRET=chuỗi ngẫu nhiên tối thiểu 32 ký tự, khác token admin
+- ALLOWED_ORIGIN=https://TEN-MIEN-CUA-BAN
+- TURNSTILE_SECRET_KEY=secret Turnstile
 - TURNSTILE_REQUIRE=true
-- TURNSTILE_EXPECTED_HOSTNAME
+- TURNSTILE_EXPECTED_HOSTNAME=TEN-MIEN-CUA-BAN
 - ADMIN_BIND_IP=true
 - MIN_JOURNEY_SECONDS=30
 
-7) TEST
-- Chon 1 lan: link tra ve phai la link GTraffic.
-- Chon 2 lan: API GTraffic duoc goi lan 2 voi link rut gon lan 1 lam URL dich.
-- Chon 3-6 lan: tuong tu, moi lan de len ket qua lan truoc.
-- API sai/het han: web bao khong the tao du so lan rut gon; session bi xoa.
-- Vao thang key.html hoac URL cu: khong hien key.
-- Den trang dich duoi 30 giay: hien "Key Loi .. Vui Long Vuot Lai".
-- Claim thanh cong roi reload: key khong hien lai.
+Không đặt service_role hoặc secret GTraffic trong frontend.
 
+BƯỚC 4 - CONFIG.JS
+Kiểm tra:
+- SUPABASE_URL
+- SUPABASE_PUBLISHABLE_KEY (anon/publishable, không phải service_role)
+- TURNSTILE_SITE_KEY
+- ADMIN_EMAIL
 
-GIAO DIEN TRANG V15 WHITE
-============================
-- Da doi index.html, key.html va admin.html sang nen trang.
-- Nut neo-brutalist: nen xanh/cam/vang, vien den dam, bong do cung nhu GTraffic.
-- Khong thay doi luong bao mat, API, SQL hoac co che one-time key.
-- Chi can thay 3 file HTML de cap nhat giao dien; cac file con lai giu nguyen de deploy tron bo.
+BƯỚC 5 - VERCEL/HOSTING
+Upload/thay đầy đủ:
+- index.html
+- key.html
+- admin.html
+- config.js
+- vercel.json
+
+Sau đó Deploy lại và hard refresh bằng Ctrl + F5.
+
+III. CẤU HÌNH GTRAFFIC TRONG ADMIN
+----------------------------------
+- Tên API: GTraffic
+- Link API:
+  https://gtraffic.io/st?apikey=API_KEY&url=
+- API Key: chỉ dán token GTraffic vào ô API Key
+- Bật: Có
+- Số lần rút gọn: thử 1 lần trước, sau đó tăng lên 2-6 nếu cần
+- Bấm "Lưu Cấu Hình Rút Gọn"
+
+Không dán API key vào config.js hoặc HTML.
+
+IV. KIỂM TRA PHIÊN BẢN
+----------------------
+Gửi POST đến Edge Function:
+{"action":"version"}
+
+Kết quả phải có:
+KEY_API_HARDENED_V15_1_GTRAFFIC_FIX_20260804
+
+V. KIỂM TRA NHANH
+-----------------
+1. Vào thẳng key.html:
+   - Không hiện key.
+2. Tự nhập URL /k/mã-bất-kỳ:
+   - Không hiện key.
+3. Tạo link và đến trang đích dưới 30 giây:
+   - Báo "Key Lỗi .. Vui Lòng Vượt Lại".
+4. Claim thành công rồi reload:
+   - Không hiện lại key; URL hết hiệu lực.
+5. Dùng cùng URL trên trình duyệt khác:
+   - Bị chặn bởi device/journey proof.
+6. Chọn 2 lần rút gọn:
+   - Kết quả lần 1 phải được dùng làm URL đích của lần 2.
+7. GTraffic lỗi:
+   - Web báo lỗi lớp rút gọn và session không được cấp key.
+
+VI. LƯU Ý AN TOÀN
+-----------------
+- Token GTraffic từng xuất hiện trong ảnh chụp màn hình nên nên đổi token mới.
+- Chặn F12 không phải bảo mật thật; toàn bộ kiểm tra quan trọng nằm ở server.
+- Không public service_role, ADMIN_PASSWORD, ADMIN_TOKEN_SECRET,
+  CLAIM_TICKET_SECRET hoặc TURNSTILE_SECRET_KEY lên GitHub.
