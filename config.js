@@ -41,10 +41,16 @@ window.APP_CONFIG = {
   SESSION_STORAGE_KEY: "migul_key_session_token_v1",
   KEY_CACHE_STORAGE_KEY: "migul_claimed_key_cache_v1",
 
-  // Định danh thiết bị + bí mật hành trình được lưu trên cùng origin.
-  // Backend chỉ lưu SHA-256, không lưu giá trị thô. Link sao chép sang trình
-  // duyệt/client khác sẽ bị chặn bằng DEVICE_MISMATCH/JOURNEY_MISMATCH.
+  // Tên cũ chỉ dùng để xóa ID localStorage của V16; V17 không còn tin giá trị này.
   DEVICE_ID_STORAGE_KEY: "migul_device_id_v1",
+
+  // V17: khóa thiết bị ECDSA P-256 được lưu trong IndexedDB. Private key
+  // được import ở chế độ non-extractable nên sửa localStorage/F12 không thể
+  // giả mạo đúng ID thiết bị cũ.
+  DEVICE_KEY_DB_NAME: "migul_device_keystore_v17",
+  DEVICE_KEY_STORE_NAME: "device_keys",
+  DEVICE_KEY_RECORD_ID: "primary_device_key",
+
   JOURNEY_SECRET_STORAGE_KEY: "migul_journey_secret_v14",
 
   DISABLE_WHEN_OUT_OF_STOCK: true

@@ -430,7 +430,7 @@
 
     table {
       width: 100%;
-      min-width: 780px;
+      min-width: 1120px;
       border-collapse: collapse;
     }
 
@@ -1054,12 +1054,14 @@
                 <th>Trạng Thái</th>
                 <th>Ngày Thêm</th>
                 <th>Ngày Nhận</th>
+                <th>IP Mạng</th>
+                <th>Khóa Thiết Bị Ký (SHA-256)</th>
               </tr>
             </thead>
 
             <tbody id="keyTableBody">
               <tr>
-                <td class="empty-row" colspan="5">
+                <td class="empty-row" colspan="7">
                   Chưa Tải Danh Sách Key.
                 </td>
               </tr>
@@ -1811,7 +1813,7 @@
         const cell =
           document.createElement("td");
 
-        cell.colSpan = 5;
+        cell.colSpan = 7;
         cell.className = "empty-row";
 
         cell.textContent =
@@ -1905,12 +1907,40 @@
           claimedCell.textContent =
             formatDate(item.claimedAt);
 
+          const ipCell =
+            document.createElement("td");
+
+          ipCell.className =
+            "date-text";
+
+          ipCell.textContent =
+            String(item.claimedIp || "Chưa Có");
+
+          const deviceCell =
+            document.createElement("td");
+
+          const deviceCode =
+            document.createElement("code");
+
+          deviceCode.className =
+            "key-code";
+
+          deviceCode.textContent =
+            String(item.claimedDeviceId || "Chưa Có");
+
+          deviceCode.title =
+            String(item.claimedDeviceId || "");
+
+          deviceCell.appendChild(deviceCode);
+
           row.append(
             checkboxCell,
             keyCell,
             statusCell,
             createdCell,
-            claimedCell
+            claimedCell,
+            ipCell,
+            deviceCell
           );
 
           keyTableBody.appendChild(row);

@@ -437,8 +437,14 @@
 
     let currentKey = "";
 
-    const DEVICE_ID_STORAGE_KEY =
+    const LEGACY_DEVICE_ID_STORAGE_KEY =
       config.DEVICE_ID_STORAGE_KEY || "migul_device_id_v1";
+    const DEVICE_KEY_DB_NAME =
+      config.DEVICE_KEY_DB_NAME || "migul_device_keystore_v17";
+    const DEVICE_KEY_STORE_NAME =
+      config.DEVICE_KEY_STORE_NAME || "device_keys";
+    const DEVICE_KEY_RECORD_ID =
+      config.DEVICE_KEY_RECORD_ID || "primary_device_key";
 
     const JOURNEY_SECRET_STORAGE_KEY =
       config.JOURNEY_SECRET_STORAGE_KEY || "migul_journey_secret_v14";
@@ -451,30 +457,181 @@
     const LEGACY_KEY_CACHE_STORAGE_KEY =
       config.KEY_CACHE_STORAGE_KEY || "migul_claimed_key_cache_v1";
 
-    function getDeviceId() {
-      let id = "";
 
-      try {
-        id = String(localStorage.getItem(DEVICE_ID_STORAGE_KEY) || "").trim();
-      } catch {
-        return "";
+    // V17: ID thiết bị không còn lấy từ localStorage. Trình duyệt tạo khóa
+    // ECDSA P-256, lưu private key non-extractable trong IndexedDB và ký từng
+    // yêu cầu. Sửa chuỗi ID bằng F12 sẽ không tạo được chữ ký hợp lệ.
+    function bytesToBase64Url(bytes) {
+      let binary = "";
+      const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+      for (let i = 0; i < view.length; i += 1) {
+        binary += String.fromCharCode(view[i]);
+      }
+      return btoa(binary)
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/g, "");
+    }
+
+    function normalizePublicJwk(jwk) {
+      const value = jwk || {};
+      if (
+        value.kty !== "EC" ||
+        value.crv !== "P-256" ||
+        !/^[A-Za-z0-9_-]{40,50}$/.test(String(value.x || "")) ||
+        !/^[A-Za-z0-9_-]{40,50}$/.test(String(value.y || "")) ||
+        value.d
+      ) {
+        throw new Error("DEVICE_KEY_INVALID");
       }
 
-      if (!id) {
-        id =
-          typeof crypto !== "undefined" && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      return {
+        kty: "EC",
+        crv: "P-256",
+        x: String(value.x),
+        y: String(value.y),
+        ext: true,
+        key_ops: ["verify"]
+      };
+    }
+
+    function openDeviceKeyDb() {
+      if (!window.indexedDB) {
+        return Promise.reject(new Error("DEVICE_KEYSTORE_UNAVAILABLE"));
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DEVICE_KEY_DB_NAME, 1);
+
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(DEVICE_KEY_STORE_NAME)) {
+            db.createObjectStore(DEVICE_KEY_STORE_NAME, { keyPath: "id" });
+          }
+        };
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(new Error("DEVICE_KEYSTORE_UNAVAILABLE"));
+        request.onblocked = () => reject(new Error("DEVICE_KEYSTORE_UNAVAILABLE"));
+      });
+    }
+
+    async function readDeviceKeyRecord(db) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(DEVICE_KEY_STORE_NAME, "readonly");
+        const request = tx.objectStore(DEVICE_KEY_STORE_NAME).get(DEVICE_KEY_RECORD_ID);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(new Error("DEVICE_KEYSTORE_UNAVAILABLE"));
+      });
+    }
+
+    async function saveDeviceKeyRecord(db, record) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(DEVICE_KEY_STORE_NAME, "readwrite");
+        tx.objectStore(DEVICE_KEY_STORE_NAME).put(record);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(new Error("DEVICE_KEYSTORE_UNAVAILABLE"));
+        tx.onabort = () => reject(new Error("DEVICE_KEYSTORE_UNAVAILABLE"));
+      });
+    }
+
+    let deviceIdentityPromise = null;
+
+    async function getOrCreateDeviceIdentity() {
+      if (deviceIdentityPromise) return deviceIdentityPromise;
+
+      deviceIdentityPromise = (async () => {
+        if (!window.crypto?.subtle) {
+          throw new Error("DEVICE_KEYSTORE_UNAVAILABLE");
+        }
+
+        const db = await openDeviceKeyDb();
 
         try {
-          localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
-        } catch {
-          // Không lưu được cũng không sao, phiên này vẫn có id tạm.
-        }
-      }
+          const existing = await readDeviceKeyRecord(db);
+          if (
+            existing?.privateKey?.type === "private" &&
+            existing?.privateKey?.algorithm?.name === "ECDSA" &&
+            existing?.publicJwk
+          ) {
+            return {
+              privateKey: existing.privateKey,
+              publicJwk: normalizePublicJwk(existing.publicJwk)
+            };
+          }
 
-      return id;
+          // Tạo khóa tạm extractable để xuất PKCS#8, sau đó import lại private
+          // key ở chế độ non-extractable trước khi lưu IndexedDB.
+          const generated = await crypto.subtle.generateKey(
+            { name: "ECDSA", namedCurve: "P-256" },
+            true,
+            ["sign", "verify"]
+          );
+
+          const privatePkcs8 = await crypto.subtle.exportKey(
+            "pkcs8",
+            generated.privateKey
+          );
+
+          const publicJwk = normalizePublicJwk(
+            await crypto.subtle.exportKey("jwk", generated.publicKey)
+          );
+
+          const privateKey = await crypto.subtle.importKey(
+            "pkcs8",
+            privatePkcs8,
+            { name: "ECDSA", namedCurve: "P-256" },
+            false,
+            ["sign"]
+          );
+
+          // Xóa bản sao byte của khóa riêng khỏi buffer tạm càng sớm càng tốt.
+          new Uint8Array(privatePkcs8).fill(0);
+
+          await saveDeviceKeyRecord(db, {
+            id: DEVICE_KEY_RECORD_ID,
+            privateKey,
+            publicJwk,
+            createdAt: new Date().toISOString()
+          });
+
+          return { privateKey, publicJwk };
+        } finally {
+          db.close();
+        }
+      })().catch((error) => {
+        deviceIdentityPromise = null;
+        throw error;
+      });
+
+      return deviceIdentityPromise;
     }
+
+    async function createDeviceProof(action, contextParts) {
+      const identity = await getOrCreateDeviceIdentity();
+      const proofTs = Date.now();
+      const parts = Array.isArray(contextParts) ? contextParts : [];
+      const message = [
+        "migul-device-v17",
+        String(action || ""),
+        ...parts.map((value) => String(value || "")),
+        String(proofTs),
+        window.location.origin
+      ].join("|");
+
+      const signature = await crypto.subtle.sign(
+        { name: "ECDSA", hash: "SHA-256" },
+        identity.privateKey,
+        new TextEncoder().encode(message)
+      );
+
+      return {
+        devicePublicKey: identity.publicJwk,
+        deviceSignature: bytesToBase64Url(signature),
+        deviceProofTs: proofTs
+      };
+    }
+
 
     function readJourneySecret() {
       try {
@@ -747,6 +904,7 @@
     }
 
     clearLegacyKeyCache();
+    try { localStorage.removeItem(LEGACY_DEVICE_ID_STORAGE_KEY); } catch {}
 
     window.addEventListener("pagehide", wipeKeyOnPageExit);
     window.addEventListener("beforeunload", wipeKeyOnPageExit);
@@ -776,11 +934,10 @@
       statusText.textContent = "Đang Xử Lý";
 
       try {
-        const deviceId = getDeviceId();
         const journeySecret = readJourneySecret();
         const turnstileToken = await getClaimTurnstileToken();
 
-        if (!deviceId || !journeySecret) {
+        if (!journeySecret) {
           throw new Error("BROWSER_PROOF_REQUIRED");
         }
 
@@ -788,13 +945,18 @@
           throw new Error("CAPTCHA_FAILED");
         }
 
+        const deviceProof = await createDeviceProof(
+          "claim",
+          [ticket.landingCode, String(ticket.ticketExp)]
+        );
+
         const data = await callKeyApi("claim", {
           landingCode: ticket.landingCode,
           ticketExp: ticket.ticketExp,
           ticketSig: ticket.ticketSig,
-          deviceId,
           journeySecret,
-          turnstileToken
+          turnstileToken,
+          ...deviceProof
         });
 
         if (!data.key) {
@@ -851,6 +1013,32 @@
           return;
         }
 
+
+        if (
+          code === "DEVICE_PROOF_INVALID" ||
+          code === "DEVICE_KEY_INVALID" ||
+          code === "DEVICE_KEYSTORE_UNAVAILABLE"
+        ) {
+          keyValue.textContent = "ID Thiết Bị Không Hợp Lệ";
+          statusText.textContent = "Bảo Mật Đã Chặn";
+          showToast("Phát Hiện ID Thiết Bị Bị Giả Mạo Hoặc Không Có Khóa Ký Hợp Lệ.");
+          return;
+        }
+
+        if (code === "PROXY_DETECTED") {
+          keyValue.textContent = "Đã Chặn Proxy/VPN";
+          statusText.textContent = "Mạng Không Hợp Lệ";
+          showToast("Vui Lòng Tắt Proxy, VPN Hoặc Tor Và Vượt Link Lại Bằng Mạng Thật.");
+          return;
+        }
+
+        if (code === "PROXY_CHECK_UNAVAILABLE") {
+          keyValue.textContent = "Không Kiểm Tra Được Mạng";
+          statusText.textContent = "Thử Lại Sau";
+          showToast("Dịch Vụ Kiểm Tra Proxy/VPN Đang Tạm Không Khả Dụng.");
+          return;
+        }
+
         if (
           code === "DEVICE_MISMATCH" ||
           code === "JOURNEY_MISMATCH" ||
@@ -881,9 +1069,9 @@
           return;
         }
 
-        if (code === "LIMIT_REACHED") {
-          clearSensitiveKeyView("Đã Đạt Giới Hạn Hôm Nay", "Không Cấp Thêm Key");
-          showToast("Bạn Đã Đạt Giới Hạn Nhận Key Hôm Nay.");
+        if (code === "LIMIT_REACHED" || code === "DAILY_KEY_LIMIT_REACHED") {
+          clearSensitiveKeyView("Giới Hạn Key Trong Ngày", "Không Cấp Thêm Key");
+          showToast("Vui Lòng Quay Lại Lúc 00:00 Ngày Mới Hoặc IB Telegram @tizimod Mua Key.");
           return;
         }
 
