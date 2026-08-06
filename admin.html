@@ -430,7 +430,7 @@
 
     table {
       width: 100%;
-      min-width: 1120px;
+      min-width: 780px;
       border-collapse: collapse;
     }
 
@@ -854,41 +854,6 @@
       <section class="section">
         <div class="section-head">
           <div>
-            <h2>Giới Hạn Key Mỗi Ngày</h2>
-            <p>
-              Chọn Số Lượt Tối Đa Mỗi IP Và Mỗi Khóa Thiết Bị Được Bấm
-              “Lấy Key Ngay” Trong Một Ngày. Hạn Mức Tự Làm Mới Lúc 00:00.
-            </p>
-          </div>
-        </div>
-
-        <div class="grid">
-          <div>
-            <label for="dailyKeyLimit">Số Key Mỗi IP/Thiết Bị Mỗi Ngày</label>
-            <input
-              id="dailyKeyLimit"
-              type="number"
-              min="1"
-              max="20"
-              step="1"
-              value="2"
-              inputmode="numeric"
-            />
-          </div>
-        </div>
-
-        <div class="actions">
-          <button class="primary" id="saveDailyLimitButton" type="button">
-            Lưu Giới Hạn Key
-          </button>
-        </div>
-
-        <div class="message" id="dailyLimitMessage"></div>
-      </section>
-
-      <section class="section">
-        <div class="section-head">
-          <div>
             <h2>Quản Lý Link Các Nút</h2>
             <p>Để Trống Một Ô Thì Nút Đó Sẽ Bị Ẩn Ngoài Trang Chính.</p>
           </div>
@@ -1089,14 +1054,12 @@
                 <th>Trạng Thái</th>
                 <th>Ngày Thêm</th>
                 <th>Ngày Nhận</th>
-                <th>IP Mạng</th>
-                <th>Khóa Thiết Bị Ký (SHA-256)</th>
               </tr>
             </thead>
 
             <tbody id="keyTableBody">
               <tr>
-                <td class="empty-row" colspan="7">
+                <td class="empty-row" colspan="5">
                   Chưa Tải Danh Sách Key.
                 </td>
               </tr>
@@ -1237,15 +1200,6 @@
 
     const saveSettingsButton =
       document.getElementById("saveSettingsButton");
-
-    const dailyKeyLimit =
-      document.getElementById("dailyKeyLimit");
-
-    const saveDailyLimitButton =
-      document.getElementById("saveDailyLimitButton");
-
-    const dailyLimitMessage =
-      document.getElementById("dailyLimitMessage");
 
     const keyInput =
       document.getElementById("keyInput");
@@ -1438,8 +1392,6 @@
           "Không Xác Định Được IP Kết Nối.",
         SECURITY_CHECK_UNAVAILABLE:
           "Hệ Thống Bảo Mật Đang Tạm Không Khả Dụng.",
-        DATABASE_MIGRATION_REQUIRED:
-          "Supabase Chưa Chạy Đủ SQL V18.1. Hãy Chạy Toàn Bộ claim_limits.sql.",
         ADMIN_PASSWORD_NOT_CONFIGURED:
           "Edge Function Chưa Cấu Hình ADMIN_PASSWORD.",
         NO_KEYS_PROVIDED:
@@ -1614,10 +1566,6 @@
 
       supportUrl.value =
         settings.supportUrl || "";
-
-      dailyKeyLimit.value = String(
-        Math.min(20, Math.max(1, Math.floor(Number(settings.dailyKeyLimit) || 2)))
-      );
 
       renderShorteners(settings);
       renderAnnouncement(settings);
@@ -1863,7 +1811,7 @@
         const cell =
           document.createElement("td");
 
-        cell.colSpan = 7;
+        cell.colSpan = 5;
         cell.className = "empty-row";
 
         cell.textContent =
@@ -1957,40 +1905,12 @@
           claimedCell.textContent =
             formatDate(item.claimedAt);
 
-          const ipCell =
-            document.createElement("td");
-
-          ipCell.className =
-            "date-text";
-
-          ipCell.textContent =
-            String(item.claimedIp || "Chưa Có");
-
-          const deviceCell =
-            document.createElement("td");
-
-          const deviceCode =
-            document.createElement("code");
-
-          deviceCode.className =
-            "key-code";
-
-          deviceCode.textContent =
-            String(item.claimedDeviceId || "Chưa Có");
-
-          deviceCode.title =
-            String(item.claimedDeviceId || "");
-
-          deviceCell.appendChild(deviceCode);
-
           row.append(
             checkboxCell,
             keyCell,
             statusCell,
             createdCell,
-            claimedCell,
-            ipCell,
-            deviceCell
+            claimedCell
           );
 
           keyTableBody.appendChild(row);
@@ -2185,8 +2105,6 @@
         downloadIpaUrl: downloadIpaUrl.value,
         telegramUrl: telegramUrl.value,
         supportUrl: supportUrl.value,
-        dailyKeyLimit:
-          Math.min(20, Math.max(1, Math.floor(Number(dailyKeyLimit.value) || 2))),
         shortenerLayers:
           Number(shortenerLayers.value) || 2,
         shorteners: collectShorteners(),
@@ -2195,41 +2113,6 @@
         announcementEnabled:
           announcementEnabled.checked
       };
-    }
-
-    async function saveDailyLimit() {
-      const parsedLimit = Math.floor(Number(dailyKeyLimit.value));
-
-      if (!Number.isFinite(parsedLimit) || parsedLimit < 1 || parsedLimit > 20) {
-        setMessage(
-          dailyLimitMessage,
-          "Giới Hạn Phải Là Số Từ 1 Đến 20.",
-          "error"
-        );
-        return;
-      }
-
-      dailyKeyLimit.value = String(parsedLimit);
-      setLoading(saveDailyLimitButton, true, "Đang Lưu...");
-      setMessage(dailyLimitMessage, "");
-
-      try {
-        const data = await adminApi(
-          "admin-update-settings",
-          collectAllSettings()
-        );
-
-        renderSettings(data.settings);
-        setMessage(
-          dailyLimitMessage,
-          `Đã Đặt Giới Hạn ${parsedLimit} Key Mỗi IP/Thiết Bị Trong Ngày.`,
-          "success"
-        );
-      } catch (error) {
-        await handleAdminError(error, dailyLimitMessage);
-      } finally {
-        setLoading(saveDailyLimitButton, false, "Lưu Giới Hạn Key");
-      }
     }
 
     async function saveSettings() {
@@ -2623,11 +2506,6 @@
     saveSettingsButton.addEventListener(
       "click",
       saveSettings
-    );
-
-    saveDailyLimitButton.addEventListener(
-      "click",
-      saveDailyLimit
     );
 
     addShortenerButton.addEventListener(

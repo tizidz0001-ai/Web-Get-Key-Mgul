@@ -906,106 +906,7 @@
       .link-ready-step-text { font-size: 10px; }
     }
 
-    /* Bảng giới hạn 2 lượt/ngày theo IP và thiết bị */
-    .daily-limit-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 95;
-      display: grid;
-      place-items: center;
-      padding: 20px;
-      background: rgba(4, 7, 14, 0.78);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity .22s ease, visibility .22s ease;
-    }
-
-    .daily-limit-overlay.show {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-
-    .daily-limit-box {
-      width: min(480px, 100%);
-      padding: 30px 25px 24px;
-      border: 1px solid rgba(255, 159, 189, .26);
-      border-radius: 22px;
-      background: linear-gradient(155deg, rgba(24, 16, 38, .99), rgba(10, 14, 27, .99));
-      box-shadow: 0 28px 80px rgba(0, 0, 0, .58);
-      text-align: center;
-      transform: translateY(14px) scale(.97);
-      transition: transform .24s ease;
-    }
-
-    .daily-limit-overlay.show .daily-limit-box {
-      transform: translateY(0) scale(1);
-    }
-
-    .daily-limit-icon {
-      width: 62px;
-      height: 62px;
-      margin: 0 auto 15px;
-      display: grid;
-      place-items: center;
-      border-radius: 18px;
-      font-size: 30px;
-      background: rgba(255, 159, 189, .13);
-      border: 1px solid rgba(255, 159, 189, .22);
-    }
-
-    .daily-limit-title {
-      margin: 0;
-      font-size: clamp(23px, 6vw, 30px);
-      font-weight: 950;
-      letter-spacing: -.025em;
-    }
-
-    .daily-limit-message {
-      margin: 13px 0 21px;
-      color: var(--muted);
-      line-height: 1.7;
-      font-size: 14px;
-    }
-
-    .daily-limit-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 11px;
-    }
-
-    .daily-limit-actions a,
-    .daily-limit-actions button {
-      min-height: 48px;
-      border-radius: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      text-decoration: none;
-      font: inherit;
-      font-weight: 900;
-      cursor: pointer;
-    }
-
-    .daily-limit-telegram {
-      border: 0;
-      background: linear-gradient(135deg, #269ed8, #1976d2);
-    }
-
-    .daily-limit-close {
-      border: 1px solid rgba(255,255,255,.1);
-      background: rgba(255,255,255,.055);
-    }
-
-    @media (max-width: 480px) {
-      .daily-limit-actions { grid-template-columns: 1fr; }
-    }
-
-    .toast {
+.toast {
       position: fixed;
       left: 50%;
       bottom: 25px;
@@ -1346,8 +1247,6 @@
 
     .btn,
     .announcement-dismiss,
-    .daily-limit-actions a,
-    .daily-limit-actions button,
     .link-copy-btn,
     .link-open-btn,
     .link-close-btn {
@@ -1369,8 +1268,6 @@
 
     .btn:hover,
     .announcement-dismiss:hover,
-    .daily-limit-actions a:hover,
-    .daily-limit-actions button:hover,
     .link-copy-btn:hover,
     .link-open-btn:hover,
     .link-close-btn:hover {
@@ -1382,8 +1279,6 @@
 
     .btn:active,
     .announcement-dismiss:active,
-    .daily-limit-actions a:active,
-    .daily-limit-actions button:active,
     .link-copy-btn:active,
     .link-open-btn:active,
     .link-close-btn:active {
@@ -1393,9 +1288,7 @@
 
     .btn-primary { background: var(--gt-blue) !important; }
     .btn-secondary,
-    .link-close-btn,
-    .daily-limit-close { background: var(--gt-yellow) !important; }
-    .daily-limit-telegram { background: var(--gt-blue) !important; }
+    .link-close-btn { background: var(--gt-yellow) !important; }
     .btn:disabled { background: #d8dde5 !important; opacity: .72 !important; }
 
     .steps {
@@ -1422,16 +1315,14 @@
 
     .announcement-bar,
     .link-ready-overlay,
-    .countdown-overlay,
-    .daily-limit-overlay {
+    .countdown-overlay {
       background: rgba(255, 216, 77, .72) !important;
       backdrop-filter: none !important;
     }
 
     .announcement-popup,
     .link-ready-box,
-    .countdown-box,
-    .daily-limit-box {
+    .countdown-box {
       color: var(--gt-ink) !important;
       border: 3px solid var(--gt-ink) !important;
       border-radius: 4px !important;
@@ -1441,8 +1332,6 @@
 
     .announcement-title,
     .announcement-content,
-    .daily-limit-title,
-    .daily-limit-message,
     .link-ready-title,
     .link-ready-subtitle,
     .link-ready-step-text,
@@ -1455,8 +1344,7 @@
     }
 
     .announcement-icon,
-    .link-ready-icon,
-    .daily-limit-icon {
+    .link-ready-icon {
       color: var(--gt-ink) !important;
       border: 2px solid var(--gt-ink) !important;
       border-radius: 3px !important;
@@ -1663,37 +1551,6 @@
 
 
 
-  <!-- Bảng giới hạn 2 lượt/ngày -->
-  <div
-    class="daily-limit-overlay"
-    id="dailyLimitOverlay"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="dailyLimitTitle"
-  >
-    <div class="daily-limit-box">
-      <div class="daily-limit-icon" aria-hidden="true">⏳</div>
-      <h2 class="daily-limit-title" id="dailyLimitTitle">Giới Hạn Key Trong Ngày</h2>
-      <p class="daily-limit-message">
-        Vui Lòng Quay Lại Vào Lúc 00:00 Ngày Mới Để Lấy Key Tiếp
-        Hoặc IB Telegram <strong>@tizimod</strong> Mua Key.
-      </p>
-      <div class="daily-limit-actions">
-        <a
-          class="daily-limit-telegram"
-          href="https://t.me/tizimod"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          IB Telegram @tizimod
-        </a>
-        <button class="daily-limit-close" id="closeDailyLimitButton" type="button">
-          Đóng
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Bảng hiện sau khi tạo link thành công -->
   <div
     class="link-ready-overlay"
@@ -1849,25 +1706,8 @@
     const copyShortUrlButton = document.getElementById("copyShortUrlButton");
     const openShortUrlButton = document.getElementById("openShortUrlButton");
     const closeLinkReadyButton = document.getElementById("closeLinkReadyButton");
-    const dailyLimitOverlay = document.getElementById("dailyLimitOverlay");
-    const closeDailyLimitButton = document.getElementById("closeDailyLimitButton");
 
     let currentShortUrl = "";
-
-    function showDailyLimitModal() {
-      dailyLimitOverlay.classList.add("show");
-      document.body.style.overflow = "hidden";
-    }
-
-    function hideDailyLimitModal() {
-      dailyLimitOverlay.classList.remove("show");
-      document.body.style.overflow = "";
-    }
-
-    closeDailyLimitButton.addEventListener("click", hideDailyLimitModal);
-    dailyLimitOverlay.addEventListener("click", (event) => {
-      if (event.target === dailyLimitOverlay) hideDailyLimitModal();
-    });
 
     function showLinkReady(shortUrl) {
       currentShortUrl = String(shortUrl || "").trim();
@@ -1916,14 +1756,7 @@
     });
 
     document.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape") return;
-
-      if (dailyLimitOverlay.classList.contains("show")) {
-        hideDailyLimitModal();
-        return;
-      }
-
-      if (linkReadyOverlay.classList.contains("show")) {
+      if (event.key === "Escape" && linkReadyOverlay.classList.contains("show")) {
         hideLinkReady();
       }
     });
@@ -1938,14 +1771,8 @@
       config.SESSION_STORAGE_KEY || "migul_key_session_token_v1";
     const KEY_CACHE_STORAGE_KEY =
       config.KEY_CACHE_STORAGE_KEY || "migul_claimed_key_cache_v1";
-    const LEGACY_DEVICE_ID_STORAGE_KEY =
+    const DEVICE_ID_STORAGE_KEY =
       config.DEVICE_ID_STORAGE_KEY || "migul_device_id_v1";
-    const DEVICE_KEY_DB_NAME =
-      config.DEVICE_KEY_DB_NAME || "migul_device_keystore_v17";
-    const DEVICE_KEY_STORE_NAME =
-      config.DEVICE_KEY_STORE_NAME || "device_keys";
-    const DEVICE_KEY_RECORD_ID =
-      config.DEVICE_KEY_RECORD_ID || "primary_device_key";
     const JOURNEY_SECRET_STORAGE_KEY =
       config.JOURNEY_SECRET_STORAGE_KEY || "migul_journey_secret_v14";
     const TURNSTILE_SITE_KEY =
@@ -2091,179 +1918,32 @@
     // Phòng trường hợp api.js tải trước hoặc sau đoạn script này.
     initTurnstile();
 
+    // Định danh thiết bị bền trong localStorage. V14 gửi cả device ID và
+    // journey secret để backend ràng buộc link với đúng trình duyệt đã tạo.
+    function getDeviceId() {
+      let id = "";
 
-    // V17: ID thiết bị không còn lấy từ localStorage. Trình duyệt tạo khóa
-    // ECDSA P-256, lưu private key non-extractable trong IndexedDB và ký từng
-    // yêu cầu. Sửa chuỗi ID bằng F12 sẽ không tạo được chữ ký hợp lệ.
-    function bytesToBase64Url(bytes) {
-      let binary = "";
-      const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-      for (let i = 0; i < view.length; i += 1) {
-        binary += String.fromCharCode(view[i]);
-      }
-      return btoa(binary)
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/g, "");
-    }
-
-    function normalizePublicJwk(jwk) {
-      const value = jwk || {};
-      if (
-        value.kty !== "EC" ||
-        value.crv !== "P-256" ||
-        !/^[A-Za-z0-9_-]{40,50}$/.test(String(value.x || "")) ||
-        !/^[A-Za-z0-9_-]{40,50}$/.test(String(value.y || "")) ||
-        value.d
-      ) {
-        throw new Error("DEVICE_KEY_INVALID");
+      try {
+        id = String(localStorage.getItem(DEVICE_ID_STORAGE_KEY) || "").trim();
+      } catch {
+        // localStorage bị chặn: trả về rỗng, server coi là "unknown".
+        return "";
       }
 
-      return {
-        kty: "EC",
-        crv: "P-256",
-        x: String(value.x),
-        y: String(value.y),
-        ext: true,
-        key_ops: ["verify"]
-      };
-    }
-
-    function openDeviceKeyDb() {
-      if (!window.indexedDB) {
-        return Promise.reject(new Error("DEVICE_KEYSTORE_UNAVAILABLE"));
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DEVICE_KEY_DB_NAME, 1);
-
-        request.onupgradeneeded = () => {
-          const db = request.result;
-          if (!db.objectStoreNames.contains(DEVICE_KEY_STORE_NAME)) {
-            db.createObjectStore(DEVICE_KEY_STORE_NAME, { keyPath: "id" });
-          }
-        };
-
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(new Error("DEVICE_KEYSTORE_UNAVAILABLE"));
-        request.onblocked = () => reject(new Error("DEVICE_KEYSTORE_UNAVAILABLE"));
-      });
-    }
-
-    async function readDeviceKeyRecord(db) {
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(DEVICE_KEY_STORE_NAME, "readonly");
-        const request = tx.objectStore(DEVICE_KEY_STORE_NAME).get(DEVICE_KEY_RECORD_ID);
-        request.onsuccess = () => resolve(request.result || null);
-        request.onerror = () => reject(new Error("DEVICE_KEYSTORE_UNAVAILABLE"));
-      });
-    }
-
-    async function saveDeviceKeyRecord(db, record) {
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(DEVICE_KEY_STORE_NAME, "readwrite");
-        tx.objectStore(DEVICE_KEY_STORE_NAME).put(record);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(new Error("DEVICE_KEYSTORE_UNAVAILABLE"));
-        tx.onabort = () => reject(new Error("DEVICE_KEYSTORE_UNAVAILABLE"));
-      });
-    }
-
-    let deviceIdentityPromise = null;
-
-    async function getOrCreateDeviceIdentity() {
-      if (deviceIdentityPromise) return deviceIdentityPromise;
-
-      deviceIdentityPromise = (async () => {
-        if (!window.crypto?.subtle) {
-          throw new Error("DEVICE_KEYSTORE_UNAVAILABLE");
-        }
-
-        const db = await openDeviceKeyDb();
+      if (!id) {
+        id =
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
         try {
-          const existing = await readDeviceKeyRecord(db);
-          if (
-            existing?.privateKey?.type === "private" &&
-            existing?.privateKey?.algorithm?.name === "ECDSA" &&
-            existing?.publicJwk
-          ) {
-            return {
-              privateKey: existing.privateKey,
-              publicJwk: normalizePublicJwk(existing.publicJwk)
-            };
-          }
-
-          // Tạo khóa tạm extractable để xuất PKCS#8, sau đó import lại private
-          // key ở chế độ non-extractable trước khi lưu IndexedDB.
-          const generated = await crypto.subtle.generateKey(
-            { name: "ECDSA", namedCurve: "P-256" },
-            true,
-            ["sign", "verify"]
-          );
-
-          const privatePkcs8 = await crypto.subtle.exportKey(
-            "pkcs8",
-            generated.privateKey
-          );
-
-          const publicJwk = normalizePublicJwk(
-            await crypto.subtle.exportKey("jwk", generated.publicKey)
-          );
-
-          const privateKey = await crypto.subtle.importKey(
-            "pkcs8",
-            privatePkcs8,
-            { name: "ECDSA", namedCurve: "P-256" },
-            false,
-            ["sign"]
-          );
-
-          // Xóa bản sao byte của khóa riêng khỏi buffer tạm càng sớm càng tốt.
-          new Uint8Array(privatePkcs8).fill(0);
-
-          await saveDeviceKeyRecord(db, {
-            id: DEVICE_KEY_RECORD_ID,
-            privateKey,
-            publicJwk,
-            createdAt: new Date().toISOString()
-          });
-
-          return { privateKey, publicJwk };
-        } finally {
-          db.close();
+          localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
+        } catch {
+          // Không lưu được cũng không sao, phiên này vẫn có id tạm.
         }
-      })().catch((error) => {
-        deviceIdentityPromise = null;
-        throw error;
-      });
+      }
 
-      return deviceIdentityPromise;
-    }
-
-    async function createDeviceProof(action, contextParts) {
-      const identity = await getOrCreateDeviceIdentity();
-      const proofTs = Date.now();
-      const parts = Array.isArray(contextParts) ? contextParts : [];
-      const message = [
-        "migul-device-v17",
-        String(action || ""),
-        ...parts.map((value) => String(value || "")),
-        String(proofTs),
-        window.location.origin
-      ].join("|");
-
-      const signature = await crypto.subtle.sign(
-        { name: "ECDSA", hash: "SHA-256" },
-        identity.privateKey,
-        new TextEncoder().encode(message)
-      );
-
-      return {
-        devicePublicKey: identity.publicJwk,
-        deviceSignature: bytesToBase64Url(signature),
-        deviceProofTs: proofTs
-      };
+      return id;
     }
 
 
@@ -2302,8 +1982,6 @@
 
       return secret;
     }
-
-    try { localStorage.removeItem(LEGACY_DEVICE_ID_STORAGE_KEY); } catch {}
 
     const displayAppName = config.APP_NAME || "Get Key Free Fire iPA";
     appName.textContent = displayAppName;
@@ -2623,21 +2301,17 @@
           throw new Error("CAPTCHA_FAILED");
         }
 
+        const deviceId = getDeviceId();
         const journeySecret = getJourneySecret();
 
-        if (!journeySecret) {
+        if (!deviceId || !journeySecret) {
           throw new Error("BROWSER_PROOF_REQUIRED");
         }
 
-        const deviceProof = await createDeviceProof(
-          "create-session",
-          [journeySecret]
-        );
-
         const session = await callKeyApi("create-session", {
           turnstileToken,
-          journeySecret,
-          ...deviceProof
+          deviceId,
+          journeySecret
         });
 
         // Bản strict không đưa token phiên ra frontend. Chỉ cần shortUrl.
@@ -2654,12 +2328,6 @@
         console.error("CREATE_SESSION_ERROR", error);
 
         const code = String(error?.code || error?.message || "UNKNOWN");
-
-        if (["DAILY_KEY_LIMIT_REACHED", "LIMIT_REACHED"].includes(code)) {
-          showDailyLimitModal();
-          return;
-        }
-
         const messages = {
           OUT_OF_KEYS: "Kho Key Đã Hết. Vui Lòng Quay Lại Sau.",
           SHORTENER_NOT_CONFIGURED: "Chưa Cấu Hình API Rút Gọn Hoặc Số Lần Rút Gọn.",
@@ -2673,14 +2341,8 @@
           FORBIDDEN_ORIGIN: "Tên Miền Hiện Tại Không Được Backend Cho Phép.",
           CLIENT_IP_UNAVAILABLE: "Không Xác Định Được IP. Vui Lòng Thử Lại Sau.",
           SECURITY_CHECK_UNAVAILABLE: "Hệ Thống Bảo Mật Đang Tạm Không Khả Dụng.",
-          DATABASE_MIGRATION_REQUIRED: "Supabase Chưa Chạy Đủ SQL V18.1. Hãy Chạy Toàn Bộ claim_limits.sql Rồi Deploy Lại Edge Function.",
           TURNSTILE_TOKEN_MISSING: "Chưa Qua Xác Minh Chống Bot. Vui Lòng Thử Lại.",
-          BROWSER_PROOF_REQUIRED: "Trình Duyệt Không Tạo Được Bằng Chứng Thiết Bị. Hãy Bật IndexedDB Và Thử Lại.",
-          DEVICE_KEYSTORE_UNAVAILABLE: "Trình Duyệt Không Lưu Được Khóa Thiết Bị. Không Dùng Chế Độ Riêng Tư Và Hãy Bật IndexedDB.",
-          DEVICE_KEY_INVALID: "Khóa Thiết Bị Không Hợp Lệ. Vui Lòng Xóa Dữ Liệu Trang Và Thử Lại.",
-          DEVICE_PROOF_INVALID: "Phát Hiện ID Thiết Bị Bị Giả Mạo Hoặc Chữ Ký Không Hợp Lệ.",
-          PROXY_DETECTED: "Phát Hiện Proxy, VPN, Tor Hoặc Mạng Máy Chủ. Vui Lòng Tắt Proxy/VPN Và Dùng Mạng Thật.",
-          PROXY_CHECK_UNAVAILABLE: "Không Kiểm Tra Được Proxy/VPN. Vui Lòng Thử Lại Sau.",
+          BROWSER_PROOF_REQUIRED: "Trình Duyệt Không Tạo Được Mã Bảo Mật. Hãy Bật Cookie/LocalStorage Và Thử Lại.",
           SUPABASE_NOT_CONFIGURED: "Bạn Chưa Điền SUPABASE_URL Trong config.js.",
           SHORT_URL_NOT_FOUND: "Server Không Trả Về Link Rút Gọn."
         };
