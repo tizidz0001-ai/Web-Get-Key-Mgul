@@ -976,6 +976,13 @@
           return;
         }
 
+        if (code === "DATABASE_MIGRATION_REQUIRED") {
+          keyValue.textContent = "Thiếu Cập Nhật SQL";
+          statusText.textContent = "Cần Chạy claim_limits.sql";
+          showToast("Supabase Chưa Chạy Đủ SQL. Vui Lòng Cập Nhật Database Và Vượt Lại.");
+          return;
+        }
+
         if (code === "SUPABASE_NOT_CONFIGURED") {
           keyValue.textContent = "Chưa Cấu Hình Supabase";
           statusText.textContent = "Lỗi Cấu Hình";
