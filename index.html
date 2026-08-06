@@ -1771,10 +1771,6 @@
       config.SESSION_STORAGE_KEY || "migul_key_session_token_v1";
     const KEY_CACHE_STORAGE_KEY =
       config.KEY_CACHE_STORAGE_KEY || "migul_claimed_key_cache_v1";
-    const DEVICE_ID_STORAGE_KEY =
-      config.DEVICE_ID_STORAGE_KEY || "migul_device_id_v1";
-    const JOURNEY_SECRET_STORAGE_KEY =
-      config.JOURNEY_SECRET_STORAGE_KEY || "migul_journey_secret_v14";
     const TURNSTILE_SITE_KEY =
       String(config.TURNSTILE_SITE_KEY || "").trim();
 
@@ -1918,70 +1914,7 @@
     // Phòng trường hợp api.js tải trước hoặc sau đoạn script này.
     initTurnstile();
 
-    // Định danh thiết bị bền trong localStorage. V14 gửi cả device ID và
-    // journey secret để backend ràng buộc link với đúng trình duyệt đã tạo.
-    function getDeviceId() {
-      let id = "";
 
-      try {
-        id = String(localStorage.getItem(DEVICE_ID_STORAGE_KEY) || "").trim();
-      } catch {
-        // localStorage bị chặn: trả về rỗng, server coi là "unknown".
-        return "";
-      }
-
-      if (!id) {
-        id =
-          typeof crypto !== "undefined" && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-        try {
-          localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
-        } catch {
-          // Không lưu được cũng không sao, phiên này vẫn có id tạm.
-        }
-      }
-
-      return id;
-    }
-
-
-    // Bí mật 32 byte được giữ trên cùng trình duyệt. Backend chỉ lưu SHA-256.
-    // Link bị sao chép sang trình duyệt/client khác sẽ không thể claim key.
-    function getJourneySecret() {
-      let secret = "";
-
-      try {
-        secret = String(localStorage.getItem(JOURNEY_SECRET_STORAGE_KEY) || "")
-          .trim()
-          .toLowerCase();
-      } catch {
-        return "";
-      }
-
-      if (/^[0-9a-f]{64}$/.test(secret)) {
-        return secret;
-      }
-
-      if (!window.crypto || !window.crypto.getRandomValues) {
-        return "";
-      }
-
-      const bytes = new Uint8Array(32);
-      window.crypto.getRandomValues(bytes);
-      secret = Array.from(bytes, (value) =>
-        value.toString(16).padStart(2, "0")
-      ).join("");
-
-      try {
-        localStorage.setItem(JOURNEY_SECRET_STORAGE_KEY, secret);
-      } catch {
-        return "";
-      }
-
-      return secret;
-    }
 
     const displayAppName = config.APP_NAME || "Get Key Free Fire iPA";
     appName.textContent = displayAppName;
@@ -2301,17 +2234,8 @@
           throw new Error("CAPTCHA_FAILED");
         }
 
-        const deviceId = getDeviceId();
-        const journeySecret = getJourneySecret();
-
-        if (!deviceId || !journeySecret) {
-          throw new Error("BROWSER_PROOF_REQUIRED");
-        }
-
         const session = await callKeyApi("create-session", {
-          turnstileToken,
-          deviceId,
-          journeySecret
+          turnstileToken
         });
 
         // Bản strict không đưa token phiên ra frontend. Chỉ cần shortUrl.
@@ -2337,12 +2261,9 @@
           DATABASE_REQUEST_FAILED: "Lỗi Cơ Sở Dữ Liệu. Vui Lòng Thử Lại Sau.",
           CREATE_SESSION_FAILED: "Không Thể Tạo Phiên Nhận Key.",
           CAPTCHA_FAILED: "Xác Minh Chống Bot Thất Bại. Vui Lòng Thử Lại.",
-          SESSION_RATE_LIMITED: "Bạn Tạo Link Quá Nhiều Lần. Vui Lòng Thử Lại Sau 1 Giờ.",
           FORBIDDEN_ORIGIN: "Tên Miền Hiện Tại Không Được Backend Cho Phép.",
-          CLIENT_IP_UNAVAILABLE: "Không Xác Định Được IP. Vui Lòng Thử Lại Sau.",
           SECURITY_CHECK_UNAVAILABLE: "Hệ Thống Bảo Mật Đang Tạm Không Khả Dụng.",
           TURNSTILE_TOKEN_MISSING: "Chưa Qua Xác Minh Chống Bot. Vui Lòng Thử Lại.",
-          BROWSER_PROOF_REQUIRED: "Trình Duyệt Không Tạo Được Mã Bảo Mật. Hãy Bật Cookie/LocalStorage Và Thử Lại.",
           SUPABASE_NOT_CONFIGURED: "Bạn Chưa Điền SUPABASE_URL Trong config.js.",
           SHORT_URL_NOT_FOUND: "Server Không Trả Về Link Rút Gọn."
         };

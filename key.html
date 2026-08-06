@@ -355,7 +355,7 @@
     <h1>Key Của Bạn</h1>
 
     <p class="subtitle">
-      Hệ Thống Đang Kiểm Tra Link Rút Gọn, Trình Duyệt, Mạng Và Chống Bot.
+      Hệ Thống Đang Kiểm Tra Link Rút Gọn, Trình Duyệt Và Chống Bot.
       Key Chỉ Được Cấp Khi Toàn Bộ Kiểm Tra Phía Server Hợp Lệ.
     </p>
 
@@ -437,12 +437,6 @@
 
     let currentKey = "";
 
-    const DEVICE_ID_STORAGE_KEY =
-      config.DEVICE_ID_STORAGE_KEY || "migul_device_id_v1";
-
-    const JOURNEY_SECRET_STORAGE_KEY =
-      config.JOURNEY_SECRET_STORAGE_KEY || "migul_journey_secret_v14";
-
     const TURNSTILE_SITE_KEY =
       String(config.TURNSTILE_SITE_KEY || "").trim();
 
@@ -451,42 +445,6 @@
     const LEGACY_KEY_CACHE_STORAGE_KEY =
       config.KEY_CACHE_STORAGE_KEY || "migul_claimed_key_cache_v1";
 
-    function getDeviceId() {
-      let id = "";
-
-      try {
-        id = String(localStorage.getItem(DEVICE_ID_STORAGE_KEY) || "").trim();
-      } catch {
-        return "";
-      }
-
-      if (!id) {
-        id =
-          typeof crypto !== "undefined" && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-        try {
-          localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
-        } catch {
-          // Không lưu được cũng không sao, phiên này vẫn có id tạm.
-        }
-      }
-
-      return id;
-    }
-
-    function readJourneySecret() {
-      try {
-        const secret = String(
-          localStorage.getItem(JOURNEY_SECRET_STORAGE_KEY) || ""
-        ).trim().toLowerCase();
-
-        return /^[0-9a-f]{64}$/.test(secret) ? secret : "";
-      } catch {
-        return "";
-      }
-    }
 
     let claimTurnstileWidgetId = null;
     let claimTurnstileBusy = false;
@@ -776,13 +734,7 @@
       statusText.textContent = "Đang Xử Lý";
 
       try {
-        const deviceId = getDeviceId();
-        const journeySecret = readJourneySecret();
         const turnstileToken = await getClaimTurnstileToken();
-
-        if (!deviceId || !journeySecret) {
-          throw new Error("BROWSER_PROOF_REQUIRED");
-        }
 
         if (TURNSTILE_SITE_KEY && !turnstileToken) {
           throw new Error("CAPTCHA_FAILED");
@@ -792,8 +744,6 @@
           landingCode: ticket.landingCode,
           ticketExp: ticket.ticketExp,
           ticketSig: ticket.ticketSig,
-          deviceId,
-          journeySecret,
           turnstileToken
         });
 
@@ -832,15 +782,6 @@
           return;
         }
 
-        if (code === "JOURNEY_TOO_FAST") {
-          // Không hiển thị key, không lấy key cache và không tự thử lại.
-          keyValue.textContent = "Key Lỗi .. Vui Lòng Vượt Lại";
-          statusText.textContent = "Chưa Đủ 30 Giây";
-          currentKey = "";
-          copyButton.disabled = true;
-          showToast("Key Lỗi .. Vui Lòng Vượt Lại");
-          return;
-        }
 
         if (code === "LINK_NOT_READY") {
           keyValue.textContent = "Key Lỗi .. Vui Lòng Vượt Lại";
@@ -851,18 +792,6 @@
           return;
         }
 
-        if (
-          code === "DEVICE_MISMATCH" ||
-          code === "JOURNEY_MISMATCH" ||
-          code === "USER_AGENT_MISMATCH" ||
-          code === "BROWSER_PROOF_REQUIRED"
-        ) {
-          keyValue.textContent = "Sai Trình Duyệt";
-          statusText.textContent = "Bảo Mật Đã Chặn";
-          showToast("Link Chỉ Dùng Được Trên Đúng Trình Duyệt Đã Tạo Link Rút Gọn.");
-          setTimeout(redirectToStart, 2200);
-          return;
-        }
 
         if (code === "CAPTCHA_FAILED") {
           keyValue.textContent = "Xác Minh Thất Bại";
@@ -871,28 +800,6 @@
           return;
         }
 
-        if (code === "TOKEN_IP_MISMATCH") {
-          keyValue.textContent = "Link Không Hợp Lệ";
-          statusText.textContent = "Sai IP";
-          showToast(
-            "Link Này Phải Mở Trên Cùng Mạng Đã Tạo. Vui Lòng Vượt Link Lại Từ Đầu."
-          );
-          setTimeout(redirectToStart, 1800);
-          return;
-        }
-
-        if (code === "LIMIT_REACHED") {
-          clearSensitiveKeyView("Đã Đạt Giới Hạn Hôm Nay", "Không Cấp Thêm Key");
-          showToast("Bạn Đã Đạt Giới Hạn Nhận Key Hôm Nay.");
-          return;
-        }
-
-        if (code === "CLAIM_RATE_LIMITED") {
-          keyValue.textContent = "Thao Tác Quá Nhanh";
-          statusText.textContent = "Tạm Khóa Claim";
-          showToast("Bạn Gửi Quá Nhiều Yêu Cầu. Vui Lòng Thử Lại Sau.");
-          return;
-        }
 
         if (code === "FORBIDDEN_ORIGIN" || code === "SECURITY_CHECK_UNAVAILABLE") {
           keyValue.textContent = "Yêu Cầu Không Hợp Lệ";

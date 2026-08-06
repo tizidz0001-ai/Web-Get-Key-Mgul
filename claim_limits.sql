@@ -1,14 +1,13 @@
 -- =====================================================================
--- GET KEY SECURITY HARDENING V14 + BẮT BUỘC 30 GIÂY - 2026-08-04
--- Chạy TOÀN BỘ file trong Supabase > SQL Editor, sau đó deploy index.ts V14.
+-- GET KEY V16 - KHÔNG CHECK IP / DEVICE ID + KHÔNG GIỚI HẠN THỜI GIAN - 2026-08-06
+-- Chạy TOÀN BỘ file trong Supabase > SQL Editor, sau đó deploy index.ts V16.1.
 --
 -- V14 bổ sung:
 -- 1) Session có vòng đời creating -> shortened -> claimed.
 -- 2) Chỉ session đã tạo link rút gọn thành công mới được claim.
 -- 3) URL đích dùng landing code ngẫu nhiên, không lộ token session UUID.
--- 4) Ràng buộc cùng IP + cùng trình duyệt bằng device hash, journey secret hash,
---    user-agent hash; tất cả hash được tạo ở Edge Function.
--- 5) Bắt buộc đủ ít nhất 30 giây từ lúc server nhận yêu cầu tạo link mới cấp key.
+-- 4) Không kiểm tra IP, Device ID, journey secret hoặc User-Agent.
+-- 5) Không chặn theo thời gian; link đích nhanh vẫn được claim.
 -- 6) Claim atomic, một session/một key chỉ dùng đúng một lần.
 -- 7) Khóa RPC cũ để Edge Function cũ không thể bỏ qua vòng đời V14.
 -- =====================================================================
@@ -18,10 +17,6 @@
 -- ---------------------------------------------------------------------
 alter table public.key_sessions
   add column if not exists created_at timestamptz not null default now(),
-  add column if not exists creator_ip text,
-  add column if not exists creator_device_hash text,
-  add column if not exists journey_secret_hash text,
-  add column if not exists creator_ua_hash text,
   add column if not exists landing_code_hash text,
   add column if not exists status text not null default 'creating',
   add column if not exists link_ready_at timestamptz,
@@ -31,7 +26,7 @@ alter table public.key_sessions
 alter table public.key_sessions
   alter column created_at set default now();
 
--- Link cũ V13 không có landing code/journey binding nên cố ý vô hiệu hóa.
+-- Xóa session cũ để tránh link phiên bản trước gọi nhầm RPC mới.
 delete from public.key_sessions;
 
 create unique index if not exists key_sessions_token_uidx
@@ -111,21 +106,11 @@ begin
 end;
 $$;
 
-create or replace function public.bump_session_limit(
-  p_ip text,
-  p_max integer default 20
-)
-returns table (allowed boolean, current_count integer)
-language sql
-security definer
-set search_path = public
-as $$
-  select *
-  from public.bump_request_limit('create-session', p_ip, p_max, 3600);
-$$;
+-- Xóa RPC giới hạn theo IP của phiên bản cũ nếu đang tồn tại.
+drop function if exists public.bump_session_limit(text, integer);
 
 -- ---------------------------------------------------------------------
--- C. Hạn mức key mỗi IP/ngày.
+-- C. Bảng hạn mức cũ được giữ để tương thích, nhưng V16 không còn sử dụng.
 -- ---------------------------------------------------------------------
 create table if not exists public.claim_limits (
   ip          text        not null,
@@ -167,20 +152,21 @@ create index if not exists security_logs_event_type_idx
 -- ---------------------------------------------------------------------
 -- E. Chuyển session sang trạng thái shortened CHỈ SAU KHI API rút gọn thành công.
 -- ---------------------------------------------------------------------
+drop function if exists public.mark_session_shortened_v14(text, integer, integer);
+drop function if exists public.mark_session_shortened_v14(text, integer);
+
 create or replace function public.mark_session_shortened_v14(
   p_token text,
-  p_layers integer,
-  p_min_seconds integer
+  p_layers integer
 )
-returns table (ready boolean, claim_not_before timestamptz)
+returns table (ready boolean, link_ready_at timestamptz)
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
   v_token uuid;
-  v_wait integer := greatest(30, least(coalesce(p_min_seconds, 30), 1800));
-  v_not_before timestamptz;
+  v_ready_at timestamptz;
 begin
   begin
     v_token := p_token::uuid;
@@ -191,39 +177,33 @@ begin
   update public.key_sessions
      set status = 'shortened',
          link_ready_at = now(),
-         -- Tính từ created_at (lúc backend nhận create-session), KHÔNG tính
-         -- lại từ lúc API rút gọn hoàn tất. Vì vậy thời gian tạo link cũng
-         -- được cộng vào tổng thời gian 30 giây.
-         claim_not_before = created_at + make_interval(secs => v_wait),
+         claim_not_before = now(),
          shortener_layers = greatest(1, least(coalesce(p_layers, 1), 6))
    where token = v_token
      and status = 'creating'
      and expires_at > now()
      and landing_code_hash is not null
-     and journey_secret_hash is not null
-     and creator_device_hash is not null
-     and creator_ua_hash is not null
-  returning key_sessions.claim_not_before into v_not_before;
+  returning key_sessions.link_ready_at into v_ready_at;
 
   if not found then
     raise exception 'SESSION_NOT_READY';
   end if;
 
-  return query select true, v_not_before;
+  return query select true, v_ready_at;
 end;
 $$;
 
 -- ---------------------------------------------------------------------
 -- F. CLAIM ATOMIC V14.
--- Tìm session bằng HASH của landing code, kiểm tra trạng thái/binding/thời gian,
+-- Tìm session bằng HASH của landing code, kiểm tra trạng thái session,
 -- khóa session + key rồi claim và tiêu session trong cùng transaction.
 -- ---------------------------------------------------------------------
+drop function if exists public.claim_key_limited_v14(text, text, text, text, text);
+drop function if exists public.claim_key_limited_v14(text, text, text);
+drop function if exists public.claim_key_limited_v14(text);
+
 create or replace function public.claim_key_limited_v14(
-  p_landing_hash text,
-  p_ip text default '',
-  p_device_hash text default '',
-  p_journey_hash text default '',
-  p_ua_hash text default ''
+  p_landing_hash text
 )
 returns table (key_value text)
 language plpgsql
@@ -231,49 +211,21 @@ security definer
 set search_path = public
 as $$
 declare
-  v_ip                  text := coalesce(nullif(btrim(coalesce(p_ip, '')), ''), 'unknown');
-  v_landing_hash        text := lower(btrim(coalesce(p_landing_hash, '')));
-  v_device_hash         text := lower(btrim(coalesce(p_device_hash, '')));
-  v_journey_hash        text := lower(btrim(coalesce(p_journey_hash, '')));
-  v_ua_hash             text := lower(btrim(coalesce(p_ua_hash, '')));
-  v_date                date := (now() at time zone 'Asia/Ho_Chi_Minh')::date;
-  v_limit               constant integer := 5;
-  v_token               uuid;
-  v_creator_ip          text;
-  v_creator_device_hash text;
-  v_journey_secret_hash text;
-  v_creator_ua_hash     text;
-  v_expires_at          timestamptz;
-  v_link_ready_at       timestamptz;
-  v_claim_not_before    timestamptz;
-  v_status              text;
-  v_key_id              uuid;
-  v_key_value           text;
-  v_count               integer;
+  -- V16 chỉ xác minh landing code và trạng thái session.
+  v_landing_hash     text := lower(btrim(coalesce(p_landing_hash, '')));
+  v_token            uuid;
+  v_expires_at       timestamptz;
+  v_link_ready_at    timestamptz;
+  v_status           text;
+  v_key_id           uuid;
+  v_key_value        text;
 begin
   if v_landing_hash !~ '^[0-9a-f]{64}$' then
     raise exception 'INVALID_LANDING_CODE';
   end if;
 
-  -- 1) Khóa đúng session theo landing hash.
-  select token,
-         creator_ip,
-         creator_device_hash,
-         journey_secret_hash,
-         creator_ua_hash,
-         expires_at,
-         link_ready_at,
-         claim_not_before,
-         status
-    into v_token,
-         v_creator_ip,
-         v_creator_device_hash,
-         v_journey_secret_hash,
-         v_creator_ua_hash,
-         v_expires_at,
-         v_link_ready_at,
-         v_claim_not_before,
-         v_status
+  select token, expires_at, link_ready_at, status
+    into v_token, v_expires_at, v_link_ready_at, v_status
   from public.key_sessions
   where landing_code_hash = v_landing_hash
   for update;
@@ -286,48 +238,11 @@ begin
     raise exception 'SESSION_EXPIRED';
   end if;
 
-  -- 2) Session chỉ claim được sau khi backend đã tạo link rút gọn thành công.
   if v_status <> 'shortened' or v_link_ready_at is null then
     raise exception 'LINK_NOT_READY';
   end if;
 
-  if v_claim_not_before is null or now() < v_claim_not_before then
-    raise exception 'JOURNEY_TOO_FAST';
-  end if;
 
-  -- 3) Ràng buộc cùng mạng và cùng trình duyệt đã tạo link.
-  if v_creator_ip is null or btrim(v_creator_ip) = '' or v_creator_ip <> v_ip then
-    raise exception 'TOKEN_IP_MISMATCH';
-  end if;
-
-  if v_creator_device_hash is null or v_creator_device_hash <> v_device_hash then
-    raise exception 'DEVICE_MISMATCH';
-  end if;
-
-  if v_journey_secret_hash is null or v_journey_secret_hash <> v_journey_hash then
-    raise exception 'JOURNEY_MISMATCH';
-  end if;
-
-  if v_creator_ua_hash is null or v_creator_ua_hash <> v_ua_hash then
-    raise exception 'USER_AGENT_MISMATCH';
-  end if;
-
-  -- 4) Hạn mức theo IP/ngày, khóa row để chống request đồng thời.
-  insert into public.claim_limits(ip, vn_date)
-  values (v_ip, v_date)
-  on conflict (ip, vn_date) do nothing;
-
-  select claim_count
-    into v_count
-  from public.claim_limits
-  where ip = v_ip and vn_date = v_date
-  for update;
-
-  if v_count >= v_limit then
-    raise exception 'LIMIT_REACHED';
-  end if;
-
-  -- 5) Lấy đúng một key còn trống và khóa row.
   select id, key_value
     into v_key_id, v_key_value
   from public.keys
@@ -351,37 +266,16 @@ begin
   end if;
 
   insert into public.claims(session_token, key_id, claim_ip)
-  values (v_token, v_key_id, v_ip);
+  values (v_token, v_key_id, null);
 
-  update public.claim_limits
-     set claim_count = claim_count + 1,
-         last_key = null,
-         updated_at = now()
-   where ip = v_ip and vn_date = v_date;
-
-  -- 6) Tiêu session. Replay landing code không thể lấy key mới.
   delete from public.key_sessions where token = v_token;
 
   return query select v_key_value;
 end;
 $$;
 
--- RPC V13 bị vô hiệu hóa có chủ đích. Nếu Edge Function cũ còn chạy, nó sẽ
--- báo API_VERSION_OUTDATED thay vì cấp key theo luồng cũ.
-create or replace function public.claim_key_limited(
-  p_token text,
-  p_ip text default '',
-  p_device_id text default ''
-)
-returns table (key_value text)
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  raise exception 'API_VERSION_OUTDATED';
-end;
-$$;
+-- Xóa RPC cũ có tham số IP/Device ID để tránh gọi nhầm phiên bản.
+drop function if exists public.claim_key_limited(text, text, text);
 
 -- ---------------------------------------------------------------------
 -- G. RLS + quyền.
@@ -411,17 +305,11 @@ grant usage, select on all sequences in schema public to service_role;
 revoke all on function public.bump_request_limit(text, text, integer, integer) from public, anon, authenticated;
 grant execute on function public.bump_request_limit(text, text, integer, integer) to service_role;
 
-revoke all on function public.bump_session_limit(text, integer) from public, anon, authenticated;
-grant execute on function public.bump_session_limit(text, integer) to service_role;
+revoke all on function public.mark_session_shortened_v14(text, integer) from public, anon, authenticated;
+grant execute on function public.mark_session_shortened_v14(text, integer) to service_role;
 
-revoke all on function public.mark_session_shortened_v14(text, integer, integer) from public, anon, authenticated;
-grant execute on function public.mark_session_shortened_v14(text, integer, integer) to service_role;
-
-revoke all on function public.claim_key_limited_v14(text, text, text, text, text) from public, anon, authenticated;
-grant execute on function public.claim_key_limited_v14(text, text, text, text, text) to service_role;
-
-revoke all on function public.claim_key_limited(text, text, text) from public, anon, authenticated;
-grant execute on function public.claim_key_limited(text, text, text) to service_role;
+revoke all on function public.claim_key_limited_v14(text) from public, anon, authenticated;
+grant execute on function public.claim_key_limited_v14(text) to service_role;
 
 -- Khóa các RPC cũ nếu đang tồn tại.
 do $$
