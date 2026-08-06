@@ -854,6 +854,41 @@
       <section class="section">
         <div class="section-head">
           <div>
+            <h2>Giới Hạn Key Mỗi Ngày</h2>
+            <p>
+              Chọn Số Lượt Tối Đa Mỗi IP Và Mỗi Khóa Thiết Bị Được Bấm
+              “Lấy Key Ngay” Trong Một Ngày. Hạn Mức Tự Làm Mới Lúc 00:00.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div>
+            <label for="dailyKeyLimit">Số Key Mỗi IP/Thiết Bị Mỗi Ngày</label>
+            <input
+              id="dailyKeyLimit"
+              type="number"
+              min="1"
+              max="20"
+              step="1"
+              value="2"
+              inputmode="numeric"
+            />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="saveDailyLimitButton" type="button">
+            Lưu Giới Hạn Key
+          </button>
+        </div>
+
+        <div class="message" id="dailyLimitMessage"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
             <h2>Quản Lý Link Các Nút</h2>
             <p>Để Trống Một Ô Thì Nút Đó Sẽ Bị Ẩn Ngoài Trang Chính.</p>
           </div>
@@ -1202,6 +1237,15 @@
 
     const saveSettingsButton =
       document.getElementById("saveSettingsButton");
+
+    const dailyKeyLimit =
+      document.getElementById("dailyKeyLimit");
+
+    const saveDailyLimitButton =
+      document.getElementById("saveDailyLimitButton");
+
+    const dailyLimitMessage =
+      document.getElementById("dailyLimitMessage");
 
     const keyInput =
       document.getElementById("keyInput");
@@ -1568,6 +1612,10 @@
 
       supportUrl.value =
         settings.supportUrl || "";
+
+      dailyKeyLimit.value = String(
+        Math.min(20, Math.max(1, Math.floor(Number(settings.dailyKeyLimit) || 2)))
+      );
 
       renderShorteners(settings);
       renderAnnouncement(settings);
@@ -2135,6 +2183,8 @@
         downloadIpaUrl: downloadIpaUrl.value,
         telegramUrl: telegramUrl.value,
         supportUrl: supportUrl.value,
+        dailyKeyLimit:
+          Math.min(20, Math.max(1, Math.floor(Number(dailyKeyLimit.value) || 2))),
         shortenerLayers:
           Number(shortenerLayers.value) || 2,
         shorteners: collectShorteners(),
@@ -2143,6 +2193,41 @@
         announcementEnabled:
           announcementEnabled.checked
       };
+    }
+
+    async function saveDailyLimit() {
+      const parsedLimit = Math.floor(Number(dailyKeyLimit.value));
+
+      if (!Number.isFinite(parsedLimit) || parsedLimit < 1 || parsedLimit > 20) {
+        setMessage(
+          dailyLimitMessage,
+          "Giới Hạn Phải Là Số Từ 1 Đến 20.",
+          "error"
+        );
+        return;
+      }
+
+      dailyKeyLimit.value = String(parsedLimit);
+      setLoading(saveDailyLimitButton, true, "Đang Lưu...");
+      setMessage(dailyLimitMessage, "");
+
+      try {
+        const data = await adminApi(
+          "admin-update-settings",
+          collectAllSettings()
+        );
+
+        renderSettings(data.settings);
+        setMessage(
+          dailyLimitMessage,
+          `Đã Đặt Giới Hạn ${parsedLimit} Key Mỗi IP/Thiết Bị Trong Ngày.`,
+          "success"
+        );
+      } catch (error) {
+        await handleAdminError(error, dailyLimitMessage);
+      } finally {
+        setLoading(saveDailyLimitButton, false, "Lưu Giới Hạn Key");
+      }
     }
 
     async function saveSettings() {
@@ -2536,6 +2621,11 @@
     saveSettingsButton.addEventListener(
       "click",
       saveSettings
+    );
+
+    saveDailyLimitButton.addEventListener(
+      "click",
+      saveDailyLimit
     );
 
     addShortenerButton.addEventListener(
