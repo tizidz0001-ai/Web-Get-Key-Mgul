@@ -1004,10 +1004,10 @@
         if (code === "JOURNEY_TOO_FAST") {
           // Không hiển thị key, không lấy key cache và không tự thử lại.
           keyValue.textContent = "Key Lỗi .. Vui Lòng Vượt Lại";
-          statusText.textContent = "Chưa Đủ 30 Giây";
+          statusText.textContent = "Phiên Cũ Chưa Đồng Bộ";
           currentKey = "";
           copyButton.disabled = true;
-          showToast("Key Lỗi .. Vui Lòng Vượt Lại");
+          showToast("Phiên Cũ Chưa Đồng Bộ. Vui Lòng Tạo Link Mới.");
           return;
         }
 
