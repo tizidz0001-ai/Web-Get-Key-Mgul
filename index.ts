@@ -1,16 +1,19 @@
 // BẢN ADMIN CÓ XÁC THỰC MẬT KHẨU (SERVER-SIDE)
-// Test bằng {"action":"version"} phải trả KEY_API_NO_IP_DEVICE_V16_1_20260806
-// KEY_API_VERSION: KEY_API_NO_IP_DEVICE_V16_1_20260806
+// Test bằng {"action":"version"} phải trả KEY_API_V16_1_ADMIN_DAILY_LIMIT_20260807
+// KEY_API_VERSION: KEY_API_V16_1_ADMIN_DAILY_LIMIT_20260807
 //
 // V11: admin cấu hình nhiều web rút gọn + số lớp (1-6), luân phiên, bỏ qua lớp lỗi.
-// V12: Turnstile + rate limit (bản cũ từng ràng IP).
+// V12: Turnstile + IP binding + rate limit.
 // V13: không trả token phiên, claim ticket HMAC, atomic claim trong DB,
-//      rate-limit fail-closed, admin email server-side và CORS theo origin.
+//      rate-limit fail-closed, admin email/IP server-side và CORS theo origin.
 // V14: landing code ngẫu nhiên không lộ session token, session chỉ claim được
-//      sau khi tạo link rút gọn thành công và Turnstile lần 2.
-// V16: loại bỏ kiểm tra IP, Device ID, journey secret và User-Agent binding.
+//      sau khi tạo link rút gọn thành công.
 // V15: hỗ trợ trực tiếp mẫu API GTraffic dạng
 //      https://gtraffic.io/st?apikey=API_KEY&url= và rút gọn lồng nhiều lần.
+// V16: bỏ ràng buộc browser/device/journey/user-agent, bỏ khóa cùng IP,
+//      bỏ chờ tối thiểu và bỏ Turnstile lần 2 ở trang key. Giữ signed landing
+//      ticket, session one-time, rate limit, daily limit và Turnstile lúc tạo link.
+// V16.1: admin chỉnh giới hạn key/IP/ngày (1-1000), có API trạng thái ngày.
 //
 // BẮT BUỘC đặt biến môi trường (Supabase > Edge Functions > key-api > Secrets):
 //   ADMIN_PASSWORD      = mật khẩu admin (tối thiểu 8 ký tự)
@@ -19,7 +22,7 @@
 //   CLAIM_TICKET_SECRET = chuỗi bí mật ngẫu nhiên dài để ký vé claim
 //   ALLOWED_ORIGIN      = origin web chính, ví dụ https://example.com
 
-const KEY_API_VERSION = "KEY_API_NO_IP_DEVICE_V16_1_20260806";
+const KEY_API_VERSION = "KEY_API_V16_1_ADMIN_DAILY_LIMIT_20260807";
 
 // Token admin sống trong bao lâu (mili giây). Mặc định 12 giờ.
 const ADMIN_TOKEN_TTL_MS = 4 * 60 * 60 * 1000;
@@ -268,8 +271,6 @@ function randomHex(byteLength: number): string {
 }
 
 
-
-
 // So sánh chuỗi theo thời gian hằng số để chống timing attack.
 function timingSafeEqual(a: string, b: string): boolean {
   const aBytes = textEncoder.encode(a);
@@ -289,12 +290,13 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 // Token dạng: base64url(payloadJson) + "." + hmacHex
-async function issueAdminToken(): Promise<string> {
+async function issueAdminToken(clientIp: string): Promise<string> {
   const payload = JSON.stringify({
     role: "admin",
     iat: Date.now(),
     exp: Date.now() + ADMIN_TOKEN_TTL_MS,
     nonce: crypto.randomUUID(),
+    ip: clientIp,
   });
 
   const encodedPayload = base64UrlEncode(payload);
@@ -309,7 +311,7 @@ async function issueAdminToken(): Promise<string> {
 
 async function verifyAdminToken(
   token: unknown,
-  _request?: Request,
+  request?: Request,
 ): Promise<boolean> {
   const raw = String(token || "").trim();
 
@@ -355,6 +357,17 @@ async function verifyAdminToken(
     return false;
   }
 
+  if (request) {
+    const bindIp = String(
+      Deno.env.get("ADMIN_BIND_IP") || "true",
+    ).trim().toLowerCase() !== "false";
+
+    if (bindIp) {
+      const tokenIp = String(payload.ip || "");
+      const currentIp = getClientIp(request);
+      if (!tokenIp || !currentIp || tokenIp !== currentIp) return false;
+    }
+  }
 
   return true;
 }
@@ -464,10 +477,65 @@ function readCount(headers: Headers) {
   return Number(match[1]) || 0;
 }
 
+// Lấy IP client từ header do proxy gắn.
+//
+// CẢNH BÁO BẢO MẬT (đã từng là lỗ hổng): request gọi THẲNG vào Supabase Edge
+// Function (không qua Cloudflare của bạn) nên "cf-connecting-ip" thường KHÔNG
+// tồn tại trong luồng thật. Trước đây code lấy phần tử ĐẦU của
+// "x-forwarded-for" — nhưng header này client tự set được (KHÔNG nằm trong
+// danh sách forbidden header của trình duyệt/fetch), nên ai gọi thẳng API
+// bằng script đều có thể tự chèn một IP giả bất kỳ ở đầu chuỗi để né hoàn
+// toàn mọi giới hạn theo IP (session/giờ, 5 key/IP/ngày).
+//
+// Quy ước chuẩn: mỗi proxy khi CHUYỂN TIẾP request sẽ NỐI THÊM IP nó nhận
+// được vào CUỐI chuỗi x-forwarded-for hiện có (không ghi đè). Vì vậy nếu chỉ
+// có đúng 1 lớp proxy đáng tin cậy đứng trước hàm này (hạ tầng Edge Function
+// của Supabase), thì phần tử CUỐI CÙNG mới là giá trị do hạ tầng tự gắn,
+// client không thể chèn thêm gì sau nó. Phần tử đầu/giữa có thể là giá trị
+// client tự bịa ra và PHẢI bỏ qua.
+//
+// Đây vẫn là best-effort (không phải danh tính tuyệt đối). Để chắc chắn hơn,
+// nên đặt domain ẩn sau Cloudflare (proxy cam bật) rồi ưu tiên
+// "cf-connecting-ip" — header này Cloudflare luôn ghi đè, client không giả
+// được dù có tự gửi header trùng tên.
+function getClientIp(request: Request): string {
+  const cfIp = String(
+    request.headers.get("cf-connecting-ip") || "",
+  ).trim();
+
+  if (cfIp) {
+    return cfIp;
+  }
+
+  const forwarded = String(
+    request.headers.get("x-forwarded-for") || "",
+  ).trim();
+
+  if (forwarded) {
+    const parts = forwarded
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    // Lấy phần tử CUỐI (do proxy tin cậy gần nhất tự gắn), KHÔNG lấy phần tử
+    // đầu (client có thể tự chèn để giả IP).
+    const trusted = parts[parts.length - 1];
+
+    if (trusted) {
+      return trusted;
+    }
+  }
+
+  return String(
+    request.headers.get("x-real-ip") || "",
+  ).trim();
+}
+
 // Xác thực Cloudflare Turnstile token với siteverify.
 //
 // SỬA LỖ HỔNG: trước đây khi CHƯA cấu hình TURNSTILE_SECRET_KEY, hàm này
-// fail-open (trả true = không chặn gì cả), khiến bất kỳ ai cũng gọi thẳng
+// fail-open (trả true = không chặn gì cả). Kết hợp với việc IP có thể bị giả
+// mạo (xem getClientIp ở trên), điều này khiến bất kỳ ai cũng gọi thẳng
 // "create-session" bằng script, không cần trình duyệt/người thật, không cần
 // vượt link — đây chính là nguyên nhân bị lấy nhiều key trong cùng khung giờ.
 //
@@ -480,6 +548,7 @@ function readCount(headers: Headers) {
 // biến này, hoặc đặt khác "false") = BẮT BUỘC phải cấu hình Turnstile.
 async function verifyTurnstile(
   token: string,
+  ip: string,
   expectedAction: "create-session" | "claim-key",
 ): Promise<boolean> {
   const secret = String(
@@ -515,6 +584,10 @@ async function verifyTurnstile(
     const form = new URLSearchParams();
     form.set("secret", secret);
     form.set("response", cleanToken);
+
+    if (ip) {
+      form.set("remoteip", ip);
+    }
 
     const response = await fetch(
       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
@@ -597,7 +670,7 @@ async function readStats() {
 async function readSettings() {
   const params = new URLSearchParams({
     select:
-      "download_ipa_url,telegram_url,support_url,announcement_text,announcement_enabled,announcement_updated_at,updated_at",
+      "download_ipa_url,telegram_url,support_url,daily_key_limit,announcement_text,announcement_enabled,announcement_updated_at,updated_at",
     id: "eq.1",
     limit: "1",
   });
@@ -625,6 +698,9 @@ async function readSettings() {
     supportUrl:
       String(row.support_url || ""),
 
+    dailyKeyLimit:
+      Math.min(1000, Math.max(1, Math.floor(Number(row.daily_key_limit) || 5))),
+
     // Thông báo nổi hiển thị cho user (công khai).
     announcementText:
       String(row.announcement_text || ""),
@@ -645,7 +721,7 @@ async function readSettings() {
 async function readAdminSettings() {
   const params = new URLSearchParams({
     select:
-      "download_ipa_url,telegram_url,support_url,shortener_layers,shorteners,announcement_text,announcement_enabled,announcement_updated_at,updated_at",
+      "download_ipa_url,telegram_url,support_url,daily_key_limit,shortener_layers,shorteners,announcement_text,announcement_enabled,announcement_updated_at,updated_at",
     id: "eq.1",
     limit: "1",
   });
@@ -681,6 +757,9 @@ async function readAdminSettings() {
     supportUrl:
       String(row.support_url || ""),
 
+    dailyKeyLimit:
+      Math.min(1000, Math.max(1, Math.floor(Number(row.daily_key_limit) || 5))),
+
     shortenerLayers: layers,
 
     shorteners:
@@ -699,6 +778,22 @@ async function readAdminSettings() {
     updatedAt:
       row.updated_at || null,
   };
+}
+
+// Đọc hạn mức và số lượt đã dùng của IP trong ngày hiện tại (múi giờ Việt Nam).
+async function readDailyStatus(clientIp: string) {
+  const result = await dbRequest("rpc/get_daily_claim_status", {
+    method: "POST",
+    body: JSON.stringify({ p_ip: clientIp }),
+  });
+
+  const rows = Array.isArray(result.data) ? result.data : [];
+  const row = (rows[0] || {}) as Record<string, unknown>;
+
+  const max = Math.min(1000, Math.max(1, Math.floor(Number(row.max_keys) || 5)));
+  const used = Math.max(0, Math.floor(Number(row.used_keys) || 0));
+
+  return { used, max };
 }
 
 // Chuẩn hóa danh sách web rút gọn từ DB / từ admin gửi lên.
@@ -1439,7 +1534,7 @@ async function writeSecurityLog(
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify({
         event_type: eventType.slice(0, 80),
-        ip: null,
+        ip: getClientIp(request).slice(0, 128),
         token_hash: token ? await sha256Hex(token) : null,
         user_agent: String(request.headers.get("user-agent") || "").slice(0, 500),
         details,
@@ -1500,6 +1595,25 @@ Deno.serve(async (request) => {
       });
     }
 
+    if (action === "get-daily-status") {
+      if (!hasExpectedOrigin(request)) {
+        return jsonResponse({ success: false, error: "FORBIDDEN_ORIGIN", version: KEY_API_VERSION }, 403);
+      }
+
+      const clientIp = getClientIp(request);
+      if (!clientIp) {
+        return jsonResponse({ success: false, error: "CLIENT_IP_UNAVAILABLE", version: KEY_API_VERSION }, 503);
+      }
+
+      const daily = await readDailyStatus(clientIp);
+      return jsonResponse({
+        success: true,
+        version: KEY_API_VERSION,
+        used: daily.used,
+        max: daily.max,
+      });
+    }
+
     if (action === "count") {
       return jsonResponse({
         success: true,
@@ -1537,9 +1651,31 @@ Deno.serve(async (request) => {
         );
       }
 
+      const creatorIp = getClientIp(request);
+
+      if (!creatorIp) {
+        await writeSecurityLog(request, "CREATE_SESSION_NO_IP");
+        return jsonResponse({ success: false, error: "CLIENT_IP_UNAVAILABLE", version: KEY_API_VERSION }, 503);
+      }
+
+      const daily = await readDailyStatus(creatorIp);
+      if (daily.used >= daily.max) {
+        return jsonResponse(
+          {
+            success: false,
+            error: "LIMIT_REACHED",
+            used: daily.used,
+            max: daily.max,
+            version: KEY_API_VERSION,
+          },
+          429,
+        );
+      }
+
       const turnstileToken = String(body.turnstileToken || "").trim();
       const turnstileOk = await verifyTurnstile(
         turnstileToken,
+        creatorIp,
         "create-session",
       );
 
@@ -1547,6 +1683,24 @@ Deno.serve(async (request) => {
         return jsonResponse(
           { success: false, error: "CAPTCHA_FAILED", version: KEY_API_VERSION },
           403,
+        );
+      }
+
+      try {
+        const allowed = await bumpRequestLimit("create-session", creatorIp, 20, 60 * 60);
+
+        if (!allowed) {
+          await writeSecurityLog(request, "CREATE_SESSION_RATE_LIMIT");
+          return jsonResponse(
+            { success: false, error: "SESSION_RATE_LIMITED", version: KEY_API_VERSION },
+            429,
+          );
+        }
+      } catch (error) {
+        console.error("CREATE_SESSION_RATE_LIMIT_CHECK_FAILED", error);
+        return jsonResponse(
+          { success: false, error: "SECURITY_CHECK_UNAVAILABLE", version: KEY_API_VERSION },
+          503,
         );
       }
 
@@ -1559,6 +1713,7 @@ Deno.serve(async (request) => {
           method: "POST",
           headers: { Prefer: "return=representation" },
           body: JSON.stringify({
+            creator_ip: creatorIp,
             landing_code_hash: landingHash,
             status: "creating",
             created_at: journeyStartedAt,
@@ -1604,6 +1759,7 @@ Deno.serve(async (request) => {
           body: JSON.stringify({
             p_token: token,
             p_layers: links.layersDone,
+            p_min_seconds: 0,
           }),
         });
 
@@ -1613,6 +1769,8 @@ Deno.serve(async (request) => {
           expiresAt: session.expires_at || null,
           shortUrl: links.outerUrl,
           shortenerLayers: links.layersDone,
+          dailyUsed: daily.used,
+          dailyMax: daily.max,
         });
       } catch (error) {
         const params = new URLSearchParams({ token: `eq.${token}` });
@@ -1668,17 +1826,23 @@ Deno.serve(async (request) => {
         );
       }
 
-      const claimTurnstileToken = String(body.turnstileToken || "").trim();
-      const claimTurnstileOk = await verifyTurnstile(
-        claimTurnstileToken,
-        "claim-key",
-      );
+      const clientIp = getClientIp(request);
 
-      if (!claimTurnstileOk) {
-        await writeSecurityLog(request, "CLAIM_CAPTCHA_FAILED", {}, landingCode);
-        return jsonResponse({ success: false, error: "CAPTCHA_FAILED", version: KEY_API_VERSION }, 403);
+      if (!clientIp) {
+        await writeSecurityLog(request, "CLAIM_NO_IP", {}, landingCode);
+        return jsonResponse({ success: false, error: "CLIENT_IP_UNAVAILABLE", version: KEY_API_VERSION }, 503);
       }
 
+      try {
+        const allowed = await bumpRequestLimit("claim", clientIp, 20, 10 * 60);
+        if (!allowed) {
+          await writeSecurityLog(request, "CLAIM_RATE_LIMIT", {}, landingCode);
+          return jsonResponse({ success: false, error: "CLAIM_RATE_LIMITED", version: KEY_API_VERSION }, 429);
+        }
+      } catch (error) {
+        console.error("CLAIM_RATE_LIMIT_CHECK_FAILED", error);
+        return jsonResponse({ success: false, error: "SECURITY_CHECK_UNAVAILABLE", version: KEY_API_VERSION }, 503);
+      }
 
       const landingHash = await sha256Hex(landingCode);
 
@@ -1687,6 +1851,10 @@ Deno.serve(async (request) => {
           method: "POST",
           body: JSON.stringify({
             p_landing_hash: landingHash,
+            p_ip: clientIp,
+            p_device_hash: "",
+            p_journey_hash: "",
+            p_ua_hash: "",
           }),
         });
 
@@ -1711,6 +1879,7 @@ Deno.serve(async (request) => {
           "LINK_NOT_READY",
           "OUT_OF_KEYS",
           "KEY_NOT_FOUND",
+          "LIMIT_REACHED",
           "CLAIM_CONFLICT",
           "API_VERSION_OUTDATED",
         ]) {
@@ -1735,11 +1904,14 @@ Deno.serve(async (request) => {
 
       const adminPassword = readAdminPassword();
       const adminEmail = readAdminEmail();
-      const submittedEmail = String(body.email || "").trim().toLowerCase();
+      const clientIp = getClientIp(request);
+
+      if (!clientIp) {
+        return jsonResponse({ success: false, error: "CLIENT_IP_UNAVAILABLE", version: KEY_API_VERSION }, 503);
+      }
 
       try {
-        const rateSubject = submittedEmail || adminEmail || "admin";
-        const allowed = await bumpRequestLimit("admin-login", rateSubject, 8, 15 * 60);
+        const allowed = await bumpRequestLimit("admin-login", clientIp, 8, 15 * 60);
         if (!allowed) {
           await writeSecurityLog(request, "ADMIN_LOGIN_RATE_LIMIT");
           return jsonResponse({ success: false, error: "ADMIN_LOGIN_RATE_LIMITED", version: KEY_API_VERSION }, 429);
@@ -1764,6 +1936,7 @@ Deno.serve(async (request) => {
       }
 
       const submitted = String(body.password || "");
+      const submittedEmail = String(body.email || "").trim().toLowerCase();
 
       if (
         submittedEmail !== adminEmail ||
@@ -1780,7 +1953,7 @@ Deno.serve(async (request) => {
         );
       }
 
-      const adminToken = await issueAdminToken();
+      const adminToken = await issueAdminToken(clientIp);
 
       const [stats, settings] = await Promise.all([
         readStats(),
@@ -1886,6 +2059,26 @@ Deno.serve(async (request) => {
           );
         }
 
+        // Giới hạn key theo IP/ngày: admin được chỉnh từ 1 đến 1000.
+        const dailyKeyLimitRaw = Number(body.dailyKeyLimit);
+
+        if (
+          !Number.isInteger(dailyKeyLimitRaw) ||
+          dailyKeyLimitRaw < 1 ||
+          dailyKeyLimitRaw > 1000
+        ) {
+          return jsonResponse(
+            {
+              success: false,
+              error: "INVALID_DAILY_KEY_LIMIT",
+              version: KEY_API_VERSION,
+            },
+            400,
+          );
+        }
+
+        const dailyKeyLimit = dailyKeyLimitRaw;
+
         // Cấu hình rút gọn: số lớp (1..6) + danh sách web.
         const shortenerLayers =
           Math.min(
@@ -1912,7 +2105,7 @@ Deno.serve(async (request) => {
 
         const result =
           await dbRequest(
-            "site_settings?on_conflict=id&select=download_ipa_url,telegram_url,support_url,shortener_layers,shorteners,announcement_text,announcement_enabled,announcement_updated_at,updated_at",
+            "site_settings?on_conflict=id&select=download_ipa_url,telegram_url,support_url,daily_key_limit,shortener_layers,shorteners,announcement_text,announcement_enabled,announcement_updated_at,updated_at",
             {
               method: "POST",
               headers: {
@@ -1927,6 +2120,8 @@ Deno.serve(async (request) => {
                   telegramUrl,
                 support_url:
                   supportUrl,
+                daily_key_limit:
+                  dailyKeyLimit,
                 shortener_layers:
                   shortenerLayers,
                 shorteners,
@@ -1961,6 +2156,8 @@ Deno.serve(async (request) => {
               row.telegram_url || "",
             supportUrl:
               row.support_url || "",
+            dailyKeyLimit:
+              Math.min(1000, Math.max(1, Math.floor(Number(row.daily_key_limit) || dailyKeyLimit))),
             shortenerLayers:
               Number(row.shortener_layers) || shortenerLayers,
             shorteners:

@@ -222,9 +222,6 @@
     }
   </style>
 
-  <!-- V14 xác minh chống bot lần 2 ngay tại trang nhận key. -->
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
-
   <!-- GTRAFFIC WHITE / NEO-BRUTALIST THEME -->
   <style id="gtraffic-white-theme">
     :root {
@@ -355,8 +352,8 @@
     <h1>Key Của Bạn</h1>
 
     <p class="subtitle">
-      Hệ Thống Đang Kiểm Tra Link Rút Gọn, Trình Duyệt Và Chống Bot.
-      Key Chỉ Được Cấp Khi Toàn Bộ Kiểm Tra Phía Server Hợp Lệ.
+      Hệ Thống Đang Kiểm Tra Link Rút Gọn Và Phiên Nhận Key.
+      Sau Khi Vượt Link Hợp Lệ, Key Sẽ Được Cấp Tự Động.
     </p>
 
     <section class="key-box">
@@ -367,8 +364,6 @@
     <div class="meta">
       <div class="meta-item">Trạng Thái: <strong>Đang Kiểm Tra</strong></div>
     </div>
-
-    <div id="claimTurnstileWidget" class="claim-verification" aria-label="Xác minh chống bot"></div>
 
     <div class="actions">
       <button class="btn btn-primary" id="copyButton" type="button" disabled>
@@ -437,113 +432,12 @@
 
     let currentKey = "";
 
-    const TURNSTILE_SITE_KEY =
-      String(config.TURNSTILE_SITE_KEY || "").trim();
 
-    // Chỉ dùng để xóa dữ liệu cache từ phiên bản cũ. V14 One-Time không
+    // Chỉ dùng để xóa dữ liệu cache từ phiên bản cũ. V16 One-Time không
     // lưu key vào localStorage, sessionStorage, cookie hay URL.
     const LEGACY_KEY_CACHE_STORAGE_KEY =
       config.KEY_CACHE_STORAGE_KEY || "migul_claimed_key_cache_v1";
 
-
-    let claimTurnstileWidgetId = null;
-    let claimTurnstileBusy = false;
-    let claimTurnstileExecuted = false;
-    let claimTurnstileResolve = null;
-    let claimTurnstileTimer = null;
-
-    function finishClaimTurnstile(value) {
-      if (claimTurnstileTimer) {
-        clearTimeout(claimTurnstileTimer);
-        claimTurnstileTimer = null;
-      }
-
-      const resolve = claimTurnstileResolve;
-      claimTurnstileResolve = null;
-      claimTurnstileBusy = false;
-
-      if (typeof resolve === "function") {
-        resolve(String(value || ""));
-      }
-    }
-
-    function initClaimTurnstile() {
-      if (!TURNSTILE_SITE_KEY) return;
-
-      if (typeof window.turnstile === "undefined") {
-        setTimeout(initClaimTurnstile, 250);
-        return;
-      }
-
-      const holder = document.getElementById("claimTurnstileWidget");
-      if (!holder || claimTurnstileWidgetId !== null) return;
-
-      try {
-        claimTurnstileWidgetId = window.turnstile.render(holder, {
-          sitekey: TURNSTILE_SITE_KEY,
-          execution: "execute",
-          appearance: "interaction-only",
-          retry: "never",
-          action: "claim-key",
-          callback: (token) => finishClaimTurnstile(token),
-          "error-callback": () => {
-            finishClaimTurnstile("");
-            return true;
-          },
-          "timeout-callback": () => finishClaimTurnstile(""),
-          "expired-callback": () => {}
-        });
-      } catch (error) {
-        console.error("CLAIM_TURNSTILE_RENDER_ERROR", error);
-      }
-    }
-
-    async function waitForClaimTurnstile(maxWaitMs = 10000) {
-      const startedAt = Date.now();
-
-      while (Date.now() - startedAt < maxWaitMs) {
-        if (typeof window.turnstile !== "undefined") {
-          if (claimTurnstileWidgetId === null) initClaimTurnstile();
-          if (claimTurnstileWidgetId !== null) return true;
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 150));
-      }
-
-      return false;
-    }
-
-    async function getClaimTurnstileToken() {
-      if (!TURNSTILE_SITE_KEY) return "";
-
-      const ready = await waitForClaimTurnstile();
-      if (!ready || typeof window.turnstile === "undefined") return "";
-      if (claimTurnstileBusy) return "";
-
-      return new Promise((resolve) => {
-        claimTurnstileBusy = true;
-        claimTurnstileResolve = resolve;
-
-        try {
-          if (claimTurnstileExecuted) {
-            window.turnstile.reset(claimTurnstileWidgetId);
-          }
-
-          claimTurnstileExecuted = true;
-          window.turnstile.execute(claimTurnstileWidgetId);
-        } catch (error) {
-          console.error("CLAIM_TURNSTILE_EXECUTE_ERROR", error);
-          finishClaimTurnstile("");
-          return;
-        }
-
-        claimTurnstileTimer = setTimeout(() => {
-          finishClaimTurnstile("");
-        }, 30000);
-      });
-    }
-
-    initClaimTurnstile();
 
     document.title =
       `${config.APP_NAME || "Get Key Free Fire iPA"} - Key Của Bạn`;
@@ -723,28 +617,15 @@
         return;
       }
 
-      window.history.replaceState(
-        {},
-        document.title,
-        "/key.html"
-      );
-
       copyButton.disabled = true;
       keyValue.textContent = "Đang Lấy Key...";
       statusText.textContent = "Đang Xử Lý";
 
       try {
-        const turnstileToken = await getClaimTurnstileToken();
-
-        if (TURNSTILE_SITE_KEY && !turnstileToken) {
-          throw new Error("CAPTCHA_FAILED");
-        }
-
         const data = await callKeyApi("claim", {
           landingCode: ticket.landingCode,
           ticketExp: ticket.ticketExp,
-          ticketSig: ticket.ticketSig,
-          turnstileToken
+          ticketSig: ticket.ticketSig
         });
 
         if (!data.key) {
@@ -752,6 +633,10 @@
         }
 
         renderKey(data.key, "Chỉ Hiển Thị Một Lần");
+
+        // Chỉ xóa ticket khỏi thanh địa chỉ sau khi server đã trả key thành công.
+        // Nếu mạng lỗi trước khi claim, người dùng có thể tải lại để thử lại ticket cũ.
+        window.history.replaceState({}, document.title, "/key.html");
       } catch (error) {
         console.error(error);
 
@@ -782,7 +667,6 @@
           return;
         }
 
-
         if (code === "LINK_NOT_READY") {
           keyValue.textContent = "Key Lỗi .. Vui Lòng Vượt Lại";
           statusText.textContent = "Link Chưa Sẵn Sàng";
@@ -793,13 +677,20 @@
         }
 
 
-        if (code === "CAPTCHA_FAILED") {
-          keyValue.textContent = "Xác Minh Thất Bại";
-          statusText.textContent = "Chống Bot";
-          showToast("Không Qua Được Xác Minh Chống Bot. Vui Lòng Vượt Link Lại.");
+
+
+        if (code === "LIMIT_REACHED") {
+          clearSensitiveKeyView("Đã Đạt Giới Hạn Hôm Nay", "Không Cấp Thêm Key");
+          showToast("Bạn Đã Đạt Giới Hạn Nhận Key Hôm Nay.");
           return;
         }
 
+        if (code === "CLAIM_RATE_LIMITED") {
+          keyValue.textContent = "Thao Tác Quá Nhanh";
+          statusText.textContent = "Tạm Khóa Claim";
+          showToast("Bạn Gửi Quá Nhiều Yêu Cầu. Vui Lòng Thử Lại Sau.");
+          return;
+        }
 
         if (code === "FORBIDDEN_ORIGIN" || code === "SECURITY_CHECK_UNAVAILABLE") {
           keyValue.textContent = "Yêu Cầu Không Hợp Lệ";

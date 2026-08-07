@@ -903,6 +903,38 @@
       <section class="section">
         <div class="section-head">
           <div>
+            <h2>Giới Hạn Key Mỗi Ngày</h2>
+            <p>Đặt Số Key Tối Đa Mỗi IP Có Thể Nhận Trong Một Ngày. Có Thể Chỉnh Từ 1 Đến 1000.</p>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div>
+            <label for="dailyKeyLimit">Số Key / IP / Ngày</label>
+            <input
+              id="dailyKeyLimit"
+              type="number"
+              min="1"
+              max="1000"
+              step="1"
+              inputmode="numeric"
+              value="5"
+            />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="saveDailyLimitButton" type="button">
+            Lưu Giới Hạn
+          </button>
+        </div>
+
+        <div class="message" id="dailyLimitMessage"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
             <h2>Cấu Hình Rút Gọn Link</h2>
             <p>
               Nhập Link API GTraffic Dạng <strong>https://gtraffic.io/st?apikey=API_KEY&amp;url=</strong>
@@ -1225,6 +1257,15 @@
     const supportUrl =
       document.getElementById("supportUrl");
 
+    const dailyKeyLimit =
+      document.getElementById("dailyKeyLimit");
+
+    const saveDailyLimitButton =
+      document.getElementById("saveDailyLimitButton");
+
+    const dailyLimitMessage =
+      document.getElementById("dailyLimitMessage");
+
     const shortenerLayers =
       document.getElementById("shortenerLayers");
 
@@ -1388,6 +1429,8 @@
           "Đăng Nhập Quá Nhiều Lần. Vui Lòng Thử Lại Sau 15 Phút.",
         FORBIDDEN_ORIGIN:
           "Tên Miền Hiện Tại Không Được Backend Cho Phép.",
+        CLIENT_IP_UNAVAILABLE:
+          "Không Xác Định Được IP Kết Nối.",
         SECURITY_CHECK_UNAVAILABLE:
           "Hệ Thống Bảo Mật Đang Tạm Không Khả Dụng.",
         ADMIN_PASSWORD_NOT_CONFIGURED:
@@ -1404,6 +1447,8 @@
           "Không Thể Lưu Các Đường Link.",
         INVALID_SETTINGS_URL:
           "Link Không Hợp Lệ. Link Phải Bắt Đầu Bằng http:// Hoặc https://.",
+        INVALID_DAILY_KEY_LIMIT:
+          "Giới Hạn Key Mỗi Ngày Phải Là Số Nguyên Từ 1 Đến 1000.",
         SHORTENER_INVALID_API_URL:
           "Link API Rút Gọn Không Hợp Lệ. Hãy Dùng Dạng https://gtraffic.io/st?apikey=API_KEY&url=.",
         SHORTENER_NOT_CONFIGURED:
@@ -1564,6 +1609,10 @@
 
       supportUrl.value =
         settings.supportUrl || "";
+
+      dailyKeyLimit.value = String(
+        Math.min(1000, Math.max(1, Math.floor(Number(settings.dailyKeyLimit) || 5)))
+      );
 
       renderShorteners(settings);
       renderAnnouncement(settings);
@@ -2103,6 +2152,8 @@
         downloadIpaUrl: downloadIpaUrl.value,
         telegramUrl: telegramUrl.value,
         supportUrl: supportUrl.value,
+        dailyKeyLimit:
+          Math.floor(Number(dailyKeyLimit.value) || 0),
         shortenerLayers:
           Number(shortenerLayers.value) || 2,
         shorteners: collectShorteners(),
@@ -2147,6 +2198,53 @@
           saveSettingsButton,
           false,
           "Lưu Các Đường Link"
+        );
+      }
+    }
+
+    async function saveDailyLimit() {
+      const value = Math.floor(Number(dailyKeyLimit.value));
+
+      if (!Number.isInteger(value) || value < 1 || value > 1000) {
+        setMessage(
+          dailyLimitMessage,
+          "Giới Hạn Phải Từ 1 Đến 1000 Key / IP / Ngày.",
+          "error"
+        );
+        return;
+      }
+
+      setLoading(
+        saveDailyLimitButton,
+        true,
+        "Đang Lưu..."
+      );
+
+      setMessage(dailyLimitMessage, "");
+
+      try {
+        const data = await adminApi(
+          "admin-update-settings",
+          collectAllSettings()
+        );
+
+        renderSettings(data.settings);
+
+        setMessage(
+          dailyLimitMessage,
+          `Đã Lưu Giới Hạn ${data.settings.dailyKeyLimit} Key / IP / Ngày.`,
+          "success"
+        );
+      } catch (error) {
+        await handleAdminError(
+          error,
+          dailyLimitMessage
+        );
+      } finally {
+        setLoading(
+          saveDailyLimitButton,
+          false,
+          "Lưu Giới Hạn"
         );
       }
     }
@@ -2504,6 +2602,11 @@
     saveSettingsButton.addEventListener(
       "click",
       saveSettings
+    );
+
+    saveDailyLimitButton.addEventListener(
+      "click",
+      saveDailyLimit
     );
 
     addShortenerButton.addEventListener(

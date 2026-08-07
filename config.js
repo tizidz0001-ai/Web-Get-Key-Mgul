@@ -18,15 +18,9 @@ window.APP_CONFIG = {
   // Cloudflare Turnstile SITE KEY (public, dán ở frontend được).
   // Lấy ở Cloudflare Dashboard > Turnstile > tạo widget cho domain của bạn.
   //
-  // QUAN TRỌNG (đã đổi hành vi để vá lỗ hổng bị lấy nhiều key cùng lúc):
-  // Server (edge function key-api) BẮT BUỘC có TURNSTILE_SECRET_KEY. V14 xác
-  // minh hai action: "create-session" ở index.html và "claim-key" ở key.html.
-  // Nếu thiếu secret thì cả tạo link lẫn nhận key đều bị CHẶN
-  // hoàn toàn (trả lỗi CAPTCHA_FAILED cho mọi người, kể cả người dùng thật).
-  // => Phải điền SITE_KEY ở đây VÀ đặt SECRET_KEY tương ứng trong Supabase
-  // Edge Functions > key-api > Secrets thì trang mới hoạt động lại được.
-  // (Chỉ dùng TURNSTILE_REQUIRE=false trong Supabase Secrets nếu bạn CHỦ ĐỘNG
-  // muốn tạm tắt Turnstile để test — không khuyến khích dùng khi đã public.)
+  // V16: Turnstile chỉ chạy lúc người dùng bấm tạo link ở index.html.
+  // Trang key không chạy challenge lần 2 để tránh lỗi Telegram/WebView.
+  // Server vẫn cần TURNSTILE_SECRET_KEY để xác minh action "create-session".
   TURNSTILE_SITE_KEY: "0x4AAAAAAEBdDkwtIJ79Y50E",
 
   // Chỉ email này có thể mở chức năng quản trị.
@@ -40,6 +34,7 @@ window.APP_CONFIG = {
   // được dùng để xóa dữ liệu còn sót từ phiên bản cũ.
   SESSION_STORAGE_KEY: "migul_key_session_token_v1",
   KEY_CACHE_STORAGE_KEY: "migul_claimed_key_cache_v1",
+
 
   DISABLE_WHEN_OUT_OF_STOCK: true
 };
