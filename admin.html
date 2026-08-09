@@ -908,6 +908,7 @@
               Nhập Link API GTraffic Dạng <strong>https://gtraffic.io/st?apikey=API_KEY&amp;url=</strong>
               Và API Key Riêng. Chọn Số Lần Rút Gọn Đè Lên Nhau; Kết Quả Lần Trước
               Sẽ Tự Làm Link Đích Cho Lần Sau. Tất Cả Các Lần Phải Thành Công Mới Trả Link Cho User.
+              Ngoài Ra, Chọn Số Key Tối Đa Mỗi IP Được Nhận Trong 1 Ngày (1-1000).
             </p>
           </div>
         </div>
@@ -924,6 +925,19 @@
               <option value="5">5 Lần</option>
               <option value="6">6 Lần</option>
             </select>
+          </div>
+
+          <div>
+            <label for="dailyKeyLimit">Giới Hạn Số Key/IP/Ngày</label>
+
+            <input
+              type="number"
+              id="dailyKeyLimit"
+              min="1"
+              max="1000"
+              step="1"
+              placeholder="VD: 5"
+            />
           </div>
         </div>
 
@@ -1228,6 +1242,9 @@
     const shortenerLayers =
       document.getElementById("shortenerLayers");
 
+    const dailyKeyLimit =
+      document.getElementById("dailyKeyLimit");
+
     const shortenerList =
       document.getElementById("shortenerList");
 
@@ -1410,6 +1427,8 @@
           "Link API Rút Gọn Không Hợp Lệ. Hãy Dùng Dạng https://gtraffic.io/st?apikey=API_KEY&url=.",
         SHORTENER_NOT_CONFIGURED:
           "Bạn Chưa Nhập Đủ Link API Và API Key GTraffic.",
+        INVALID_DAILY_KEY_LIMIT:
+          "Giới Hạn Số Key/IP/Ngày Không Hợp Lệ. Vui Lòng Nhập Số Nguyên Từ 1 Đến 1000.",
         INVALID_STATUS:
           "Trạng Thái Key Không Hợp Lệ.",
         LIST_KEYS_FAILED:
@@ -1592,6 +1611,17 @@
         );
 
       shortenerLayers.value = String(layers);
+
+      const keyLimit =
+        Math.min(
+          1000,
+          Math.max(
+            1,
+            Math.floor(Number(settings.dailyKeyLimit) || 5)
+          )
+        );
+
+      dailyKeyLimit.value = String(keyLimit);
 
       shortenerList.innerHTML = "";
 
@@ -2107,6 +2137,14 @@
         supportUrl: supportUrl.value,
         shortenerLayers:
           Number(shortenerLayers.value) || 2,
+        dailyKeyLimit:
+          Math.min(
+            1000,
+            Math.max(
+              1,
+              Math.floor(Number(dailyKeyLimit.value) || 5)
+            )
+          ),
         shorteners: collectShorteners(),
         announcementText:
           announcementText.value,
