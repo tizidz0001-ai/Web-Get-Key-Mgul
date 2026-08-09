@@ -984,8 +984,7 @@
           <div>
             <h2>Cấu Hình Rút Gọn Link</h2>
             <p>
-              Nhập Link API GTraffic Dạng <strong>https://gtraffic.io/st?apikey=API_KEY&amp;url=</strong>
-              Và API Key Riêng. Chọn Số Lần Rút Gọn Đè Lên Nhau; Kết Quả Lần Trước
+              Nhập API Rút Gọn Bạn Muốn Dùng. Có Thể Nhập Link Mẫu Có <strong>url=</strong> Hoặc <strong>{URL}</strong>; API Key Có Thể Nhập Riêng Hoặc Để Sẵn Trong Link API. Chọn Số Lần Rút Gọn Đè Lên Nhau; Kết Quả Lần Trước
               Sẽ Tự Làm Link Đích Cho Lần Sau. Tất Cả Các Lần Phải Thành Công Mới Trả Link Cho User.
             </p>
           </div>
@@ -1505,7 +1504,7 @@
         SHORTENER_INVALID_API_URL:
           "Link API Rút Gọn Không Hợp Lệ. Hãy Dùng Dạng https://gtraffic.io/st?apikey=API_KEY&url=.",
         SHORTENER_NOT_CONFIGURED:
-          "Bạn Chưa Nhập Đủ Link API Và API Key GTraffic.",
+          "Bạn Chưa Nhập Đủ Cấu Hình API Rút Gọn.",
         INVALID_STATUS:
           "Trạng Thái Key Không Hợp Lệ.",
         LIST_KEYS_FAILED:
@@ -1725,12 +1724,9 @@
           : [];
 
       if (list.length === 0) {
-        addShortenerRow({
-          name: "GTraffic",
-          apiUrl: "https://gtraffic.io/st?apikey=API_KEY&url=",
-          apiKey: "",
-          enabled: true
-        });
+        // Không tự chèn GTraffic hoặc bất kỳ nhà cung cấp mặc định nào.
+        // Chỉ tạo một dòng trống để Admin tự nhập API muốn dùng.
+        addShortenerRow({ enabled: true });
         return;
       }
 
@@ -1759,19 +1755,19 @@
 
       const nameInput = document.createElement("input");
       nameInput.type = "text";
-      nameInput.placeholder = "Tên API, VD: GTraffic";
+      nameInput.placeholder = "Tên API / Web Rút Gọn";
       nameInput.value = String(data.name || "");
       nameInput.dataset.field = "name";
 
       const apiUrlInput = document.createElement("input");
       apiUrlInput.type = "text";
-      apiUrlInput.placeholder = "https://gtraffic.io/st?apikey=API_KEY&url=";
+      apiUrlInput.placeholder = "https://example.com/api?apikey=API_KEY&url=";
       apiUrlInput.value = String(data.apiUrl || "");
       apiUrlInput.dataset.field = "apiUrl";
 
       const apiKeyInput = document.createElement("input");
       apiKeyInput.type = "text";
-      apiKeyInput.placeholder = "API Key GTraffic";
+      apiKeyInput.placeholder = "API Key (Nếu API Cần)";
       apiKeyInput.autocomplete = "off";
       apiKeyInput.spellcheck = false;
       apiKeyInput.value = String(data.apiKey || "");
