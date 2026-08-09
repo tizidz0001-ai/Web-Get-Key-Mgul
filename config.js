@@ -21,7 +21,7 @@ window.APP_CONFIG = {
   // V16: Turnstile chỉ chạy lúc người dùng bấm tạo link ở index.html.
   // Trang key không chạy challenge lần 2 để tránh lỗi Telegram/WebView.
   // Server vẫn cần TURNSTILE_SECRET_KEY để xác minh action "create-session".
-  TURNSTILE_SITE_KEY: "0x4AAAAAAEBdDkwtIJ79Y50E",
+  TURNSTILE_SITE_KEY: "0x4AAAAAAELiXxTlmMOtTvJL",
 
   // Chỉ email này có thể mở chức năng quản trị.
   ADMIN_EMAIL: "hatrungson230209@gmail.com",
