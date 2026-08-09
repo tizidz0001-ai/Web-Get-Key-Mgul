@@ -745,6 +745,10 @@
   <style id="catalog-admin-v17-style">
     .catalog-help { margin: 12px 0 16px; padding: 12px 14px; border: 2px dashed var(--gt-ink, #0f172a); background: #eefbff; font-size: 12px; line-height: 1.55; }
     .catalog-admin-list { display: grid; gap: 16px; }
+    .catalog-selector-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; margin: 16px 0; padding: 15px; border: 3px solid var(--gt-ink, #0f172a); background: #fff4b9; box-shadow: 4px 4px 0 var(--gt-ink, #0f172a); }
+    .catalog-selector-bar label { margin-bottom: 7px; }
+    .catalog-selector-bar select { min-height: 50px; font-weight: 900; }
+    .catalog-selection-note { padding: 22px; border: 2px dashed var(--gt-ink, #0f172a); background: #eefbff; text-align: center; font-weight: 850; line-height: 1.55; }
     .catalog-empty { padding: 22px; border: 2px dashed var(--gt-ink, #0f172a); text-align: center; font-weight: 800; background: #fff; }
     .catalog-editor { padding: 17px; border: 3px solid var(--gt-ink, #0f172a); background: #fff; box-shadow: 5px 5px 0 var(--gt-ink, #0f172a); }
     .catalog-editor.is-maintenance { background: #fff4b9; }
@@ -775,7 +779,7 @@
     .catalog-mini-message.success { color: #087a53; }
     .catalog-mini-message.error { color: #b91c36; }
     @media (max-width: 760px) {
-      .catalog-form-grid, .catalog-image-row, .catalog-account-tools, .catalog-account-filter { grid-template-columns: 1fr; }
+      .catalog-form-grid, .catalog-image-row, .catalog-account-tools, .catalog-account-filter, .catalog-selector-bar { grid-template-columns: 1fr; }
       .catalog-form-grid .wide { grid-column: auto; }
       .catalog-editor-head { align-items: flex-start; }
     }
@@ -951,17 +955,26 @@
         <div class="section-head">
           <div>
             <h2>Quản Lý Danh Mục Free Clone Game</h2>
-            <p>Sửa Tên, Ảnh Nhỏ, Nội Dung, Link, Bật/Tắt Hiển Thị, Bảo Trì Riêng Và Quản Lý Kho Acc Của Từng Mục.</p>
+            <p>Chọn Đúng Mục Cần Sửa. Admin Chỉ Hiển Thị Form Của Mục Đang Chọn Để Giao Diện Gọn Và Dễ Quản Lý.</p>
+          </div>
+        </div>
+
+        <div class="catalog-selector-bar">
+          <div>
+            <label for="catalogItemSelect">Chọn Mục Cần Chỉnh Sửa</label>
+            <select id="catalogItemSelect">
+              <option value="">— Đang Tải Danh Sách Mục —</option>
+            </select>
           </div>
           <button class="primary" id="addCatalogItemButton" type="button">+ Thêm Mục Mới</button>
         </div>
 
         <div class="catalog-help">
-          <strong>Đầy Đủ CRUD:</strong> Có Thể Thêm Mục, Sửa Mục, Xóa Mục, Upload Ảnh Nhỏ, Thêm Nhiều Acc, Xóa Acc, Khóa/Mở Lại Acc Và Bật Bảo Trì Từng Mục.
+          <strong>Cách Dùng:</strong> Chọn Một Mục Ở Ô Phía Trên Để Sửa Tên, Ảnh Nhỏ, Nội Dung, Link, Trạng Thái Hiển Thị, Bảo Trì Và Kho Acc. Mỗi Lần Chỉ Sửa Một Mục.
         </div>
 
         <div id="catalogList" class="catalog-admin-list">
-          <div class="catalog-empty">Đang Tải Danh Mục...</div>
+          <div class="catalog-selection-note">Hãy Chọn Một Mục Ở Phía Trên Để Bắt Đầu Chỉnh Sửa.</div>
         </div>
         <div class="message" id="catalogMessage"></div>
       </section>
@@ -1297,11 +1310,16 @@
     const catalogList =
       document.getElementById("catalogList");
 
+    const catalogItemSelect =
+      document.getElementById("catalogItemSelect");
+
     const catalogMessage =
       document.getElementById("catalogMessage");
 
     const addCatalogItemButton =
       document.getElementById("addCatalogItemButton");
+
+    let catalogAdminItems = [];
 
     const shortenerLayers =
       document.getElementById("shortenerLayers");
@@ -2860,22 +2878,96 @@
       };
     }
 
-    async function loadCatalogAdmin() {
+    function catalogTypeLabel(itemType) {
+      if (itemType === "account") return "Kho Acc";
+      if (itemType === "link") return "Link Ngoài";
+      if (itemType === "migul") return "Key MiGul";
+      return "Khác";
+    }
+
+    function catalogOptionLabel(item) {
+      const state = item.maintenance === true
+        ? "Bảo Trì"
+        : item.enabled === false
+          ? "Đang Ẩn"
+          : "Đang Hiện";
+      const stock = item.itemType === "account"
+        ? ` • Còn ${Number(item.availableCount || 0).toLocaleString("vi-VN")} Acc`
+        : "";
+      return `${item.title || item.slug || "Không Tên"} • ${catalogTypeLabel(item.itemType)} • ${state}${stock}`;
+    }
+
+    function renderCatalogSelector(selectedId = "") {
+      if (!catalogItemSelect) return;
+      catalogItemSelect.innerHTML = '<option value="">— Chọn Mục Cần Chỉnh Sửa —</option>';
+      catalogAdminItems.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = String(item.id || "");
+        option.textContent = catalogOptionLabel(item);
+        catalogItemSelect.appendChild(option);
+      });
+      if (selectedId === "__new__") {
+        const option = document.createElement("option");
+        option.value = "__new__";
+        option.textContent = "➕ Mục Mới Chưa Lưu";
+        catalogItemSelect.appendChild(option);
+      }
+      catalogItemSelect.value = selectedId || "";
+    }
+
+    function showCatalogSelection(selectedId = "") {
+      if (!catalogList) return;
+      catalogList.innerHTML = "";
+
+      if (!selectedId) {
+        catalogList.innerHTML = '<div class="catalog-selection-note">Hãy Chọn Một Mục Ở Phía Trên Để Bắt Đầu Chỉnh Sửa.</div>';
+        return;
+      }
+
+      if (selectedId === "__new__") {
+        const editor = createCatalogEditor(catalogDefaultItem());
+        catalogList.appendChild(editor);
+        editor.querySelector('[data-cat="title"]')?.focus();
+        return;
+      }
+
+      const item = catalogAdminItems.find((entry) => String(entry.id) === String(selectedId));
+      if (!item) {
+        catalogList.innerHTML = '<div class="catalog-selection-note">Không Tìm Thấy Mục Đã Chọn. Hãy Chọn Lại.</div>';
+        return;
+      }
+
+      catalogList.appendChild(createCatalogEditor(item));
+    }
+
+    async function loadCatalogAdmin(selectedId = "") {
       if (!catalogList) return;
       setMessage(catalogMessage, "");
-      catalogList.innerHTML = '<div class="catalog-empty">Đang Tải Danh Mục...</div>';
+      if (catalogItemSelect) {
+        catalogItemSelect.disabled = true;
+        catalogItemSelect.innerHTML = '<option value="">— Đang Tải Danh Sách Mục —</option>';
+      }
+      catalogList.innerHTML = '<div class="catalog-selection-note">Đang Tải Danh Mục...</div>';
       try {
         const data = await adminApi("admin-list-catalog");
-        const items = Array.isArray(data.items) ? data.items : [];
-        catalogList.innerHTML = "";
-        if (!items.length) {
-          catalogList.innerHTML = '<div class="catalog-empty">Chưa Có Danh Mục. Bấm “+ Thêm Mục Mới”.</div>';
+        catalogAdminItems = Array.isArray(data.items) ? data.items : [];
+        renderCatalogSelector(selectedId);
+
+        if (!catalogAdminItems.length && selectedId !== "__new__") {
+          catalogList.innerHTML = '<div class="catalog-selection-note">Chưa Có Danh Mục. Bấm “+ Thêm Mục Mới” Để Tạo Mục Đầu Tiên.</div>';
           return;
         }
-        items.forEach((item) => catalogList.appendChild(createCatalogEditor(item)));
+
+        showCatalogSelection(selectedId);
       } catch (error) {
-        catalogList.innerHTML = '<div class="catalog-empty">Không Tải Được Danh Mục.</div>';
+        catalogAdminItems = [];
+        if (catalogItemSelect) {
+          catalogItemSelect.innerHTML = '<option value="">— Không Tải Được Danh Sách —</option>';
+        }
+        catalogList.innerHTML = '<div class="catalog-selection-note">Không Tải Được Danh Mục.</div>';
         await handleAdminError(error, catalogMessage);
+      } finally {
+        if (catalogItemSelect) catalogItemSelect.disabled = false;
       }
     }
 
@@ -2885,8 +2977,9 @@
       setMessage(catalogMessage, "");
       try {
         const data = await adminApi("admin-save-catalog-item", collectCatalogEditor(editor));
+        const savedId = String(data?.item?.id || editor.dataset.itemId || "");
         setMessage(catalogMessage, "Đã Lưu Danh Mục Thành Công.", "success");
-        await loadCatalogAdmin();
+        await loadCatalogAdmin(savedId);
       } catch (error) {
         await handleAdminError(error, catalogMessage);
       } finally {
@@ -2897,8 +2990,9 @@
     async function deleteCatalogItem(editor) {
       const itemId = editor.dataset.itemId;
       if (!itemId) {
-        editor.remove();
-        if (!catalogList.children.length) catalogList.innerHTML = '<div class="catalog-empty">Chưa Có Danh Mục.</div>';
+        renderCatalogSelector("");
+        showCatalogSelection("");
+        setMessage(catalogMessage, "Đã Hủy Mục Mới Chưa Lưu.", "success");
         return;
       }
       const title = editor.querySelector('[data-cat="title"]').value || "Mục Này";
@@ -2908,7 +3002,7 @@
       try {
         await adminApi("admin-delete-catalog-item", { itemId });
         setMessage(catalogMessage, "Đã Xóa Danh Mục Và Kho Acc Đi Kèm.", "success");
-        await loadCatalogAdmin();
+        await loadCatalogAdmin("");
       } catch (error) {
         await handleAdminError(error, catalogMessage);
       } finally {
@@ -3010,9 +3104,12 @@
       // Cập nhật thống kê ở đầu card mà không bắt buộc admin đóng/mở lại panel.
       try {
         const data = await adminApi("admin-list-catalog");
-        const item = (data.items || []).find((x) => x.id === itemId);
+        const items = Array.isArray(data.items) ? data.items : [];
+        catalogAdminItems = items;
+        const item = items.find((x) => x.id === itemId);
         const editor = Array.from(catalogList.querySelectorAll(".catalog-editor")).find((el) => el.dataset.itemId === itemId);
         if (!item || !editor) return;
+        renderCatalogSelector(itemId);
         const chips = editor.querySelectorAll(".catalog-stat-chip");
         if (chips[0]) chips[0].textContent = `Còn: ${Number(item.availableCount || 0).toLocaleString("vi-VN")}`;
         if (chips[1]) chips[1].textContent = `Đã Lấy: ${Number(item.claimedCount || 0).toLocaleString("vi-VN")}`;
@@ -3247,13 +3344,16 @@
       }
     );
 
+    catalogItemSelect?.addEventListener("change", () => {
+      setMessage(catalogMessage, "");
+      showCatalogSelection(catalogItemSelect.value);
+    });
+
     addCatalogItemButton?.addEventListener("click", () => {
-      const empty = catalogList.querySelector(".catalog-empty");
-      if (empty) empty.remove();
-      const editor = createCatalogEditor(catalogDefaultItem());
-      catalogList.prepend(editor);
-      editor.scrollIntoView({ behavior: "smooth", block: "center" });
-      editor.querySelector('[data-cat="title"]')?.focus();
+      setMessage(catalogMessage, "Đang Tạo Mục Mới. Điền Thông Tin Rồi Bấm Lưu Mục.", "success");
+      renderCatalogSelector("__new__");
+      showCatalogSelection("__new__");
+      catalogList.querySelector(".catalog-editor")?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
 
     initializeAdmin();
