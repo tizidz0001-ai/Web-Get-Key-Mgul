@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Nhận Tài Khoản</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink:#0f172a;
+      --blue:#10cfea;
+      --yellow:#ffd84d;
+      --pink:#f58fc4;
+      --green:#bff2d7;
+      --paper:#fff;
+      --muted:#667085;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; display:grid; place-items:center; padding:20px;
+      font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+      color:var(--ink); background-color:var(--paper);
+      background-image:radial-gradient(rgba(15,23,42,.12) 1px,transparent 1px);
+      background-size:22px 22px;
+    }
+    .wrap{width:min(620px,100%)}
+    .card{
+      border:3px solid var(--ink); background:#fff; padding:26px;
+      box-shadow:8px 8px 0 var(--ink);
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:7px; padding:7px 10px;
+      border:2px solid var(--ink); background:var(--green); font-weight:900; font-size:12px;
+    }
+    h1{margin:16px 0 8px; font-size:clamp(28px,7vw,44px); line-height:1; text-transform:uppercase}
+    .desc{margin:0; color:var(--muted); line-height:1.6}
+    .status{
+      margin-top:20px; padding:15px; border:2px solid var(--ink);
+      background:#eefbff; font-weight:850; line-height:1.55;
+    }
+    .credentials{display:none; margin-top:20px; gap:12px}
+    .credentials.show{display:grid}
+    .field{
+      border:3px solid var(--ink); padding:15px; box-shadow:4px 4px 0 var(--ink);
+    }
+    .field:nth-child(1){background:#fff4b9}
+    .field:nth-child(2){background:#f8c9df}
+    .field label{display:block; font-size:12px; font-weight:950; text-transform:uppercase; margin-bottom:7px}
+    .value-row{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center}
+    .value{
+      min-width:0; overflow-wrap:anywhere; font:800 15px/1.45 Consolas,monospace;
+      padding:11px 12px; border:2px solid var(--ink); background:#fff;
+    }
+    button,a{
+      min-height:44px; padding:0 15px; border:3px solid var(--ink); background:var(--yellow);
+      color:var(--ink); font:900 13px/1 Inter,system-ui,sans-serif; text-transform:uppercase;
+      text-decoration:none; cursor:pointer; box-shadow:4px 4px 0 var(--ink);
+    }
+    button:active,a:active{transform:translate(4px,4px); box-shadow:none}
+    .actions{display:flex; flex-wrap:wrap; gap:11px; margin-top:20px}
+    .primary{background:var(--blue)}
+    .error{background:#ffd7df}
+    .success{background:var(--green)}
+    .hint{margin-top:15px; font-size:12px; color:var(--muted); line-height:1.6}
+    @media(max-width:520px){
+      .card{padding:20px 15px; box-shadow:5px 5px 0 var(--ink)}
+      .value-row{grid-template-columns:1fr}
+      button,.actions a{width:100%}
+      .actions{display:grid}
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <span class="badge">✅ Trang Đích Xác Thực</span>
+      <h1 id="title">Đang Nhận Tài Khoản...</h1>
+      <p class="desc">
+        Hệ thống chỉ cấp tài khoản sau khi link nhiệm vụ hợp lệ được hoàn thành.
+      </p>
+
+      <div class="status" id="status">Đang Xác Minh Link Và Lấy Tài Khoản...</div>
+
+      <div class="credentials" id="credentials">
+        <div class="field">
+          <label>Tài Khoản</label>
+          <div class="value-row">
+            <div class="value" id="username">...</div>
+            <button type="button" data-copy="username">Sao Chép TK</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Mật Khẩu</label>
+          <div class="value-row">
+            <div class="value" id="password">...</div>
+            <button type="button" data-copy="password">Sao Chép MK</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="copyAll" type="button" hidden>Sao Chép Cả Hai</button>
+        <a href="/" id="homeLink">Về Trang Chính</a>
+      </div>
+
+      <p class="hint">
+        Hãy lưu lại tài khoản ngay. Vé nhận acc chỉ dùng một lần; khi tải lại trang trong cùng tab,
+        trang sẽ dùng bản đã lưu tạm trong phiên trình duyệt để tránh mất thông tin.
+      </p>
+    </section>
+  </main>
+
+  <script src="/config.js"></script>
+  <script>
+    const config = window.APP_CONFIG || {};
+    const statusBox = document.getElementById("status");
+    const credentials = document.getElementById("credentials");
+    const usernameEl = document.getElementById("username");
+    const passwordEl = document.getElementById("password");
+    const titleEl = document.getElementById("title");
+    const copyAllButton = document.getElementById("copyAll");
+
+    function getFunctionUrl() {
+      const baseUrl = String(config.SUPABASE_URL || "").trim().replace(/\/+$/, "");
+      const functionName = String(config.EDGE_FUNCTION_NAME || "key-api")
+        .trim().replace(/^\/+|\/+$/g, "");
+
+      if (!baseUrl || baseUrl.includes("YOUR_PROJECT_ID") || !/^https:\/\/.+\.supabase\.co$/i.test(baseUrl)) {
+        throw new Error("SUPABASE_NOT_CONFIGURED");
+      }
+      return `${baseUrl}/functions/v1/${functionName}`;
+    }
+
+    async function callKeyApi(action, payload = {}) {
+      const response = await fetch(getFunctionUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ action, ...payload }),
+        cache: "no-store"
+      });
+
+      let data = {};
+      try { data = await response.json(); } catch {}
+
+      if (!response.ok || data.success !== true) {
+        const error = new Error(data.error || `HTTP_${response.status}`);
+        error.code = data.error || `HTTP_${response.status}`;
+        throw error;
+      }
+      return data;
+    }
+
+    function readTicket() {
+      const match = location.pathname.match(/^\/a\/([0-9a-f]{64})\.(\d{10,16})\.([0-9a-f]{64})\/?$/i);
+      if (!match) throw new Error("CATALOG_INVALID_LANDING_TICKET");
+      return {
+        landingCode: match[1].toLowerCase(),
+        ticketExp: Number(match[2]),
+        ticketSig: match[3].toLowerCase()
+      };
+    }
+
+    function parseCredential(raw) {
+      const text = String(raw || "").trim();
+      const pipe = text.indexOf("|");
+      if (pipe >= 0) {
+        return {
+          username: text.slice(0, pipe).trim(),
+          password: text.slice(pipe + 1).trim()
+        };
+      }
+
+      const tab = text.indexOf("\t");
+      if (tab >= 0) {
+        return {
+          username: text.slice(0, tab).trim(),
+          password: text.slice(tab + 1).trim()
+        };
+      }
+
+      const colon = text.indexOf(":");
+      if (colon >= 0) {
+        return {
+          username: text.slice(0, colon).trim(),
+          password: text.slice(colon + 1).trim()
+        };
+      }
+
+      return { username: text, password: "" };
+    }
+
+    function cacheKey(ticket) {
+      return `catalog_account_claim_v18:${ticket.landingCode}`;
+    }
+
+    function renderCredential(account, itemTitle) {
+      const parsed = parseCredential(account);
+      titleEl.textContent = itemTitle || "Nhận Tài Khoản Thành Công";
+      usernameEl.textContent = parsed.username || "(Trống)";
+      passwordEl.textContent = parsed.password || "(Không Có Mật Khẩu Riêng)";
+      credentials.classList.add("show");
+      copyAllButton.hidden = false;
+      statusBox.className = "status success";
+      statusBox.textContent = "Nhận Tài Khoản Thành Công. Hãy Sao Chép Và Lưu Lại Ngay.";
+    }
+
+    async function copyText(text, button) {
+      if (!text || text.startsWith("(")) return;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const el = document.createElement("textarea");
+        el.value = text;
+        el.style.position = "fixed";
+        el.style.opacity = "0";
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        el.remove();
+      }
+      const old = button.textContent;
+      button.textContent = "Đã Sao Chép";
+      setTimeout(() => button.textContent = old, 1200);
+    }
+
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-copy]");
+      if (!button) return;
+      const id = button.getAttribute("data-copy");
+      const target = document.getElementById(id);
+      copyText(target?.textContent || "", button);
+    });
+
+    copyAllButton.addEventListener("click", () => {
+      const u = usernameEl.textContent || "";
+      const p = passwordEl.textContent || "";
+      copyText(`Tài Khoản: ${u}\nMật Khẩu: ${p}`, copyAllButton);
+    });
+
+    async function init() {
+      let ticket;
+      try {
+        ticket = readTicket();
+        const key = cacheKey(ticket);
+
+        // Refresh trong cùng tab vẫn xem lại acc vừa nhận, không gọi claim lần 2.
+        try {
+          const cached = JSON.parse(sessionStorage.getItem(key) || "null");
+          if (cached && cached.account) {
+            renderCredential(cached.account, cached.itemTitle);
+            return;
+          }
+        } catch {}
+
+        const data = await callKeyApi("claim-catalog-account-landing", ticket);
+
+        if (!data.account) {
+          throw new Error("CATALOG_OUT_OF_ACCOUNTS");
+        }
+
+        try {
+          sessionStorage.setItem(key, JSON.stringify({
+            account: data.account,
+            itemTitle: data.itemTitle || "Tài Khoản",
+            claimedAt: data.claimedAt || null
+          }));
+        } catch {}
+
+        renderCredential(data.account, data.itemTitle);
+      } catch (error) {
+        const code = String(error?.code || error?.message || "UNKNOWN");
+        const messages = {
+          CATALOG_INVALID_LANDING_TICKET: "Link Nhận Tài Khoản Không Hợp Lệ Hoặc Đã Hết Hạn.",
+          CATALOG_SESSION_NOT_FOUND: "Không Tìm Thấy Phiên Nhận Tài Khoản.",
+          CATALOG_SESSION_EXPIRED: "Link Nhận Tài Khoản Đã Hết Hạn. Vui Lòng Vượt Lại.",
+          CATALOG_SESSION_USED: "Link Này Đã Được Dùng Để Nhận Tài Khoản.",
+          CATALOG_LINK_NOT_READY: "Link Chưa Hoàn Thành Luồng Rút Gọn.",
+          CATALOG_ITEM_MAINTENANCE: "Mục Này Đang Bảo Trì.",
+          CATALOG_ITEM_DISABLED: "Mục Này Đã Tạm Tắt.",
+          CATALOG_DAILY_LIMIT_REACHED: "Bạn Đã Hết Lượt Nhận Tài Khoản Hôm Nay.",
+          CATALOG_OUT_OF_ACCOUNTS: "Kho Tài Khoản Đã Hết.",
+          CATALOG_RATE_LIMITED: "Bạn Thao Tác Quá Nhanh. Vui Lòng Thử Lại Sau.",
+          FORBIDDEN_ORIGIN: "Tên Miền Hiện Tại Không Được Backend Cho Phép.",
+          CLIENT_IP_UNAVAILABLE: "Không Xác Định Được IP.",
+          SUPABASE_NOT_CONFIGURED: "Chưa Cấu Hình Supabase Trong config.js."
+        };
+
+        titleEl.textContent = "Không Thể Nhận Tài Khoản";
+        statusBox.className = "status error";
+        statusBox.textContent = messages[code] || `Có Lỗi Xảy Ra: ${code}`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -350,7 +350,7 @@
 
     .shortener-row {
       display: grid;
-      grid-template-columns: auto 1fr 1.4fr 1.4fr auto;
+      grid-template-columns: auto minmax(0, 1fr) 150px auto;
       gap: 10px;
       align-items: center;
       padding: 14px;
@@ -984,28 +984,15 @@
           <div>
             <h2>Cấu Hình Rút Gọn Link</h2>
             <p>
-              Nhập Link API GTraffic Dạng <strong>https://gtraffic.io/st?apikey=API_KEY&amp;url=</strong>
-              Và API Key Riêng. Chọn Số Lần Rút Gọn Đè Lên Nhau; Kết Quả Lần Trước
-              Sẽ Tự Làm Link Đích Cho Lần Sau. Tất Cả Các Lần Phải Thành Công Mới Trả Link Cho User.
+              Mỗi Dòng Là Một API Rút Gọn Riêng. Chỉ Cần Dán Link Đầy Đủ Dạng
+              <strong>https://gtraffic.io/st?apikey=YOUR_KEY&amp;url=</strong> Và Chọn Số Lần Muốn Dùng API Đó.
+              Web Tự Động Gắn Link Kế Tiếp / Link Đích Vào Sau <strong>url=</strong>.
+              Ví Dụ Một Dòng Chọn 2 Lần Thì User Phải Vượt 2 Link Của API Đó.
             </p>
           </div>
         </div>
 
-        <div class="grid">
-          <div>
-            <label for="shortenerLayers">Số Lần Rút Gọn Đè Lên Nhau</label>
-
-            <select id="shortenerLayers">
-              <option value="1">1 Lần</option>
-              <option value="2">2 Lần</option>
-              <option value="3">3 Lần</option>
-              <option value="4">4 Lần</option>
-              <option value="5">5 Lần</option>
-              <option value="6">6 Lần</option>
-            </select>
-          </div>
-        </div>
-
+        <input id="shortenerLayers" type="hidden" value="1" />
         <div class="shortener-list" id="shortenerList"></div>
 
         <div class="actions">
@@ -1503,9 +1490,15 @@
         INVALID_SETTINGS_URL:
           "Link Không Hợp Lệ. Link Phải Bắt Đầu Bằng http:// Hoặc https://.",
         SHORTENER_INVALID_API_URL:
-          "Link API Rút Gọn Không Hợp Lệ. Hãy Dùng Dạng https://gtraffic.io/st?apikey=API_KEY&url=.",
+          "Link API Rút Gọn Không Hợp Lệ. Hãy Dùng Dạng https://gtraffic.io/st?apikey=YOUR_KEY&url=.",
+        SHORTENER_URL_PARAM_MISSING:
+          "Link API Phải Có Tham Số url= Ở Cuối Để Web Tự Gắn Link Đích.",
+        SHORTENER_LAYER_LIMIT:
+          "Tổng Số Lần Rút Gọn Đang Bật Tối Đa Là 12 Lớp.",
+        INVALID_SHORTENER_CONFIG:
+          "Có API Rút Gọn Không Hợp Lệ. Kiểm Tra Lại Link Và Bảo Đảm Có url=.",
         SHORTENER_NOT_CONFIGURED:
-          "Bạn Chưa Nhập Đủ Link API Và API Key GTraffic.",
+          "Bạn Chưa Nhập API Link Rút Gọn.",
         INVALID_STATUS:
           "Trạng Thái Key Không Hợp Lệ.",
         LIST_KEYS_FAILED:
@@ -1704,19 +1697,8 @@
         settings.announcementEnabled === true;
     }
 
-    // Đổ cấu hình rút gọn: số lần lồng + danh sách API.
+    // Đổ cấu hình rút gọn: mỗi dòng = 1 API đầy đủ + số lần sử dụng.
     function renderShorteners(settings = {}) {
-      const layers =
-        Math.min(
-          6,
-          Math.max(
-            1,
-            Math.floor(Number(settings.shortenerLayers) || 2)
-          )
-        );
-
-      shortenerLayers.value = String(layers);
-
       shortenerList.innerHTML = "";
 
       const list =
@@ -1726,23 +1708,38 @@
 
       if (list.length === 0) {
         addShortenerRow({
-          name: "GTraffic",
-          apiUrl: "https://gtraffic.io/st?apikey=API_KEY&url=",
-          apiKey: "",
+          apiUrl: "https://gtraffic.io/st?apikey=YOUR_API_KEY&url=",
+          repeat: 1,
           enabled: true
         });
+        updateShortenerLayerSummary();
         return;
       }
 
       list.forEach((item) => addShortenerRow(item));
+      updateShortenerLayerSummary();
     }
 
-    // Thêm một dòng API rút gọn (bật/tắt + tên + mẫu URL + API key + nút xóa).
+    function updateShortenerLayerSummary() {
+      const rows = [...shortenerList.querySelectorAll(".shortener-row")];
+      let total = 0;
+
+      rows.forEach((row) => {
+        const enabled = row.querySelector('[data-field="enabled"]');
+        const repeat = row.querySelector('[data-field="repeat"]');
+        if (enabled && enabled.checked) {
+          total += Math.min(6, Math.max(1, Number(repeat?.value) || 1));
+        }
+      });
+
+      shortenerLayers.value = String(Math.min(12, Math.max(1, total || 1)));
+    }
+
+    // Thêm một dòng: Bật/Tắt + API link đầy đủ + Số Lần + Xóa.
     function addShortenerRow(data = {}) {
       const row = document.createElement("div");
       row.className = "shortener-row";
 
-      // Công tắc BẬT/TẮT: chỉ API đang bật mới được dùng để rút gọn.
       const enableLabel = document.createElement("label");
       enableLabel.className = "shortener-toggle";
 
@@ -1754,28 +1751,36 @@
 
       const enableText = document.createElement("span");
       enableText.textContent = "Bật";
-
       enableLabel.append(enableInput, enableText);
 
-      const nameInput = document.createElement("input");
-      nameInput.type = "text";
-      nameInput.placeholder = "Tên API, VD: GTraffic";
-      nameInput.value = String(data.name || "");
-      nameInput.dataset.field = "name";
-
+      const apiUrlWrap = document.createElement("div");
+      apiUrlWrap.className = "field";
+      const apiUrlLabel = document.createElement("label");
+      apiUrlLabel.textContent = "API Link Đầy Đủ";
       const apiUrlInput = document.createElement("input");
       apiUrlInput.type = "text";
-      apiUrlInput.placeholder = "https://gtraffic.io/st?apikey=API_KEY&url=";
+      apiUrlInput.placeholder = "https://gtraffic.io/st?apikey=...&url=";
+      apiUrlInput.autocomplete = "off";
+      apiUrlInput.spellcheck = false;
       apiUrlInput.value = String(data.apiUrl || "");
       apiUrlInput.dataset.field = "apiUrl";
+      apiUrlWrap.append(apiUrlLabel, apiUrlInput);
 
-      const apiKeyInput = document.createElement("input");
-      apiKeyInput.type = "text";
-      apiKeyInput.placeholder = "API Key GTraffic";
-      apiKeyInput.autocomplete = "off";
-      apiKeyInput.spellcheck = false;
-      apiKeyInput.value = String(data.apiKey || "");
-      apiKeyInput.dataset.field = "apiKey";
+      const repeatWrap = document.createElement("div");
+      repeatWrap.className = "field";
+      const repeatLabel = document.createElement("label");
+      repeatLabel.textContent = "Số Lần";
+      const repeatSelect = document.createElement("select");
+      repeatSelect.dataset.field = "repeat";
+      for (let i = 1; i <= 6; i += 1) {
+        const option = document.createElement("option");
+        option.value = String(i);
+        option.textContent = `${i} Lần`;
+        repeatSelect.appendChild(option);
+      }
+      const legacyRepeat = Number(data.repeat || data.layers || 1);
+      repeatSelect.value = String(Math.min(6, Math.max(1, Math.floor(legacyRepeat) || 1)));
+      repeatWrap.append(repeatLabel, repeatSelect);
 
       const removeButton = document.createElement("button");
       removeButton.type = "button";
@@ -1783,53 +1788,45 @@
       removeButton.textContent = "Xóa";
       removeButton.addEventListener("click", () => {
         row.remove();
+        updateShortenerLayerSummary();
       });
 
-      // Làm mờ dòng khi API bị tắt để dễ nhìn.
       const applyDisabledStyle = () => {
         row.classList.toggle("off", !enableInput.checked);
         enableText.textContent = enableInput.checked ? "Bật" : "Tắt";
+        updateShortenerLayerSummary();
       };
 
       enableInput.addEventListener("change", applyDisabledStyle);
+      repeatSelect.addEventListener("change", updateShortenerLayerSummary);
       applyDisabledStyle();
 
-      row.append(enableLabel, nameInput, apiUrlInput, apiKeyInput, removeButton);
+      row.append(enableLabel, apiUrlWrap, repeatWrap, removeButton);
       shortenerList.appendChild(row);
+      updateShortenerLayerSummary();
     }
 
-    // Gom các dòng API thành mảng { name, apiUrl, apiKey, enabled }.
+    // Gom thành [{ apiUrl, repeat, enabled }]. Backend tự nối destination vào url=.
     function collectShorteners() {
-      const rows =
-        shortenerList.querySelectorAll(".shortener-row");
-
+      const rows = shortenerList.querySelectorAll(".shortener-row");
       const result = [];
 
       rows.forEach((row) => {
-        const get = (field) => {
-          const el = row.querySelector(`[data-field="${field}"]`);
-          return el ? el.value.trim() : "";
-        };
+        const apiUrlEl = row.querySelector('[data-field="apiUrl"]');
+        const repeatEl = row.querySelector('[data-field="repeat"]');
+        const enableEl = row.querySelector('[data-field="enabled"]');
+        const apiUrl = apiUrlEl ? apiUrlEl.value.trim() : "";
 
-        const apiUrl = get("apiUrl");
-        const apiKey = get("apiKey");
-
-        // Bỏ dòng trống hoàn toàn; giữ dòng có nhập.
-        if (!apiUrl && !apiKey) {
-          return;
-        }
-
-        const enableEl =
-          row.querySelector('[data-field="enabled"]');
+        if (!apiUrl) return;
 
         result.push({
-          name: get("name"),
           apiUrl,
-          apiKey,
+          repeat: Math.min(6, Math.max(1, Math.floor(Number(repeatEl?.value) || 1))),
           enabled: enableEl ? enableEl.checked : true
         });
       });
 
+      updateShortenerLayerSummary();
       return result;
     }
 
@@ -2234,7 +2231,7 @@
         supportUrl: supportUrl.value,
         dailyKeyLimit: Math.min(1000, Math.max(1, Math.floor(Number(dailyKeyLimit?.value) || 5))),
         shortenerLayers:
-          Number(shortenerLayers.value) || 2,
+          Number(shortenerLayers.value) || 1,
         shorteners: collectShorteners(),
         announcementText:
           announcementText.value,

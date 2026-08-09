@@ -2063,7 +2063,7 @@
       </div>
 
       <h2 class="link-ready-title" id="linkReadyTitle">Link Đã Tạo Thành Công!</h2>
-      <p class="link-ready-subtitle">
+      <p class="link-ready-subtitle" id="linkReadySubtitle">
         Sao Chép Link → Làm Nhiệm Vụ → Nhận Key Tại Trang Đích
       </p>
 
@@ -2078,7 +2078,7 @@
         </div>
         <div class="link-ready-step">
           <span class="link-ready-step-number">03</span>
-          <span class="link-ready-step-text">Nhận Key</span>
+          <span class="link-ready-step-text" id="linkReadyFinalStep">Nhận Key</span>
         </div>
       </div>
 
@@ -2221,17 +2221,30 @@
 
     const linkReadyOverlay = document.getElementById("linkReadyOverlay");
     const generatedShortUrl = document.getElementById("generatedShortUrl");
+    const linkReadySubtitle = document.getElementById("linkReadySubtitle");
+    const linkReadyFinalStep = document.getElementById("linkReadyFinalStep");
     const copyShortUrlButton = document.getElementById("copyShortUrlButton");
     const openShortUrlButton = document.getElementById("openShortUrlButton");
     const closeLinkReadyButton = document.getElementById("closeLinkReadyButton");
 
     let currentShortUrl = "";
 
-    function showLinkReady(shortUrl) {
+    function showLinkReady(shortUrl, kind = "key") {
       currentShortUrl = String(shortUrl || "").trim();
       generatedShortUrl.textContent = currentShortUrl;
       generatedShortUrl.title = currentShortUrl;
       openShortUrlButton.href = currentShortUrl || "#";
+
+      const isAccount = kind === "account";
+      if (linkReadySubtitle) {
+        linkReadySubtitle.textContent = isAccount
+          ? "Sao Chép Link → Làm Nhiệm Vụ → Nhận Tài Khoản + Mật Khẩu Tại Trang Đích"
+          : "Sao Chép Link → Làm Nhiệm Vụ → Nhận Key Tại Trang Đích";
+      }
+      if (linkReadyFinalStep) {
+        linkReadyFinalStep.textContent = isAccount ? "Nhận Tài Khoản" : "Nhận Key";
+      }
+
       linkReadyOverlay.classList.add("show");
       document.body.style.overflow = "hidden";
     }
@@ -2891,7 +2904,7 @@
         }
 
         // Tạo xong link thì hiện bảng, KHÔNG tự bật tab.
-        showLinkReady(session.shortUrl);
+        showLinkReady(session.shortUrl, "key");
       } catch (error) {
         console.error("CREATE_SESSION_ERROR", error);
 
@@ -3119,25 +3132,43 @@
       if (item.itemType !== "account") return;
       const oldText = button.textContent;
       button.disabled = true;
-      button.textContent = "Đang Lấy Acc...";
+      button.textContent = "Đang Tạo Link...";
+
       try {
-        const data = await callKeyApi("claim-catalog-account", { itemId: item.id });
-        if (!data.account) throw new Error("CATALOG_OUT_OF_ACCOUNTS");
-        showAccountReady(data.account, item.title);
-        await loadPublicCatalog();
+        const data = await callKeyApi(
+          "create-catalog-account-session",
+          { itemId: item.id }
+        );
+
+        if (!data.shortUrl) {
+          throw new Error("SHORT_URL_NOT_FOUND");
+        }
+
+        // Acc chưa bị lấy ở bước này. Chỉ tạo vé + shortlink.
+        // Acc chỉ được cấp khi user vượt tới trang /a/... và trang đó gọi claim.
+        showLinkReady(data.shortUrl, "account");
       } catch (error) {
         const code = String(error?.code || error?.message || "UNKNOWN");
         const messages = {
           CATALOG_ITEM_MAINTENANCE: "Mục Này Đang Bảo Trì. Vui Lòng Quay Lại Sau.",
           CATALOG_ITEM_DISABLED: "Mục Này Đã Tạm Tắt.",
-          CATALOG_DAILY_LIMIT_REACHED: "Bạn Đã Hết Lượt Nhận Acc Của Mục Này Hôm Nay.",
           CATALOG_OUT_OF_ACCOUNTS: "Kho Acc Của Mục Này Đã Hết.",
-          CATALOG_RATE_LIMITED: "Bạn Thao Tác Quá Nhanh. Vui Lòng Thử Lại Sau.",
+          CATALOG_RATE_LIMITED: "Bạn Tạo Link Quá Nhiều. Vui Lòng Thử Lại Sau.",
           CATALOG_ITEM_NOT_FOUND: "Danh Mục Không Còn Tồn Tại.",
+          CATALOG_ITEM_NOT_ACCOUNT: "Mục Này Không Phải Kho Acc.",
+          CATALOG_CREATE_SESSION_FAILED: "Không Thể Tạo Phiên Nhận Acc.",
+          KEY_PAGE_URL_NOT_CONFIGURED: "Backend Chưa Cấu Hình KEY_PAGE_URL.",
+          SHORTENER_NOT_CONFIGURED: "Chưa Cấu Hình API Rút Gọn Trong Admin.",
+          SHORTENER_INVALID_API_URL: "Link API Rút Gọn Không Hợp Lệ.",
+          SHORTENER_ALL_FAILED: "Không Thể Tạo Link Rút Gọn. Vui Lòng Thử Lại.",
+          SHORTENER_INCOMPLETE: "Không Tạo Đủ Số Lớp Rút Gọn. Hãy Kiểm Tra Admin.",
+          SHORT_URL_NOT_FOUND: "Server Không Trả Về Link Rút Gọn.",
+          SECURITY_CHECK_UNAVAILABLE: "Hệ Thống Bảo Mật Đang Tạm Không Khả Dụng.",
           FORBIDDEN_ORIGIN: "Tên Miền Hiện Tại Không Được Backend Cho Phép.",
           CLIENT_IP_UNAVAILABLE: "Không Xác Định Được IP. Vui Lòng Thử Lại Sau."
         };
-        showToast(messages[code] || `Không Thể Nhận Acc: ${code}`);
+
+        showToast(messages[code] || `Không Thể Tạo Link Nhận Acc: ${code}`);
         await loadPublicCatalog();
       } finally {
         if (button.isConnected) {
