@@ -1,5 +1,5 @@
 window.APP_CONFIG = {
-  APP_NAME: "Get Key Free Fire iPA",
+  APP_NAME: "Tizi Store Get Key",
 
   DOWNLOAD_IPA_URL: "",
   TELEGRAM_URL: "",
