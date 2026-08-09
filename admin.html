@@ -350,7 +350,7 @@
 
     .shortener-row {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) 150px auto;
+      grid-template-columns: auto 1fr 1.4fr 1.4fr auto;
       gap: 10px;
       align-items: center;
       padding: 14px;
@@ -745,10 +745,6 @@
   <style id="catalog-admin-v17-style">
     .catalog-help { margin: 12px 0 16px; padding: 12px 14px; border: 2px dashed var(--gt-ink, #0f172a); background: #eefbff; font-size: 12px; line-height: 1.55; }
     .catalog-admin-list { display: grid; gap: 16px; }
-    .catalog-selector-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; margin: 16px 0; padding: 15px; border: 3px solid var(--gt-ink, #0f172a); background: #fff4b9; box-shadow: 4px 4px 0 var(--gt-ink, #0f172a); }
-    .catalog-selector-bar label { margin-bottom: 7px; }
-    .catalog-selector-bar select { min-height: 50px; font-weight: 900; }
-    .catalog-selection-note { padding: 22px; border: 2px dashed var(--gt-ink, #0f172a); background: #eefbff; text-align: center; font-weight: 850; line-height: 1.55; }
     .catalog-empty { padding: 22px; border: 2px dashed var(--gt-ink, #0f172a); text-align: center; font-weight: 800; background: #fff; }
     .catalog-editor { padding: 17px; border: 3px solid var(--gt-ink, #0f172a); background: #fff; box-shadow: 5px 5px 0 var(--gt-ink, #0f172a); }
     .catalog-editor.is-maintenance { background: #fff4b9; }
@@ -779,7 +775,7 @@
     .catalog-mini-message.success { color: #087a53; }
     .catalog-mini-message.error { color: #b91c36; }
     @media (max-width: 760px) {
-      .catalog-form-grid, .catalog-image-row, .catalog-account-tools, .catalog-account-filter, .catalog-selector-bar { grid-template-columns: 1fr; }
+      .catalog-form-grid, .catalog-image-row, .catalog-account-tools, .catalog-account-filter { grid-template-columns: 1fr; }
       .catalog-form-grid .wide { grid-column: auto; }
       .catalog-editor-head { align-items: flex-start; }
     }
@@ -955,26 +951,17 @@
         <div class="section-head">
           <div>
             <h2>Quản Lý Danh Mục Free Clone Game</h2>
-            <p>Chọn Đúng Mục Cần Sửa. Admin Chỉ Hiển Thị Form Của Mục Đang Chọn Để Giao Diện Gọn Và Dễ Quản Lý.</p>
-          </div>
-        </div>
-
-        <div class="catalog-selector-bar">
-          <div>
-            <label for="catalogItemSelect">Chọn Mục Cần Chỉnh Sửa</label>
-            <select id="catalogItemSelect">
-              <option value="">— Đang Tải Danh Sách Mục —</option>
-            </select>
+            <p>Sửa Tên, Ảnh Nhỏ, Nội Dung, Link, Bật/Tắt Hiển Thị, Bảo Trì Riêng Và Quản Lý Kho Acc Của Từng Mục.</p>
           </div>
           <button class="primary" id="addCatalogItemButton" type="button">+ Thêm Mục Mới</button>
         </div>
 
         <div class="catalog-help">
-          <strong>Cách Dùng:</strong> Chọn Một Mục Ở Ô Phía Trên Để Sửa Tên, Ảnh Nhỏ, Nội Dung, Link, Trạng Thái Hiển Thị, Bảo Trì Và Kho Acc. Mỗi Lần Chỉ Sửa Một Mục.
+          <strong>Đầy Đủ CRUD:</strong> Có Thể Thêm Mục, Sửa Mục, Xóa Mục, Upload Ảnh Nhỏ, Thêm Nhiều Acc, Xóa Acc, Khóa/Mở Lại Acc Và Bật Bảo Trì Từng Mục.
         </div>
 
         <div id="catalogList" class="catalog-admin-list">
-          <div class="catalog-selection-note">Hãy Chọn Một Mục Ở Phía Trên Để Bắt Đầu Chỉnh Sửa.</div>
+          <div class="catalog-empty">Đang Tải Danh Mục...</div>
         </div>
         <div class="message" id="catalogMessage"></div>
       </section>
@@ -984,15 +971,28 @@
           <div>
             <h2>Cấu Hình Rút Gọn Link</h2>
             <p>
-              Mỗi Dòng Là Một API Rút Gọn Riêng. Chỉ Cần Dán Link Đầy Đủ Dạng
-              <strong>https://gtraffic.io/st?apikey=YOUR_KEY&amp;url=</strong> Và Chọn Số Lần Muốn Dùng API Đó.
-              Web Tự Động Gắn Link Kế Tiếp / Link Đích Vào Sau <strong>url=</strong>.
-              Ví Dụ Một Dòng Chọn 2 Lần Thì User Phải Vượt 2 Link Của API Đó.
+              Nhập Link API GTraffic Dạng <strong>https://gtraffic.io/st?apikey=API_KEY&amp;url=</strong>
+              Và API Key Riêng. Chọn Số Lần Rút Gọn Đè Lên Nhau; Kết Quả Lần Trước
+              Sẽ Tự Làm Link Đích Cho Lần Sau. Tất Cả Các Lần Phải Thành Công Mới Trả Link Cho User.
             </p>
           </div>
         </div>
 
-        <input id="shortenerLayers" type="hidden" value="1" />
+        <div class="grid">
+          <div>
+            <label for="shortenerLayers">Số Lần Rút Gọn Đè Lên Nhau</label>
+
+            <select id="shortenerLayers">
+              <option value="1">1 Lần</option>
+              <option value="2">2 Lần</option>
+              <option value="3">3 Lần</option>
+              <option value="4">4 Lần</option>
+              <option value="5">5 Lần</option>
+              <option value="6">6 Lần</option>
+            </select>
+          </div>
+        </div>
+
         <div class="shortener-list" id="shortenerList"></div>
 
         <div class="actions">
@@ -1297,16 +1297,11 @@
     const catalogList =
       document.getElementById("catalogList");
 
-    const catalogItemSelect =
-      document.getElementById("catalogItemSelect");
-
     const catalogMessage =
       document.getElementById("catalogMessage");
 
     const addCatalogItemButton =
       document.getElementById("addCatalogItemButton");
-
-    let catalogAdminItems = [];
 
     const shortenerLayers =
       document.getElementById("shortenerLayers");
@@ -1490,15 +1485,9 @@
         INVALID_SETTINGS_URL:
           "Link Không Hợp Lệ. Link Phải Bắt Đầu Bằng http:// Hoặc https://.",
         SHORTENER_INVALID_API_URL:
-          "Link API Rút Gọn Không Hợp Lệ. Hãy Dùng Dạng https://gtraffic.io/st?apikey=YOUR_KEY&url=.",
-        SHORTENER_URL_PARAM_MISSING:
-          "Link API Phải Có Tham Số url= Ở Cuối Để Web Tự Gắn Link Đích.",
-        SHORTENER_LAYER_LIMIT:
-          "Tổng Số Lần Rút Gọn Đang Bật Tối Đa Là 12 Lớp.",
-        INVALID_SHORTENER_CONFIG:
-          "Có API Rút Gọn Không Hợp Lệ. Kiểm Tra Lại Link Và Bảo Đảm Có url=.",
+          "Link API Rút Gọn Không Hợp Lệ. Hãy Dùng Dạng https://gtraffic.io/st?apikey=API_KEY&url=.",
         SHORTENER_NOT_CONFIGURED:
-          "Bạn Chưa Nhập API Link Rút Gọn.",
+          "Bạn Chưa Nhập Đủ Link API Và API Key GTraffic.",
         INVALID_STATUS:
           "Trạng Thái Key Không Hợp Lệ.",
         LIST_KEYS_FAILED:
@@ -1697,8 +1686,19 @@
         settings.announcementEnabled === true;
     }
 
-    // Đổ cấu hình rút gọn: mỗi dòng = 1 API đầy đủ + số lần sử dụng.
+    // Đổ cấu hình rút gọn: số lần lồng + danh sách API.
     function renderShorteners(settings = {}) {
+      const layers =
+        Math.min(
+          6,
+          Math.max(
+            1,
+            Math.floor(Number(settings.shortenerLayers) || 2)
+          )
+        );
+
+      shortenerLayers.value = String(layers);
+
       shortenerList.innerHTML = "";
 
       const list =
@@ -1708,38 +1708,23 @@
 
       if (list.length === 0) {
         addShortenerRow({
-          apiUrl: "https://gtraffic.io/st?apikey=YOUR_API_KEY&url=",
-          repeat: 1,
+          name: "GTraffic",
+          apiUrl: "https://gtraffic.io/st?apikey=API_KEY&url=",
+          apiKey: "",
           enabled: true
         });
-        updateShortenerLayerSummary();
         return;
       }
 
       list.forEach((item) => addShortenerRow(item));
-      updateShortenerLayerSummary();
     }
 
-    function updateShortenerLayerSummary() {
-      const rows = [...shortenerList.querySelectorAll(".shortener-row")];
-      let total = 0;
-
-      rows.forEach((row) => {
-        const enabled = row.querySelector('[data-field="enabled"]');
-        const repeat = row.querySelector('[data-field="repeat"]');
-        if (enabled && enabled.checked) {
-          total += Math.min(6, Math.max(1, Number(repeat?.value) || 1));
-        }
-      });
-
-      shortenerLayers.value = String(Math.min(12, Math.max(1, total || 1)));
-    }
-
-    // Thêm một dòng: Bật/Tắt + API link đầy đủ + Số Lần + Xóa.
+    // Thêm một dòng API rút gọn (bật/tắt + tên + mẫu URL + API key + nút xóa).
     function addShortenerRow(data = {}) {
       const row = document.createElement("div");
       row.className = "shortener-row";
 
+      // Công tắc BẬT/TẮT: chỉ API đang bật mới được dùng để rút gọn.
       const enableLabel = document.createElement("label");
       enableLabel.className = "shortener-toggle";
 
@@ -1751,36 +1736,28 @@
 
       const enableText = document.createElement("span");
       enableText.textContent = "Bật";
+
       enableLabel.append(enableInput, enableText);
 
-      const apiUrlWrap = document.createElement("div");
-      apiUrlWrap.className = "field";
-      const apiUrlLabel = document.createElement("label");
-      apiUrlLabel.textContent = "API Link Đầy Đủ";
+      const nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.placeholder = "Tên API, VD: GTraffic";
+      nameInput.value = String(data.name || "");
+      nameInput.dataset.field = "name";
+
       const apiUrlInput = document.createElement("input");
       apiUrlInput.type = "text";
-      apiUrlInput.placeholder = "https://gtraffic.io/st?apikey=...&url=";
-      apiUrlInput.autocomplete = "off";
-      apiUrlInput.spellcheck = false;
+      apiUrlInput.placeholder = "https://gtraffic.io/st?apikey=API_KEY&url=";
       apiUrlInput.value = String(data.apiUrl || "");
       apiUrlInput.dataset.field = "apiUrl";
-      apiUrlWrap.append(apiUrlLabel, apiUrlInput);
 
-      const repeatWrap = document.createElement("div");
-      repeatWrap.className = "field";
-      const repeatLabel = document.createElement("label");
-      repeatLabel.textContent = "Số Lần";
-      const repeatSelect = document.createElement("select");
-      repeatSelect.dataset.field = "repeat";
-      for (let i = 1; i <= 6; i += 1) {
-        const option = document.createElement("option");
-        option.value = String(i);
-        option.textContent = `${i} Lần`;
-        repeatSelect.appendChild(option);
-      }
-      const legacyRepeat = Number(data.repeat || data.layers || 1);
-      repeatSelect.value = String(Math.min(6, Math.max(1, Math.floor(legacyRepeat) || 1)));
-      repeatWrap.append(repeatLabel, repeatSelect);
+      const apiKeyInput = document.createElement("input");
+      apiKeyInput.type = "text";
+      apiKeyInput.placeholder = "API Key GTraffic";
+      apiKeyInput.autocomplete = "off";
+      apiKeyInput.spellcheck = false;
+      apiKeyInput.value = String(data.apiKey || "");
+      apiKeyInput.dataset.field = "apiKey";
 
       const removeButton = document.createElement("button");
       removeButton.type = "button";
@@ -1788,45 +1765,53 @@
       removeButton.textContent = "Xóa";
       removeButton.addEventListener("click", () => {
         row.remove();
-        updateShortenerLayerSummary();
       });
 
+      // Làm mờ dòng khi API bị tắt để dễ nhìn.
       const applyDisabledStyle = () => {
         row.classList.toggle("off", !enableInput.checked);
         enableText.textContent = enableInput.checked ? "Bật" : "Tắt";
-        updateShortenerLayerSummary();
       };
 
       enableInput.addEventListener("change", applyDisabledStyle);
-      repeatSelect.addEventListener("change", updateShortenerLayerSummary);
       applyDisabledStyle();
 
-      row.append(enableLabel, apiUrlWrap, repeatWrap, removeButton);
+      row.append(enableLabel, nameInput, apiUrlInput, apiKeyInput, removeButton);
       shortenerList.appendChild(row);
-      updateShortenerLayerSummary();
     }
 
-    // Gom thành [{ apiUrl, repeat, enabled }]. Backend tự nối destination vào url=.
+    // Gom các dòng API thành mảng { name, apiUrl, apiKey, enabled }.
     function collectShorteners() {
-      const rows = shortenerList.querySelectorAll(".shortener-row");
+      const rows =
+        shortenerList.querySelectorAll(".shortener-row");
+
       const result = [];
 
       rows.forEach((row) => {
-        const apiUrlEl = row.querySelector('[data-field="apiUrl"]');
-        const repeatEl = row.querySelector('[data-field="repeat"]');
-        const enableEl = row.querySelector('[data-field="enabled"]');
-        const apiUrl = apiUrlEl ? apiUrlEl.value.trim() : "";
+        const get = (field) => {
+          const el = row.querySelector(`[data-field="${field}"]`);
+          return el ? el.value.trim() : "";
+        };
 
-        if (!apiUrl) return;
+        const apiUrl = get("apiUrl");
+        const apiKey = get("apiKey");
+
+        // Bỏ dòng trống hoàn toàn; giữ dòng có nhập.
+        if (!apiUrl && !apiKey) {
+          return;
+        }
+
+        const enableEl =
+          row.querySelector('[data-field="enabled"]');
 
         result.push({
+          name: get("name"),
           apiUrl,
-          repeat: Math.min(6, Math.max(1, Math.floor(Number(repeatEl?.value) || 1))),
+          apiKey,
           enabled: enableEl ? enableEl.checked : true
         });
       });
 
-      updateShortenerLayerSummary();
       return result;
     }
 
@@ -2231,7 +2216,7 @@
         supportUrl: supportUrl.value,
         dailyKeyLimit: Math.min(1000, Math.max(1, Math.floor(Number(dailyKeyLimit?.value) || 5))),
         shortenerLayers:
-          Number(shortenerLayers.value) || 1,
+          Number(shortenerLayers.value) || 2,
         shorteners: collectShorteners(),
         announcementText:
           announcementText.value,
@@ -2875,96 +2860,22 @@
       };
     }
 
-    function catalogTypeLabel(itemType) {
-      if (itemType === "account") return "Kho Acc";
-      if (itemType === "link") return "Link Ngoài";
-      if (itemType === "migul") return "Key MiGul";
-      return "Khác";
-    }
-
-    function catalogOptionLabel(item) {
-      const state = item.maintenance === true
-        ? "Bảo Trì"
-        : item.enabled === false
-          ? "Đang Ẩn"
-          : "Đang Hiện";
-      const stock = item.itemType === "account"
-        ? ` • Còn ${Number(item.availableCount || 0).toLocaleString("vi-VN")} Acc`
-        : "";
-      return `${item.title || item.slug || "Không Tên"} • ${catalogTypeLabel(item.itemType)} • ${state}${stock}`;
-    }
-
-    function renderCatalogSelector(selectedId = "") {
-      if (!catalogItemSelect) return;
-      catalogItemSelect.innerHTML = '<option value="">— Chọn Mục Cần Chỉnh Sửa —</option>';
-      catalogAdminItems.forEach((item) => {
-        const option = document.createElement("option");
-        option.value = String(item.id || "");
-        option.textContent = catalogOptionLabel(item);
-        catalogItemSelect.appendChild(option);
-      });
-      if (selectedId === "__new__") {
-        const option = document.createElement("option");
-        option.value = "__new__";
-        option.textContent = "➕ Mục Mới Chưa Lưu";
-        catalogItemSelect.appendChild(option);
-      }
-      catalogItemSelect.value = selectedId || "";
-    }
-
-    function showCatalogSelection(selectedId = "") {
-      if (!catalogList) return;
-      catalogList.innerHTML = "";
-
-      if (!selectedId) {
-        catalogList.innerHTML = '<div class="catalog-selection-note">Hãy Chọn Một Mục Ở Phía Trên Để Bắt Đầu Chỉnh Sửa.</div>';
-        return;
-      }
-
-      if (selectedId === "__new__") {
-        const editor = createCatalogEditor(catalogDefaultItem());
-        catalogList.appendChild(editor);
-        editor.querySelector('[data-cat="title"]')?.focus();
-        return;
-      }
-
-      const item = catalogAdminItems.find((entry) => String(entry.id) === String(selectedId));
-      if (!item) {
-        catalogList.innerHTML = '<div class="catalog-selection-note">Không Tìm Thấy Mục Đã Chọn. Hãy Chọn Lại.</div>';
-        return;
-      }
-
-      catalogList.appendChild(createCatalogEditor(item));
-    }
-
-    async function loadCatalogAdmin(selectedId = "") {
+    async function loadCatalogAdmin() {
       if (!catalogList) return;
       setMessage(catalogMessage, "");
-      if (catalogItemSelect) {
-        catalogItemSelect.disabled = true;
-        catalogItemSelect.innerHTML = '<option value="">— Đang Tải Danh Sách Mục —</option>';
-      }
-      catalogList.innerHTML = '<div class="catalog-selection-note">Đang Tải Danh Mục...</div>';
+      catalogList.innerHTML = '<div class="catalog-empty">Đang Tải Danh Mục...</div>';
       try {
         const data = await adminApi("admin-list-catalog");
-        catalogAdminItems = Array.isArray(data.items) ? data.items : [];
-        renderCatalogSelector(selectedId);
-
-        if (!catalogAdminItems.length && selectedId !== "__new__") {
-          catalogList.innerHTML = '<div class="catalog-selection-note">Chưa Có Danh Mục. Bấm “+ Thêm Mục Mới” Để Tạo Mục Đầu Tiên.</div>';
+        const items = Array.isArray(data.items) ? data.items : [];
+        catalogList.innerHTML = "";
+        if (!items.length) {
+          catalogList.innerHTML = '<div class="catalog-empty">Chưa Có Danh Mục. Bấm “+ Thêm Mục Mới”.</div>';
           return;
         }
-
-        showCatalogSelection(selectedId);
+        items.forEach((item) => catalogList.appendChild(createCatalogEditor(item)));
       } catch (error) {
-        catalogAdminItems = [];
-        if (catalogItemSelect) {
-          catalogItemSelect.innerHTML = '<option value="">— Không Tải Được Danh Sách —</option>';
-        }
-        catalogList.innerHTML = '<div class="catalog-selection-note">Không Tải Được Danh Mục.</div>';
+        catalogList.innerHTML = '<div class="catalog-empty">Không Tải Được Danh Mục.</div>';
         await handleAdminError(error, catalogMessage);
-      } finally {
-        if (catalogItemSelect) catalogItemSelect.disabled = false;
       }
     }
 
@@ -2974,9 +2885,8 @@
       setMessage(catalogMessage, "");
       try {
         const data = await adminApi("admin-save-catalog-item", collectCatalogEditor(editor));
-        const savedId = String(data?.item?.id || editor.dataset.itemId || "");
         setMessage(catalogMessage, "Đã Lưu Danh Mục Thành Công.", "success");
-        await loadCatalogAdmin(savedId);
+        await loadCatalogAdmin();
       } catch (error) {
         await handleAdminError(error, catalogMessage);
       } finally {
@@ -2987,9 +2897,8 @@
     async function deleteCatalogItem(editor) {
       const itemId = editor.dataset.itemId;
       if (!itemId) {
-        renderCatalogSelector("");
-        showCatalogSelection("");
-        setMessage(catalogMessage, "Đã Hủy Mục Mới Chưa Lưu.", "success");
+        editor.remove();
+        if (!catalogList.children.length) catalogList.innerHTML = '<div class="catalog-empty">Chưa Có Danh Mục.</div>';
         return;
       }
       const title = editor.querySelector('[data-cat="title"]').value || "Mục Này";
@@ -2999,7 +2908,7 @@
       try {
         await adminApi("admin-delete-catalog-item", { itemId });
         setMessage(catalogMessage, "Đã Xóa Danh Mục Và Kho Acc Đi Kèm.", "success");
-        await loadCatalogAdmin("");
+        await loadCatalogAdmin();
       } catch (error) {
         await handleAdminError(error, catalogMessage);
       } finally {
@@ -3101,12 +3010,9 @@
       // Cập nhật thống kê ở đầu card mà không bắt buộc admin đóng/mở lại panel.
       try {
         const data = await adminApi("admin-list-catalog");
-        const items = Array.isArray(data.items) ? data.items : [];
-        catalogAdminItems = items;
-        const item = items.find((x) => x.id === itemId);
+        const item = (data.items || []).find((x) => x.id === itemId);
         const editor = Array.from(catalogList.querySelectorAll(".catalog-editor")).find((el) => el.dataset.itemId === itemId);
         if (!item || !editor) return;
-        renderCatalogSelector(itemId);
         const chips = editor.querySelectorAll(".catalog-stat-chip");
         if (chips[0]) chips[0].textContent = `Còn: ${Number(item.availableCount || 0).toLocaleString("vi-VN")}`;
         if (chips[1]) chips[1].textContent = `Đã Lấy: ${Number(item.claimedCount || 0).toLocaleString("vi-VN")}`;
@@ -3341,16 +3247,13 @@
       }
     );
 
-    catalogItemSelect?.addEventListener("change", () => {
-      setMessage(catalogMessage, "");
-      showCatalogSelection(catalogItemSelect.value);
-    });
-
     addCatalogItemButton?.addEventListener("click", () => {
-      setMessage(catalogMessage, "Đang Tạo Mục Mới. Điền Thông Tin Rồi Bấm Lưu Mục.", "success");
-      renderCatalogSelector("__new__");
-      showCatalogSelection("__new__");
-      catalogList.querySelector(".catalog-editor")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const empty = catalogList.querySelector(".catalog-empty");
+      if (empty) empty.remove();
+      const editor = createCatalogEditor(catalogDefaultItem());
+      catalogList.prepend(editor);
+      editor.scrollIntoView({ behavior: "smooth", block: "center" });
+      editor.querySelector('[data-cat="title"]')?.focus();
     });
 
     initializeAdmin();
