@@ -741,6 +741,46 @@
     }
   </style>
 
+
+  <style id="catalog-admin-v17-style">
+    .catalog-help { margin: 12px 0 16px; padding: 12px 14px; border: 2px dashed var(--gt-ink, #0f172a); background: #eefbff; font-size: 12px; line-height: 1.55; }
+    .catalog-admin-list { display: grid; gap: 16px; }
+    .catalog-empty { padding: 22px; border: 2px dashed var(--gt-ink, #0f172a); text-align: center; font-weight: 800; background: #fff; }
+    .catalog-editor { padding: 17px; border: 3px solid var(--gt-ink, #0f172a); background: #fff; box-shadow: 5px 5px 0 var(--gt-ink, #0f172a); }
+    .catalog-editor.is-maintenance { background: #fff4b9; }
+    .catalog-editor.is-disabled { opacity: .72; }
+    .catalog-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .catalog-editor-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .catalog-thumb-preview { width: 58px; height: 58px; flex: 0 0 58px; object-fit: cover; border: 3px solid var(--gt-ink, #0f172a); background: #f8fafc; box-shadow: 3px 3px 0 var(--gt-ink, #0f172a); }
+    .catalog-thumb-fallback { width: 58px; height: 58px; display: grid; place-items: center; flex: 0 0 58px; border: 3px solid var(--gt-ink, #0f172a); background: #b9ecff; box-shadow: 3px 3px 0 var(--gt-ink, #0f172a); font-size: 24px; }
+    .catalog-editor-name { font-size: 17px; font-weight: 950; overflow-wrap: anywhere; }
+    .catalog-stat-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 5px; }
+    .catalog-stat-chip { padding: 4px 7px; border: 2px solid var(--gt-ink, #0f172a); background: #fff; font-size: 10px; font-weight: 900; }
+    .catalog-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .catalog-form-grid .wide { grid-column: 1 / -1; }
+    .catalog-switches { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; padding: 10px; border: 2px solid var(--gt-ink, #0f172a); background: #f8fafc; }
+    .catalog-switches label { display: inline-flex; gap: 7px; align-items: center; margin: 0; }
+    .catalog-image-row { display: grid; grid-template-columns: 1fr auto; gap: 9px; align-items: end; }
+    .catalog-image-row button { min-width: 130px; }
+    .catalog-account-panel { margin-top: 17px; padding-top: 17px; border-top: 3px dashed var(--gt-ink, #0f172a); }
+    .catalog-account-panel[hidden] { display: none !important; }
+    .catalog-account-tools { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 11px; }
+    .catalog-account-tools textarea { min-height: 120px; }
+    .catalog-account-list { margin-top: 14px; overflow-x: auto; border: 2px solid var(--gt-ink, #0f172a); }
+    .catalog-account-list table { min-width: 760px; }
+    .catalog-account-list .account-value { max-width: 390px; overflow-wrap: anywhere; font-family: Consolas, monospace; font-size: 12px; }
+    .catalog-account-panel .actions { margin-top: 11px; }
+    .catalog-account-filter { display: grid; grid-template-columns: 1fr 180px auto; gap: 8px; margin-top: 12px; }
+    .catalog-mini-message { min-height: 20px; margin-top: 8px; font-size: 12px; font-weight: 800; }
+    .catalog-mini-message.success { color: #087a53; }
+    .catalog-mini-message.error { color: #b91c36; }
+    @media (max-width: 760px) {
+      .catalog-form-grid, .catalog-image-row, .catalog-account-tools, .catalog-account-filter { grid-template-columns: 1fr; }
+      .catalog-form-grid .wide { grid-column: auto; }
+      .catalog-editor-head { align-items: flex-start; }
+    }
+  </style>
+
 </head>
 
 <body>
@@ -889,6 +929,11 @@
               placeholder="https://..."
             />
           </div>
+
+          <div>
+            <label for="dailyKeyLimit">Giới Hạn Key / IP / Ngày</label>
+            <input id="dailyKeyLimit" type="number" min="1" max="1000" value="5" />
+          </div>
         </div>
 
         <div class="actions">
@@ -900,36 +945,25 @@
         <div class="message" id="settingsMessage"></div>
       </section>
 
-      <section class="section">
+
+
+      <section class="section" id="catalogAdminSection">
         <div class="section-head">
           <div>
-            <h2>Giới Hạn Key Mỗi Ngày</h2>
-            <p>Đặt Số Key Tối Đa Mỗi IP Có Thể Nhận Trong Một Ngày. Có Thể Chỉnh Từ 1 Đến 1000.</p>
+            <h2>Quản Lý Danh Mục Free Clone Game</h2>
+            <p>Sửa Tên, Ảnh Nhỏ, Nội Dung, Link, Bật/Tắt Hiển Thị, Bảo Trì Riêng Và Quản Lý Kho Acc Của Từng Mục.</p>
           </div>
+          <button class="primary" id="addCatalogItemButton" type="button">+ Thêm Mục Mới</button>
         </div>
 
-        <div class="grid">
-          <div>
-            <label for="dailyKeyLimit">Số Key / IP / Ngày</label>
-            <input
-              id="dailyKeyLimit"
-              type="number"
-              min="1"
-              max="1000"
-              step="1"
-              inputmode="numeric"
-              value="5"
-            />
-          </div>
+        <div class="catalog-help">
+          <strong>Đầy Đủ CRUD:</strong> Có Thể Thêm Mục, Sửa Mục, Xóa Mục, Upload Ảnh Nhỏ, Thêm Nhiều Acc, Xóa Acc, Khóa/Mở Lại Acc Và Bật Bảo Trì Từng Mục.
         </div>
 
-        <div class="actions">
-          <button class="primary" id="saveDailyLimitButton" type="button">
-            Lưu Giới Hạn
-          </button>
+        <div id="catalogList" class="catalog-admin-list">
+          <div class="catalog-empty">Đang Tải Danh Mục...</div>
         </div>
-
-        <div class="message" id="dailyLimitMessage"></div>
+        <div class="message" id="catalogMessage"></div>
       </section>
 
       <section class="section">
@@ -1260,11 +1294,14 @@
     const dailyKeyLimit =
       document.getElementById("dailyKeyLimit");
 
-    const saveDailyLimitButton =
-      document.getElementById("saveDailyLimitButton");
+    const catalogList =
+      document.getElementById("catalogList");
 
-    const dailyLimitMessage =
-      document.getElementById("dailyLimitMessage");
+    const catalogMessage =
+      document.getElementById("catalogMessage");
+
+    const addCatalogItemButton =
+      document.getElementById("addCatalogItemButton");
 
     const shortenerLayers =
       document.getElementById("shortenerLayers");
@@ -1447,8 +1484,6 @@
           "Không Thể Lưu Các Đường Link.",
         INVALID_SETTINGS_URL:
           "Link Không Hợp Lệ. Link Phải Bắt Đầu Bằng http:// Hoặc https://.",
-        INVALID_DAILY_KEY_LIMIT:
-          "Giới Hạn Key Mỗi Ngày Phải Là Số Nguyên Từ 1 Đến 1000.",
         SHORTENER_INVALID_API_URL:
           "Link API Rút Gọn Không Hợp Lệ. Hãy Dùng Dạng https://gtraffic.io/st?apikey=API_KEY&url=.",
         SHORTENER_NOT_CONFIGURED:
@@ -1459,6 +1494,28 @@
           "Không Thể Tải Danh Sách Key.",
         NO_KEYS_SELECTED:
           "Bạn Chưa Chọn Key Cần Xóa.",
+        CATALOG_TITLE_REQUIRED:
+          "Tên Danh Mục Không Được Để Trống.",
+        CATALOG_INVALID_SLUG:
+          "Mã Danh Mục Chỉ Được Dùng Chữ Thường, Số Và Dấu Gạch Ngang.",
+        CATALOG_SLUG_EXISTS:
+          "Mã Danh Mục Đã Tồn Tại. Hãy Đổi Mã Khác.",
+        CATALOG_INVALID_TYPE:
+          "Loại Danh Mục Không Hợp Lệ.",
+        CATALOG_INVALID_URL:
+          "Link Danh Mục Không Hợp Lệ.",
+        CATALOG_URL_REQUIRED:
+          "Mục Loại Mở Link Bắt Buộc Phải Có Link Đích.",
+        CATALOG_INVALID_IMAGE:
+          "Ảnh Nhỏ Không Hợp Lệ.",
+        CATALOG_IMAGE_TOO_LARGE:
+          "Ảnh Nhỏ Quá Lớn. Hãy Chọn Ảnh Nhẹ Hơn.",
+        CATALOG_ITEM_NOT_FOUND:
+          "Không Tìm Thấy Danh Mục.",
+        NO_ACCOUNTS_PROVIDED:
+          "Bạn Chưa Nhập Acc.",
+        NO_ACCOUNTS_SELECTED:
+          "Bạn Chưa Chọn Acc.",
         DELETE_KEYS_FAILED:
           "Không Thể Xóa Các Key Đã Chọn.",
         SERVER_CONFIG_ERROR:
@@ -1610,9 +1667,11 @@
       supportUrl.value =
         settings.supportUrl || "";
 
-      dailyKeyLimit.value = String(
-        Math.min(1000, Math.max(1, Math.floor(Number(settings.dailyKeyLimit) || 5)))
-      );
+      if (dailyKeyLimit) {
+        dailyKeyLimit.value = String(
+          Math.min(1000, Math.max(1, Math.floor(Number(settings.dailyKeyLimit) || 5)))
+        );
+      }
 
       renderShorteners(settings);
       renderAnnouncement(settings);
@@ -2062,7 +2121,10 @@
         renderShorteners(payload.settings);
 
         selectedKeyIds.clear();
-        await loadKeyList(1);
+        await Promise.all([
+          loadKeyList(1),
+          loadCatalogAdmin()
+        ]);
       } catch (dataError) {
         setMessage(
           keyMessage,
@@ -2152,8 +2214,7 @@
         downloadIpaUrl: downloadIpaUrl.value,
         telegramUrl: telegramUrl.value,
         supportUrl: supportUrl.value,
-        dailyKeyLimit:
-          Math.floor(Number(dailyKeyLimit.value) || 0),
+        dailyKeyLimit: Math.min(1000, Math.max(1, Math.floor(Number(dailyKeyLimit?.value) || 5))),
         shortenerLayers:
           Number(shortenerLayers.value) || 2,
         shorteners: collectShorteners(),
@@ -2198,53 +2259,6 @@
           saveSettingsButton,
           false,
           "Lưu Các Đường Link"
-        );
-      }
-    }
-
-    async function saveDailyLimit() {
-      const value = Math.floor(Number(dailyKeyLimit.value));
-
-      if (!Number.isInteger(value) || value < 1 || value > 1000) {
-        setMessage(
-          dailyLimitMessage,
-          "Giới Hạn Phải Từ 1 Đến 1000 Key / IP / Ngày.",
-          "error"
-        );
-        return;
-      }
-
-      setLoading(
-        saveDailyLimitButton,
-        true,
-        "Đang Lưu..."
-      );
-
-      setMessage(dailyLimitMessage, "");
-
-      try {
-        const data = await adminApi(
-          "admin-update-settings",
-          collectAllSettings()
-        );
-
-        renderSettings(data.settings);
-
-        setMessage(
-          dailyLimitMessage,
-          `Đã Lưu Giới Hạn ${data.settings.dailyKeyLimit} Key / IP / Ngày.`,
-          "success"
-        );
-      } catch (error) {
-        await handleAdminError(
-          error,
-          dailyLimitMessage
-        );
-      } finally {
-        setLoading(
-          saveDailyLimitButton,
-          false,
-          "Lưu Giới Hạn"
         );
       }
     }
@@ -2544,6 +2558,469 @@
       }
     }
 
+
+
+    // ===== V17: QUẢN LÝ ĐẦY ĐỦ DANH MỤC + KHO ACC =====
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function slugifyCatalog(value) {
+      return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/đ/g, "d")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 60);
+    }
+
+    function setCatalogMiniMessage(panel, text = "", type = "") {
+      const el = panel?.querySelector(".catalog-mini-message");
+      if (!el) return;
+      el.textContent = text;
+      el.className = `catalog-mini-message ${type}`.trim();
+    }
+
+    async function imageFileToThumbnail(file) {
+      if (!file || !String(file.type || "").startsWith("image/")) {
+        throw new Error("Vui Lòng Chọn File Ảnh.");
+      }
+
+      const source = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Không Đọc Được Ảnh."));
+        reader.readAsDataURL(file);
+      });
+
+      const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("Ảnh Không Hợp Lệ."));
+        image.src = source;
+      });
+
+      const maxSide = 360;
+      const scale = Math.min(1, maxSide / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      let result = canvas.toDataURL("image/webp", .82);
+      if (!result || result === "data:,") result = canvas.toDataURL("image/jpeg", .82);
+      if (result.length > 850000) throw new Error("Ảnh Sau Khi Nén Vẫn Quá Lớn.");
+      return result;
+    }
+
+    function catalogDefaultItem() {
+      return {
+        id: "",
+        slug: "",
+        title: "Mục Mới",
+        description: "",
+        imageUrl: "",
+        buttonText: "Nhận Ngay",
+        tags: ["Miễn Phí"],
+        itemType: "account",
+        externalUrl: "",
+        enabled: true,
+        maintenance: false,
+        sortOrder: 50,
+        dailyLimit: 1,
+        availableCount: 0,
+        claimedCount: 0,
+        disabledCount: 0,
+        totalCount: 0
+      };
+    }
+
+    function createCatalogEditor(rawItem = {}) {
+      const item = { ...catalogDefaultItem(), ...rawItem };
+      const editor = document.createElement("div");
+      editor.className = "catalog-editor";
+      editor.dataset.itemId = String(item.id || "");
+      editor.classList.toggle("is-maintenance", item.maintenance === true);
+      editor.classList.toggle("is-disabled", item.enabled === false);
+
+      editor.innerHTML = `
+        <div class="catalog-editor-head">
+          <div class="catalog-editor-title">
+            <div class="catalog-thumb-slot"></div>
+            <div>
+              <div class="catalog-editor-name">${escapeHtml(item.title || "Mục Mới")}</div>
+              <div class="catalog-stat-row">
+                <span class="catalog-stat-chip">Còn: ${Number(item.availableCount || 0).toLocaleString("vi-VN")}</span>
+                <span class="catalog-stat-chip">Đã Lấy: ${Number(item.claimedCount || 0).toLocaleString("vi-VN")}</span>
+                <span class="catalog-stat-chip">Đã Khóa: ${Number(item.disabledCount || 0).toLocaleString("vi-VN")}</span>
+              </div>
+            </div>
+          </div>
+          <div class="actions" style="margin-top:0">
+            <button type="button" class="ghost js-toggle-accounts">Quản Lý Acc</button>
+            <button type="button" class="primary js-save-item">Lưu Mục</button>
+            <button type="button" class="danger js-delete-item">Xóa Mục</button>
+          </div>
+        </div>
+
+        <div class="catalog-form-grid">
+          <div>
+            <label>Tên Mục</label>
+            <input data-cat="title" type="text" maxlength="120" value="${escapeHtml(item.title)}" placeholder="VD: Lấy Acc Liên Quân" />
+          </div>
+          <div>
+            <label>Mã Mục (Slug)</label>
+            <input data-cat="slug" type="text" maxlength="60" value="${escapeHtml(item.slug)}" placeholder="vd: lien-quan" />
+          </div>
+          <div>
+            <label>Loại Mục</label>
+            <select data-cat="itemType">
+              <option value="account" ${item.itemType === "account" ? "selected" : ""}>Kho Acc Nội Bộ</option>
+              <option value="link" ${item.itemType === "link" ? "selected" : ""}>Mở Link Ngoài</option>
+              <option value="migul" ${item.itemType === "migul" ? "selected" : ""}>Dùng Luồng Key MiGul</option>
+            </select>
+          </div>
+          <div>
+            <label>Thứ Tự Hiển Thị</label>
+            <input data-cat="sortOrder" type="number" value="${Number(item.sortOrder || 0)}" />
+          </div>
+          <div class="wide">
+            <label>Mô Tả</label>
+            <textarea data-cat="description" maxlength="600" style="min-height:100px" placeholder="Mô tả ngắn cho user...">${escapeHtml(item.description)}</textarea>
+          </div>
+          <div class="wide">
+            <label>Ảnh Nhỏ Của Mục</label>
+            <div class="catalog-image-row">
+              <input data-cat="imageUrl" type="text" value="${escapeHtml(item.imageUrl)}" placeholder="https://... hoặc chọn ảnh từ máy" />
+              <div>
+                <button type="button" class="ghost js-pick-image">Chọn Ảnh</button>
+                <input class="js-image-file" type="file" accept="image/*" hidden />
+              </div>
+            </div>
+          </div>
+          <div>
+            <label>Chữ Trên Nút</label>
+            <input data-cat="buttonText" type="text" maxlength="80" value="${escapeHtml(item.buttonText)}" />
+          </div>
+          <div>
+            <label>Tag (Cách Nhau Bằng Dấu Phẩy)</label>
+            <input data-cat="tags" type="text" value="${escapeHtml((item.tags || []).join(", "))}" placeholder="Acc Random, Miễn Phí" />
+          </div>
+          <div class="wide js-external-url-wrap">
+            <label>Link Đích (Chỉ Dùng Khi Loại = Mở Link Ngoài)</label>
+            <input data-cat="externalUrl" type="url" value="${escapeHtml(item.externalUrl)}" placeholder="https://..." />
+          </div>
+          <div>
+            <label>Giới Hạn Acc / IP / Ngày</label>
+            <input data-cat="dailyLimit" type="number" min="0" max="1000" value="${Number(item.dailyLimit || 0)}" />
+            <p style="font-size:11px;margin-top:6px">0 = Không Giới Hạn. Chỉ Áp Dụng Cho Kho Acc.</p>
+          </div>
+          <div>
+            <label>Trạng Thái</label>
+            <div class="catalog-switches">
+              <label><input data-cat="enabled" class="checkbox" type="checkbox" ${item.enabled !== false ? "checked" : ""}> Hiển Thị</label>
+              <label><input data-cat="maintenance" class="checkbox" type="checkbox" ${item.maintenance === true ? "checked" : ""}> Bảo Trì</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="catalog-account-panel" hidden>
+          <h3 style="margin:0">Kho Acc Của Mục Này</h3>
+          <p>Nhập Mỗi Acc Một Dòng. Có Thể Dùng Dạng <strong>user|pass</strong>, <strong>email|pass</strong> Hoặc Bất Kỳ Chuỗi Nào Bạn Muốn Phát.</p>
+          <div class="catalog-account-tools">
+            <textarea class="js-account-input" placeholder="acc001|matkhau001&#10;acc002|matkhau002"></textarea>
+            <button type="button" class="primary js-add-accounts">+ Thêm Acc</button>
+          </div>
+          <div class="catalog-account-filter">
+            <input class="js-account-search" type="search" placeholder="Tìm acc..." />
+            <select class="js-account-status">
+              <option value="">Tất Cả Trạng Thái</option>
+              <option value="available">Còn Acc</option>
+              <option value="claimed">Đã Lấy</option>
+              <option value="disabled">Đã Khóa</option>
+            </select>
+            <button type="button" class="ghost js-reload-accounts">Tải Lại</button>
+          </div>
+          <div class="catalog-account-list js-account-list"><div class="catalog-empty">Bấm Quản Lý Acc Để Tải Danh Sách.</div></div>
+          <div class="actions">
+            <button type="button" class="ghost js-restore-accounts">Trả Về Kho</button>
+            <button type="button" class="ghost js-disable-accounts">Khóa Acc</button>
+            <button type="button" class="danger js-delete-accounts">Xóa Acc Đã Chọn</button>
+          </div>
+          <div class="catalog-mini-message"></div>
+        </div>
+      `;
+
+      const thumbSlot = editor.querySelector(".catalog-thumb-slot");
+      const imageInput = editor.querySelector('[data-cat="imageUrl"]');
+      const titleInput = editor.querySelector('[data-cat="title"]');
+      const slugInput = editor.querySelector('[data-cat="slug"]');
+      const typeInput = editor.querySelector('[data-cat="itemType"]');
+      const accountToggle = editor.querySelector(".js-toggle-accounts");
+      const accountPanel = editor.querySelector(".catalog-account-panel");
+
+      function renderThumb() {
+        const url = String(imageInput.value || "").trim();
+        thumbSlot.innerHTML = "";
+        if (url) {
+          const img = document.createElement("img");
+          img.className = "catalog-thumb-preview";
+          img.alt = "Ảnh Mục";
+          img.src = url;
+          img.onerror = () => {
+            thumbSlot.innerHTML = '<div class="catalog-thumb-fallback">🖼️</div>';
+          };
+          thumbSlot.appendChild(img);
+        } else {
+          thumbSlot.innerHTML = '<div class="catalog-thumb-fallback">🎮</div>';
+        }
+      }
+
+      function syncTypeUi() {
+        const isAccount = typeInput.value === "account";
+        accountToggle.hidden = !isAccount || !editor.dataset.itemId;
+        if (!isAccount) accountPanel.hidden = true;
+      }
+
+      renderThumb();
+      syncTypeUi();
+      imageInput.addEventListener("change", renderThumb);
+      typeInput.addEventListener("change", syncTypeUi);
+      titleInput.addEventListener("input", () => {
+        editor.querySelector(".catalog-editor-name").textContent = titleInput.value || "Mục Mới";
+        if (!editor.dataset.itemId && !slugInput.dataset.touched) slugInput.value = slugifyCatalog(titleInput.value);
+      });
+      slugInput.addEventListener("input", () => { slugInput.dataset.touched = "1"; });
+
+      const imageFile = editor.querySelector(".js-image-file");
+      editor.querySelector(".js-pick-image").addEventListener("click", () => imageFile.click());
+      imageFile.addEventListener("change", async () => {
+        const file = imageFile.files?.[0];
+        if (!file) return;
+        try {
+          imageInput.value = await imageFileToThumbnail(file);
+          renderThumb();
+          setMessage(catalogMessage, "Ảnh Đã Được Nén Và Gắn Vào Mục. Bấm Lưu Mục Để Lưu Lại.", "success");
+        } catch (error) {
+          setMessage(catalogMessage, String(error?.message || error), "error");
+        }
+      });
+
+      editor.querySelector('[data-cat="enabled"]').addEventListener("change", (event) => {
+        editor.classList.toggle("is-disabled", !event.target.checked);
+      });
+      editor.querySelector('[data-cat="maintenance"]').addEventListener("change", (event) => {
+        editor.classList.toggle("is-maintenance", event.target.checked);
+      });
+
+      editor.querySelector(".js-save-item").addEventListener("click", () => saveCatalogItem(editor));
+      editor.querySelector(".js-delete-item").addEventListener("click", () => deleteCatalogItem(editor));
+      accountToggle.addEventListener("click", async () => {
+        accountPanel.hidden = !accountPanel.hidden;
+        if (!accountPanel.hidden) await loadCatalogAccounts(editor);
+      });
+
+      editor.querySelector(".js-add-accounts").addEventListener("click", () => addCatalogAccounts(editor));
+      editor.querySelector(".js-reload-accounts").addEventListener("click", () => loadCatalogAccounts(editor));
+      editor.querySelector(".js-account-search").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") loadCatalogAccounts(editor);
+      });
+      editor.querySelector(".js-account-status").addEventListener("change", () => loadCatalogAccounts(editor));
+      editor.querySelector(".js-delete-accounts").addEventListener("click", () => mutateSelectedCatalogAccounts(editor, "delete"));
+      editor.querySelector(".js-restore-accounts").addEventListener("click", () => mutateSelectedCatalogAccounts(editor, "available"));
+      editor.querySelector(".js-disable-accounts").addEventListener("click", () => mutateSelectedCatalogAccounts(editor, "disabled"));
+
+      return editor;
+    }
+
+    function collectCatalogEditor(editor) {
+      const get = (name) => editor.querySelector(`[data-cat="${name}"]`);
+      return {
+        itemId: editor.dataset.itemId || "",
+        title: get("title").value.trim(),
+        slug: slugifyCatalog(get("slug").value || get("title").value),
+        itemType: get("itemType").value,
+        description: get("description").value.trim(),
+        imageUrl: get("imageUrl").value.trim(),
+        buttonText: get("buttonText").value.trim(),
+        tags: get("tags").value.split(",").map((v) => v.trim()).filter(Boolean),
+        externalUrl: get("externalUrl").value.trim(),
+        enabled: get("enabled").checked,
+        maintenance: get("maintenance").checked,
+        sortOrder: Number(get("sortOrder").value) || 0,
+        dailyLimit: Math.min(1000, Math.max(0, Math.floor(Number(get("dailyLimit").value) || 0)))
+      };
+    }
+
+    async function loadCatalogAdmin() {
+      if (!catalogList) return;
+      setMessage(catalogMessage, "");
+      catalogList.innerHTML = '<div class="catalog-empty">Đang Tải Danh Mục...</div>';
+      try {
+        const data = await adminApi("admin-list-catalog");
+        const items = Array.isArray(data.items) ? data.items : [];
+        catalogList.innerHTML = "";
+        if (!items.length) {
+          catalogList.innerHTML = '<div class="catalog-empty">Chưa Có Danh Mục. Bấm “+ Thêm Mục Mới”.</div>';
+          return;
+        }
+        items.forEach((item) => catalogList.appendChild(createCatalogEditor(item)));
+      } catch (error) {
+        catalogList.innerHTML = '<div class="catalog-empty">Không Tải Được Danh Mục.</div>';
+        await handleAdminError(error, catalogMessage);
+      }
+    }
+
+    async function saveCatalogItem(editor) {
+      const button = editor.querySelector(".js-save-item");
+      setLoading(button, true, "Đang Lưu...");
+      setMessage(catalogMessage, "");
+      try {
+        const data = await adminApi("admin-save-catalog-item", collectCatalogEditor(editor));
+        setMessage(catalogMessage, "Đã Lưu Danh Mục Thành Công.", "success");
+        await loadCatalogAdmin();
+      } catch (error) {
+        await handleAdminError(error, catalogMessage);
+      } finally {
+        setLoading(button, false, "Lưu Mục");
+      }
+    }
+
+    async function deleteCatalogItem(editor) {
+      const itemId = editor.dataset.itemId;
+      if (!itemId) {
+        editor.remove();
+        if (!catalogList.children.length) catalogList.innerHTML = '<div class="catalog-empty">Chưa Có Danh Mục.</div>';
+        return;
+      }
+      const title = editor.querySelector('[data-cat="title"]').value || "Mục Này";
+      if (!window.confirm(`Xóa “${title}” Và Toàn Bộ Acc Trong Mục Này?`)) return;
+      const button = editor.querySelector(".js-delete-item");
+      setLoading(button, true, "Đang Xóa...");
+      try {
+        await adminApi("admin-delete-catalog-item", { itemId });
+        setMessage(catalogMessage, "Đã Xóa Danh Mục Và Kho Acc Đi Kèm.", "success");
+        await loadCatalogAdmin();
+      } catch (error) {
+        await handleAdminError(error, catalogMessage);
+      } finally {
+        setLoading(button, false, "Xóa Mục");
+      }
+    }
+
+    function selectedAccountIds(editor) {
+      return Array.from(editor.querySelectorAll('.js-account-checkbox:checked')).map((el) => el.value);
+    }
+
+    async function loadCatalogAccounts(editor) {
+      const itemId = editor.dataset.itemId;
+      const panel = editor.querySelector(".catalog-account-panel");
+      const list = panel.querySelector(".js-account-list");
+      if (!itemId) {
+        setCatalogMiniMessage(panel, "Hãy Lưu Mục Trước Khi Thêm Acc.", "error");
+        return;
+      }
+      list.innerHTML = '<div class="catalog-empty">Đang Tải Kho Acc...</div>';
+      setCatalogMiniMessage(panel, "");
+      try {
+        const data = await adminApi("admin-list-catalog-accounts", {
+          itemId,
+          page: 1,
+          pageSize: 100,
+          search: panel.querySelector(".js-account-search").value,
+          status: panel.querySelector(".js-account-status").value
+        });
+        const accounts = Array.isArray(data.accounts) ? data.accounts : [];
+        if (!accounts.length) {
+          list.innerHTML = '<div class="catalog-empty">Kho Acc Đang Trống.</div>';
+          return;
+        }
+        const rows = accounts.map((acc) => `
+          <tr>
+            <td><input class="checkbox js-account-checkbox" type="checkbox" value="${escapeHtml(acc.id)}"></td>
+            <td><span class="account-value">${escapeHtml(acc.value)}</span></td>
+            <td><span class="status-badge status-${acc.status === "available" ? "available" : acc.status === "claimed" ? "claimed" : "disabled"}">${acc.status === "available" ? "Còn Acc" : acc.status === "claimed" ? "Đã Lấy" : "Đã Khóa"}</span></td>
+            <td class="date-text">${escapeHtml(formatDate(acc.createdAt))}</td>
+            <td class="date-text">${escapeHtml(formatDate(acc.claimedAt))}</td>
+            <td class="date-text">${escapeHtml(acc.claimedIp || "—")}</td>
+          </tr>`).join("");
+        list.innerHTML = `
+          <table>
+            <thead><tr><th></th><th>Acc</th><th>Trạng Thái</th><th>Ngày Thêm</th><th>Ngày Lấy</th><th>IP Lấy</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+        const pagination = data.pagination || {};
+        setCatalogMiniMessage(panel, `Đang Hiển Thị ${accounts.length}/${Number(pagination.total || accounts.length)} Acc.`, "success");
+      } catch (error) {
+        list.innerHTML = '<div class="catalog-empty">Không Tải Được Kho Acc.</div>';
+        setCatalogMiniMessage(panel, String(error?.message || error), "error");
+      }
+    }
+
+    async function addCatalogAccounts(editor) {
+      const itemId = editor.dataset.itemId;
+      const panel = editor.querySelector(".catalog-account-panel");
+      const input = panel.querySelector(".js-account-input");
+      const button = panel.querySelector(".js-add-accounts");
+      if (!itemId) return setCatalogMiniMessage(panel, "Hãy Lưu Mục Trước.", "error");
+      if (!input.value.trim()) return setCatalogMiniMessage(panel, "Bạn Chưa Nhập Acc.", "error");
+      setLoading(button, true, "Đang Thêm...");
+      try {
+        const data = await adminApi("admin-add-catalog-accounts", { itemId, accounts: input.value });
+        input.value = "";
+        setCatalogMiniMessage(panel, `Đã Thêm ${Number(data.inserted || 0)} Acc. Trùng ${Number(data.duplicates || 0)}.`, "success");
+        await loadCatalogAccounts(editor);
+        await loadCatalogAdminPreserveOpen(itemId);
+      } catch (error) {
+        setCatalogMiniMessage(panel, String(error?.message || error), "error");
+      } finally {
+        setLoading(button, false, "+ Thêm Acc");
+      }
+    }
+
+    async function mutateSelectedCatalogAccounts(editor, mode) {
+      const panel = editor.querySelector(".catalog-account-panel");
+      const accountIds = selectedAccountIds(editor);
+      if (!accountIds.length) return setCatalogMiniMessage(panel, "Bạn Chưa Chọn Acc.", "error");
+      if (mode === "delete" && !window.confirm(`Xóa ${accountIds.length} Acc Đã Chọn?`)) return;
+      try {
+        if (mode === "delete") {
+          const data = await adminApi("admin-delete-catalog-accounts", { accountIds });
+          setCatalogMiniMessage(panel, `Đã Xóa ${Number(data.deleted || 0)} Acc.`, "success");
+        } else {
+          const data = await adminApi("admin-update-catalog-account-status", { accountIds, status: mode });
+          setCatalogMiniMessage(panel, `Đã Cập Nhật ${Number(data.updated || 0)} Acc.`, "success");
+        }
+        await loadCatalogAccounts(editor);
+        await loadCatalogAdminPreserveOpen(editor.dataset.itemId);
+      } catch (error) {
+        setCatalogMiniMessage(panel, String(error?.message || error), "error");
+      }
+    }
+
+    async function loadCatalogAdminPreserveOpen(itemId) {
+      // Cập nhật thống kê ở đầu card mà không bắt buộc admin đóng/mở lại panel.
+      try {
+        const data = await adminApi("admin-list-catalog");
+        const item = (data.items || []).find((x) => x.id === itemId);
+        const editor = Array.from(catalogList.querySelectorAll(".catalog-editor")).find((el) => el.dataset.itemId === itemId);
+        if (!item || !editor) return;
+        const chips = editor.querySelectorAll(".catalog-stat-chip");
+        if (chips[0]) chips[0].textContent = `Còn: ${Number(item.availableCount || 0).toLocaleString("vi-VN")}`;
+        if (chips[1]) chips[1].textContent = `Đã Lấy: ${Number(item.claimedCount || 0).toLocaleString("vi-VN")}`;
+        if (chips[2]) chips[2].textContent = `Đã Khóa: ${Number(item.disabledCount || 0).toLocaleString("vi-VN")}`;
+      } catch {}
+    }
+
+
     async function initializeAdmin() {
       // Nếu đã có token còn lưu, tự mở lại dashboard.
       adminToken = loadStoredToken();
@@ -2602,11 +3079,6 @@
     saveSettingsButton.addEventListener(
       "click",
       saveSettings
-    );
-
-    saveDailyLimitButton.addEventListener(
-      "click",
-      saveDailyLimit
     );
 
     addShortenerButton.addEventListener(
@@ -2774,6 +3246,15 @@
         }
       }
     );
+
+    addCatalogItemButton?.addEventListener("click", () => {
+      const empty = catalogList.querySelector(".catalog-empty");
+      if (empty) empty.remove();
+      const editor = createCatalogEditor(catalogDefaultItem());
+      catalogList.prepend(editor);
+      editor.scrollIntoView({ behavior: "smooth", block: "center" });
+      editor.querySelector('[data-cat="title"]')?.focus();
+    });
 
     initializeAdmin();
   </script>
