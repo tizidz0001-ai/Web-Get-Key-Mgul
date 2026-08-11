@@ -1678,6 +1678,253 @@
     }
   </style>
 
+
+  <style id="admin-extra-compact-theme">
+    /* ===== Thu nhỏ toàn bộ ô trong Admin ===== */
+    #dashboardView input:not([type="checkbox"]):not([type="radio"]),
+    #dashboardView select {
+      min-height: 36px !important;
+      height: 36px !important;
+      padding: 6px 9px !important;
+      border-radius: 9px !important;
+      font-size: 10.5px !important;
+    }
+
+    #dashboardView textarea {
+      min-height: 92px !important;
+      padding: 8px 9px !important;
+      border-radius: 9px !important;
+      font-size: 10.5px !important;
+      line-height: 1.45 !important;
+    }
+
+    #dashboardView button,
+    #dashboardView a {
+      min-height: 34px !important;
+      height: auto !important;
+      padding: 0 10px !important;
+      border-radius: 9px !important;
+      font-size: 10px !important;
+    }
+
+    /* FIX checkbox đang bị kéo to bởi input width:100% */
+    #dashboardView input[type="checkbox"],
+    #dashboardView .checkbox,
+    #dashboardView .shortener-toggle input[type="checkbox"],
+    #dashboardView .catalog-switches input[type="checkbox"],
+    #dashboardView .drip-setting-state input[type="checkbox"] {
+      width: 14px !important;
+      height: 14px !important;
+      min-width: 14px !important;
+      min-height: 14px !important;
+      max-width: 14px !important;
+      max-height: 14px !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border-radius: 4px !important;
+      box-shadow: none !important;
+      flex: 0 0 14px !important;
+    }
+
+    #dashboardView .section {
+      padding: 13px !important;
+      margin-top: 8px !important;
+      border-radius: 14px !important;
+    }
+
+    #dashboardView .section-head {
+      margin-bottom: 9px !important;
+      gap: 8px !important;
+    }
+
+    #dashboardView h2 {
+      font-size: 15px !important;
+    }
+
+    #dashboardView label {
+      margin-bottom: 4px !important;
+      font-size: 10px !important;
+    }
+
+    #dashboardView p {
+      margin-top: 4px !important;
+      font-size: 9.5px !important;
+      line-height: 1.45 !important;
+    }
+
+    #dashboardView .grid {
+      gap: 7px !important;
+    }
+
+    #dashboardView .actions {
+      gap: 6px !important;
+      margin-top: 9px !important;
+    }
+
+    #dashboardView .stats {
+      gap: 6px !important;
+    }
+
+    #dashboardView .stat {
+      padding: 9px 10px !important;
+      border-radius: 11px !important;
+    }
+
+    #dashboardView .stat span {
+      font-size: 9px !important;
+    }
+
+    #dashboardView .stat strong {
+      margin-top: 2px !important;
+      font-size: 18px !important;
+    }
+
+    /* Thu nhỏ bảng key */
+    #dashboardView .table-wrap {
+      border-radius: 10px !important;
+    }
+
+    #dashboardView table {
+      min-width: 660px !important;
+    }
+
+    #dashboardView th {
+      padding: 7px 8px !important;
+      font-size: 8px !important;
+      line-height: 1.2 !important;
+    }
+
+    #dashboardView td {
+      padding: 7px 8px !important;
+      font-size: 9.5px !important;
+      line-height: 1.25 !important;
+    }
+
+    #dashboardView .key-code,
+    #dashboardView .drip-key-value,
+    #dashboardView .catalog-account-list .account-value {
+      font-size: 9.5px !important;
+    }
+
+    #dashboardView .date-text {
+      font-size: 8.5px !important;
+    }
+
+    #dashboardView .status-badge {
+      padding: 3px 6px !important;
+      font-size: 8px !important;
+    }
+
+    #dashboardView .list-toolbar,
+    #dashboardView .list-footer {
+      margin-bottom: 7px !important;
+      margin-top: 7px !important;
+      gap: 6px !important;
+    }
+
+    #dashboardView .selected-count,
+    #dashboardView .page-info {
+      font-size: 9px !important;
+    }
+
+    #dashboardView .drop-zone {
+      margin-top: 8px !important;
+      padding: 10px !important;
+      border-radius: 9px !important;
+      font-size: 9.5px !important;
+    }
+
+    #dashboardView .shortener-row,
+    #dashboardView .catalog-editor,
+    #dashboardView .catalog-selector-bar {
+      padding: 9px !important;
+      border-radius: 10px !important;
+    }
+
+    #dashboardView .catalog-thumb-preview,
+    #dashboardView .catalog-thumb-fallback {
+      width: 44px !important;
+      height: 44px !important;
+      flex-basis: 44px !important;
+      border-radius: 9px !important;
+    }
+
+    #dashboardView .catalog-editor-name {
+      font-size: 13px !important;
+    }
+
+    #dashboardView .catalog-stat-chip {
+      padding: 3px 5px !important;
+      font-size: 8px !important;
+    }
+
+    /* ===== Form Thêm Mục Nhanh ===== */
+    .quick-add-category-card {
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    .quick-add-form {
+      display: grid;
+      gap: 10px;
+    }
+
+    .quick-add-image-box {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid #e3e8f1;
+      border-radius: 12px;
+      background: #f8faff;
+    }
+
+    .quick-add-preview {
+      width: 64px;
+      height: 64px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid #dce3ee;
+      border-radius: 13px;
+      background: #fff;
+      color: #9aa5b6;
+      font-size: 22px;
+    }
+
+    .quick-add-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .quick-add-image-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .quick-add-hint {
+      margin-top: 5px !important;
+      color: #8b96a8 !important;
+      font-size: 9px !important;
+    }
+
+    @media (max-width: 560px) {
+      .quick-add-image-box {
+        grid-template-columns: 58px minmax(0, 1fr);
+      }
+
+      .quick-add-preview {
+        width: 52px;
+        height: 52px;
+      }
+    }
+  </style>
+
 </head>
 
 <body>
@@ -4791,6 +5038,14 @@
           desc: "Bật/tắt và thay đổi nội dung thông báo trên trang chính."
         },
         {
+          id: "quick-add-category",
+          group: "Khác",
+          icon: "+",
+          label: "Thêm Mục",
+          title: "Thêm Mục Get Key",
+          desc: "Tạo nhanh một mục mới với tên, giới hạn key mỗi ngày và ảnh."
+        },
+        {
           id: "catalog",
           group: "Khác",
           icon: "▦",
@@ -4872,6 +5127,167 @@
       shell.appendChild(sidebar);
       shell.appendChild(content);
       dashboard.appendChild(shell);
+
+      const quickAddSection = document.createElement("section");
+      quickAddSection.className = "section quick-add-category-card admin-page-section";
+      quickAddSection.dataset.adminPage = "quick-add-category";
+      quickAddSection.innerHTML = `
+        <div class="section-head">
+          <div>
+            <h2>Thêm Mục</h2>
+            <p>Tạo nhanh mục Get Key mới. Chỉ cần nhập đúng 3 thông tin bên dưới.</p>
+          </div>
+        </div>
+
+        <div class="quick-add-form">
+          <div>
+            <label for="quickCategoryName">Tên</label>
+            <input
+              id="quickCategoryName"
+              type="text"
+              maxlength="120"
+              placeholder="VD: Get Key Free Fire"
+            />
+          </div>
+
+          <div>
+            <label for="quickCategoryDailyLimit">Số Key Giới Hạn 1 Ngày</label>
+            <input
+              id="quickCategoryDailyLimit"
+              type="number"
+              min="0"
+              max="1000"
+              value="1"
+              placeholder="1"
+            />
+            <p class="quick-add-hint">Nhập 0 nếu không muốn giới hạn.</p>
+          </div>
+
+          <div>
+            <label>Ảnh</label>
+            <div class="quick-add-image-box">
+              <div class="quick-add-preview" id="quickCategoryPreview">🖼️</div>
+              <div>
+                <div class="quick-add-image-actions">
+                  <button type="button" class="ghost" id="quickCategoryPickImage">Chọn Ảnh</button>
+                  <button type="button" id="quickCategoryRemoveImage">Xóa Ảnh</button>
+                </div>
+                <input id="quickCategoryImageFile" type="file" accept="image/*" hidden />
+                <p class="quick-add-hint">Ảnh sẽ tự được nén trước khi lưu.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="button" class="primary" id="quickCategorySaveButton">
+              + Thêm Mục
+            </button>
+          </div>
+
+          <div class="message" id="quickCategoryMessage"></div>
+        </div>
+      `;
+
+      const catalogSectionForInsert = document.getElementById("catalogAdminSection");
+      if (catalogSectionForInsert) {
+        catalogSectionForInsert.insertAdjacentElement("beforebegin", quickAddSection);
+      } else {
+        content.appendChild(quickAddSection);
+      }
+
+      let quickCategoryImageData = "";
+      const quickCategoryName = quickAddSection.querySelector("#quickCategoryName");
+      const quickCategoryDailyLimit = quickAddSection.querySelector("#quickCategoryDailyLimit");
+      const quickCategoryImageFile = quickAddSection.querySelector("#quickCategoryImageFile");
+      const quickCategoryPreview = quickAddSection.querySelector("#quickCategoryPreview");
+      const quickCategoryMessage = quickAddSection.querySelector("#quickCategoryMessage");
+      const quickCategorySaveButton = quickAddSection.querySelector("#quickCategorySaveButton");
+
+      function renderQuickCategoryPreview() {
+        if (!quickCategoryImageData) {
+          quickCategoryPreview.innerHTML = "🖼️";
+          return;
+        }
+        const img = document.createElement("img");
+        img.src = quickCategoryImageData;
+        img.alt = "Ảnh Mục";
+        quickCategoryPreview.innerHTML = "";
+        quickCategoryPreview.appendChild(img);
+      }
+
+      quickAddSection.querySelector("#quickCategoryPickImage").addEventListener("click", () => {
+        quickCategoryImageFile.click();
+      });
+
+      quickAddSection.querySelector("#quickCategoryRemoveImage").addEventListener("click", () => {
+        quickCategoryImageData = "";
+        quickCategoryImageFile.value = "";
+        renderQuickCategoryPreview();
+      });
+
+      quickCategoryImageFile.addEventListener("change", async () => {
+        const file = quickCategoryImageFile.files?.[0];
+        if (!file) return;
+        try {
+          quickCategoryImageData = await imageFileToThumbnail(file);
+          renderQuickCategoryPreview();
+          setMessage(quickCategoryMessage, "Đã Chọn Ảnh.", "success");
+        } catch (error) {
+          quickCategoryImageData = "";
+          renderQuickCategoryPreview();
+          setMessage(quickCategoryMessage, String(error?.message || error), "error");
+        }
+      });
+
+      quickCategorySaveButton.addEventListener("click", async () => {
+        const title = String(quickCategoryName.value || "").trim();
+        const dailyLimit = Math.min(
+          1000,
+          Math.max(0, Math.floor(Number(quickCategoryDailyLimit.value) || 0))
+        );
+
+        if (!title) {
+          setMessage(quickCategoryMessage, "Vui Lòng Nhập Tên Mục.", "error");
+          quickCategoryName.focus();
+          return;
+        }
+
+        setLoading(quickCategorySaveButton, true, "Đang Thêm...");
+        setMessage(quickCategoryMessage, "");
+
+        try {
+          await adminApi("admin-save-catalog-item", {
+            itemId: "",
+            title,
+            slug: slugifyCatalog(title),
+            itemType: "account",
+            description: "",
+            imageUrl: quickCategoryImageData,
+            buttonText: "GET KEY",
+            tags: ["Miễn Phí"],
+            externalUrl: "",
+            enabled: true,
+            maintenance: false,
+            sortOrder: 50,
+            dailyLimit
+          });
+
+          setMessage(quickCategoryMessage, "Đã Thêm Mục Thành Công.", "success");
+          quickCategoryName.value = "";
+          quickCategoryDailyLimit.value = "1";
+          quickCategoryImageData = "";
+          quickCategoryImageFile.value = "";
+          renderQuickCategoryPreview();
+
+          if (typeof loadCatalogAdmin === "function") {
+            await loadCatalogAdmin("");
+          }
+        } catch (error) {
+          await handleAdminError(error, quickCategoryMessage);
+        } finally {
+          setLoading(quickCategorySaveButton, false, "+ Thêm Mục");
+        }
+      });
 
       const sections = Array.from(content.querySelectorAll(":scope > .section"));
 
