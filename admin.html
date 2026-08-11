@@ -1925,6 +1925,18 @@
     }
   </style>
 
+
+  <style id="limit-type-admin-polish">
+    #quickCategoryCustomLimitWrap[hidden] {
+      display: none !important;
+    }
+
+    #quickCategoryLimitType {
+      font-weight: 700 !important;
+      color: #4f5d73 !important;
+    }
+  </style>
+
 </head>
 
 <body>
@@ -3972,7 +3984,7 @@
         description: "",
         imageUrl: "",
         buttonText: "Nhận Ngay",
-        tags: ["Miễn Phí"],
+        tags: ["Miễn Phí", `limit-label:${limitLabel}`],
         itemType: "account",
         externalUrl: "",
         enabled: true,
@@ -5043,7 +5055,7 @@
           icon: "+",
           label: "Thêm Mục",
           title: "Thêm Mục Get Key",
-          desc: "Tạo nhanh một mục mới với tên, giới hạn key mỗi ngày và ảnh."
+          desc: "Tạo mục mới với tên, kiểu giới hạn, số lượng mỗi ngày và ảnh."
         },
         {
           id: "catalog",
@@ -5151,7 +5163,27 @@
           </div>
 
           <div>
-            <label for="quickCategoryDailyLimit">Số Key Giới Hạn 1 Ngày</label>
+            <label for="quickCategoryLimitType">Loại Giới Hạn</label>
+            <select id="quickCategoryLimitType">
+              <option value="Giới Hạn Key">Giới Hạn Key</option>
+              <option value="Giới Hạn Acc">Giới Hạn Acc</option>
+              <option value="Giới Hạn Lượt">Giới Hạn Lượt</option>
+              <option value="custom">Tự Nhập</option>
+            </select>
+          </div>
+
+          <div id="quickCategoryCustomLimitWrap" hidden>
+            <label for="quickCategoryCustomLimit">Chữ Giới Hạn Tự Nhập</label>
+            <input
+              id="quickCategoryCustomLimit"
+              type="text"
+              maxlength="60"
+              placeholder="VD: Giới Hạn UID"
+            />
+          </div>
+
+          <div>
+            <label for="quickCategoryDailyLimit">Số Lượng Giới Hạn / Ngày</label>
             <input
               id="quickCategoryDailyLimit"
               type="number"
@@ -5160,7 +5192,7 @@
               value="1"
               placeholder="1"
             />
-            <p class="quick-add-hint">Nhập 0 nếu không muốn giới hạn.</p>
+            <p class="quick-add-hint">VD: 5 = tối đa 5 lần/ngày. Nhập 0 = Không Giới Hạn.</p>
           </div>
 
           <div>
@@ -5197,6 +5229,9 @@
 
       let quickCategoryImageData = "";
       const quickCategoryName = quickAddSection.querySelector("#quickCategoryName");
+      const quickCategoryLimitType = quickAddSection.querySelector("#quickCategoryLimitType");
+      const quickCategoryCustomLimitWrap = quickAddSection.querySelector("#quickCategoryCustomLimitWrap");
+      const quickCategoryCustomLimit = quickAddSection.querySelector("#quickCategoryCustomLimit");
       const quickCategoryDailyLimit = quickAddSection.querySelector("#quickCategoryDailyLimit");
       const quickCategoryImageFile = quickAddSection.querySelector("#quickCategoryImageFile");
       const quickCategoryPreview = quickAddSection.querySelector("#quickCategoryPreview");
@@ -5214,6 +5249,22 @@
         quickCategoryPreview.innerHTML = "";
         quickCategoryPreview.appendChild(img);
       }
+
+      function syncQuickCategoryLimitType() {
+        const isCustom = quickCategoryLimitType.value === "custom";
+        quickCategoryCustomLimitWrap.hidden = !isCustom;
+        if (!isCustom) quickCategoryCustomLimit.value = "";
+      }
+
+      function getQuickCategoryLimitLabel() {
+        if (quickCategoryLimitType.value === "custom") {
+          return String(quickCategoryCustomLimit.value || "").trim();
+        }
+        return String(quickCategoryLimitType.value || "Giới Hạn Key").trim();
+      }
+
+      quickCategoryLimitType.addEventListener("change", syncQuickCategoryLimitType);
+      syncQuickCategoryLimitType();
 
       quickAddSection.querySelector("#quickCategoryPickImage").addEventListener("click", () => {
         quickCategoryImageFile.click();
@@ -5245,10 +5296,17 @@
           1000,
           Math.max(0, Math.floor(Number(quickCategoryDailyLimit.value) || 0))
         );
+        const limitLabel = getQuickCategoryLimitLabel();
 
         if (!title) {
           setMessage(quickCategoryMessage, "Vui Lòng Nhập Tên Mục.", "error");
           quickCategoryName.focus();
+          return;
+        }
+
+        if (!limitLabel) {
+          setMessage(quickCategoryMessage, "Vui Lòng Nhập Chữ Giới Hạn Muốn Hiển Thị.", "error");
+          quickCategoryCustomLimit.focus();
           return;
         }
 
@@ -5274,6 +5332,9 @@
 
           setMessage(quickCategoryMessage, "Đã Thêm Mục Thành Công.", "success");
           quickCategoryName.value = "";
+          quickCategoryLimitType.value = "Giới Hạn Key";
+          quickCategoryCustomLimit.value = "";
+          syncQuickCategoryLimitType();
           quickCategoryDailyLimit.value = "1";
           quickCategoryImageData = "";
           quickCategoryImageFile.value = "";
