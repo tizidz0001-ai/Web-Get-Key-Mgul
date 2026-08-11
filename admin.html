@@ -2006,6 +2006,54 @@
     }
   </style>
 
+
+  <style id="admin-full-popup-config-style">
+    .catalog-guide-editor {
+      padding: 10px !important;
+      border: 1px solid #e3e8f1 !important;
+      border-radius: 11px !important;
+      background: #f8faff !important;
+    }
+
+    .catalog-guide-editor-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 9px;
+      margin-bottom: 8px;
+    }
+
+    .catalog-guide-editor-head > strong {
+      color: #48546a;
+      font-size: 10.5px;
+    }
+
+    .catalog-inline-switch {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      margin: 0 !important;
+      white-space: nowrap;
+    }
+
+    .catalog-guide-editor-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+      gap: 8px;
+    }
+
+    @media (max-width: 720px) {
+      .catalog-guide-editor-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .catalog-guide-editor-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+
 </head>
 
 <body>
@@ -4061,15 +4109,26 @@
       };
 
       return {
+        stockLabel: read("stock-label:", "Key Hiện Có"),
         limitLabel: read("limit-label:", "Giới Hạn Key"),
         emptyText: read("empty-text:", "Tạm Hết Key"),
+        guideEnabled: read("guide-enabled:", "0") === "1",
+        guideText: read("guide-text:", "Hướng Dẫn Lấy Key"),
+        guideUrl: read("guide-url:", ""),
+        maintenanceText: read(
+          "maintenance-text:",
+          "Hiện Tại Đang Bảo Trì Vui Lòng Đợi ..."
+        ),
         step1Title: read("step1-title:", "Nhấn Lấy Key"),
         step1Desc: read("step1-desc:", "Mở Nhiệm Vụ Trong Tab Mới."),
         step2Title: read("step2-title:", "Hoàn Thành Vượt Link"),
         step2Desc: read("step2-desc:", "Làm Đúng Yêu Cầu Của Trang."),
         step3Title: read("step3-title:", "Sao Chép Key"),
         step3Desc: read("step3-desc:", "Nhận Key Tại Trang Đích."),
-        publicTags: list.filter((tag) => !/^(limit-label|empty-text|step[123]-(title|desc)):/i.test(tag))
+        publicTags: list.filter(
+          (tag) =>
+            !/^(stock-label|limit-label|empty-text|guide-(enabled|text|url)|maintenance-text|step[123]-(title|desc)):/i.test(tag)
+        )
       };
     }
 
@@ -4196,6 +4255,64 @@
             <label>Số Lượng Giới Hạn / Ngày</label>
             <input data-cat="dailyLimit" type="number" min="0" max="1000" value="${Number(item.dailyLimit || 0)}" />
             <p style="font-size:11px;margin-top:6px">0 = Không Giới Hạn.</p>
+          </div>
+
+          <div>
+            <label>Chữ Ô Số Lượng Hiện Có</label>
+            <input
+              data-cat="stockLabel"
+              type="text"
+              maxlength="60"
+              value="${escapeHtml(popupMeta.stockLabel)}"
+              placeholder="VD: Key Hiện Có / Máy Hiện Có / Acc Hiện Có"
+            />
+          </div>
+
+          <div class="wide catalog-guide-editor">
+            <div class="catalog-guide-editor-head">
+              <strong>Nút Hướng Dẫn Bên Dưới Nút Chính</strong>
+              <label class="catalog-inline-switch">
+                <input
+                  data-cat="guideEnabled"
+                  class="checkbox"
+                  type="checkbox"
+                  ${popupMeta.guideEnabled ? "checked" : ""}
+                />
+                Hiển Thị Nút
+              </label>
+            </div>
+            <div class="catalog-guide-editor-grid">
+              <div>
+                <label>Chữ Nút Hướng Dẫn</label>
+                <input
+                  data-cat="guideText"
+                  type="text"
+                  maxlength="80"
+                  value="${escapeHtml(popupMeta.guideText)}"
+                  placeholder="VD: Hướng Dẫn Lấy Máy"
+                />
+              </div>
+              <div>
+                <label>Link Hướng Dẫn</label>
+                <input
+                  data-cat="guideUrl"
+                  type="url"
+                  value="${escapeHtml(popupMeta.guideUrl)}"
+                  placeholder="https://..."
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="wide">
+            <label>Nội Dung Thông Báo Khi Bảo Trì</label>
+            <input
+              data-cat="maintenanceText"
+              type="text"
+              maxlength="220"
+              value="${escapeHtml(popupMeta.maintenanceText)}"
+              placeholder="Hiện Tại Đang Bảo Trì Vui Lòng Đợi ..."
+            />
           </div>
 
           <div class="wide catalog-popup-steps-editor">
@@ -4345,8 +4462,13 @@
       const publicTags = get("tags").value.split(",").map((v) => v.trim()).filter(Boolean);
 
       const metaTags = [
+        `stock-label:${get("stockLabel").value.trim() || "Key Hiện Có"}`,
         `limit-label:${get("limitLabel").value.trim() || "Giới Hạn Key"}`,
         `empty-text:${get("emptyText").value.trim() || "Tạm Hết Key"}`,
+        `guide-enabled:${get("guideEnabled").checked ? "1" : "0"}`,
+        `guide-text:${get("guideText").value.trim() || "Hướng Dẫn Lấy Key"}`,
+        `guide-url:${get("guideUrl").value.trim()}`,
+        `maintenance-text:${get("maintenanceText").value.trim() || "Hiện Tại Đang Bảo Trì Vui Lòng Đợi ..."}`,
         `step1-title:${get("step1Title").value.trim() || "Nhấn Lấy Key"}`,
         `step1-desc:${get("step1Desc").value.trim() || "Mở Nhiệm Vụ Trong Tab Mới."}`,
         `step2-title:${get("step2Title").value.trim() || "Hoàn Thành Vượt Link"}`,
@@ -5503,8 +5625,13 @@
             buttonText: "GET KEY",
             tags: [
               "Miễn Phí",
+              "stock-label:Key Hiện Có",
               `limit-label:${limitLabel}`,
               `empty-text:${emptyText}`,
+              "guide-enabled:0",
+              "guide-text:Hướng Dẫn Lấy Key",
+              "guide-url:",
+              "maintenance-text:Hiện Tại Đang Bảo Trì Vui Lòng Đợi ...",
               "step1-title:Nhấn Lấy Key",
               "step1-desc:Mở Nhiệm Vụ Trong Tab Mới.",
               "step2-title:Hoàn Thành Vượt Link",
