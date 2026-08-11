@@ -2054,6 +2054,35 @@
     }
   </style>
 
+
+  <style id="guide-icon-account-format-polish">
+    .catalog-account-format-box {
+      margin: 10px 0 8px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: minmax(190px, .55fr) minmax(0, 1.45fr);
+      gap: 10px;
+      align-items: end;
+      border: 1px solid #e3e8f1;
+      border-radius: 11px;
+      background: #f8faff;
+    }
+
+    .catalog-account-format-box p {
+      margin: 0 !important;
+      padding: 8px 10px;
+      border: 1px solid #e5eaf2;
+      border-radius: 9px;
+      background: #fff;
+    }
+
+    @media (max-width: 760px) {
+      .catalog-account-format-box {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
 </head>
 
 <body>
@@ -4101,33 +4130,106 @@
       return [];
     }
 
+    const CATALOG_META_CHUNK_SIZE = 20;
+
+    const CATALOG_META_LEGACY = {
+      st: "stock-label:",
+      lm: "limit-label:",
+      em: "empty-text:",
+      ge: "guide-enabled:",
+      gt: "guide-text:",
+      gu: "guide-url:",
+      gm: "guide-icon-mode:",
+      gi: "guide-icon-url:",
+      mt: "maintenance-text:",
+      vf: "value-format:",
+      s1t: "step1-title:",
+      s1d: "step1-desc:",
+      s2t: "step2-title:",
+      s2d: "step2-desc:",
+      s3t: "step3-title:",
+      s3d: "step3-desc:"
+    };
+
+    function readCatalogMeta(list, key, fallback = "") {
+      const flatPrefix = `m:${key}:`;
+      const flat = list.find((tag) =>
+        String(tag || "").toLowerCase().startsWith(flatPrefix.toLowerCase())
+      );
+      if (flat) {
+        return String(flat).slice(flatPrefix.length);
+      }
+
+      const chunkRegex = new RegExp(`^m:${key}#(\\d+):(.*)$`, "i");
+      const chunks = list
+        .map((tag) => {
+          const match = String(tag || "").match(chunkRegex);
+          return match ? { index: Number(match[1]), value: match[2] } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.index - b.index);
+
+      if (chunks.length) {
+        return chunks.map((part) => part.value).join("");
+      }
+
+      const legacyPrefix = CATALOG_META_LEGACY[key];
+      if (legacyPrefix) {
+        const legacy = list.find((tag) =>
+          String(tag || "").toLowerCase().startsWith(legacyPrefix.toLowerCase())
+        );
+        if (legacy) {
+          return String(legacy).slice(legacyPrefix.length).trim();
+        }
+      }
+
+      return fallback;
+    }
+
+    function encodeCatalogMeta(key, value) {
+      const text = String(value ?? "");
+      const flatPrefix = `m:${key}:`;
+
+      if ((flatPrefix + text).length <= 29) {
+        return [flatPrefix + text];
+      }
+
+      const chunks = [];
+      for (let i = 0; i < text.length; i += CATALOG_META_CHUNK_SIZE) {
+        chunks.push(text.slice(i, i + CATALOG_META_CHUNK_SIZE));
+      }
+
+      return chunks.map((chunk, index) => `m:${key}#${index}:${chunk}`);
+    }
+
     function catalogInternalMeta(tags) {
       const list = normalizeCatalogTags(tags);
-      const read = (prefix, fallback = "") => {
-        const match = list.find((tag) => tag.toLowerCase().startsWith(prefix.toLowerCase()));
-        return match ? String(match).slice(prefix.length).trim() : fallback;
-      };
 
       return {
-        stockLabel: read("stock-label:", "Key Hiện Có"),
-        limitLabel: read("limit-label:", "Giới Hạn Key"),
-        emptyText: read("empty-text:", "Tạm Hết Key"),
-        guideEnabled: read("guide-enabled:", "0") === "1",
-        guideText: read("guide-text:", "Hướng Dẫn Lấy Key"),
-        guideUrl: read("guide-url:", ""),
-        maintenanceText: read(
-          "maintenance-text:",
+        stockLabel: readCatalogMeta(list, "st", "Key Hiện Có"),
+        limitLabel: readCatalogMeta(list, "lm", "Giới Hạn Key"),
+        emptyText: readCatalogMeta(list, "em", "Tạm Hết Key"),
+        guideEnabled: readCatalogMeta(list, "ge", "0") === "1",
+        guideText: readCatalogMeta(list, "gt", "Hướng Dẫn Lấy Key"),
+        guideUrl: readCatalogMeta(list, "gu", ""),
+        guideIconMode: readCatalogMeta(list, "gm", "question"),
+        guideIconUrl: readCatalogMeta(list, "gi", ""),
+        maintenanceText: readCatalogMeta(
+          list,
+          "mt",
           "Hiện Tại Đang Bảo Trì Vui Lòng Đợi ..."
         ),
-        step1Title: read("step1-title:", "Nhấn Lấy Key"),
-        step1Desc: read("step1-desc:", "Mở Nhiệm Vụ Trong Tab Mới."),
-        step2Title: read("step2-title:", "Hoàn Thành Vượt Link"),
-        step2Desc: read("step2-desc:", "Làm Đúng Yêu Cầu Của Trang."),
-        step3Title: read("step3-title:", "Sao Chép Key"),
-        step3Desc: read("step3-desc:", "Nhận Key Tại Trang Đích."),
+        valueFormat: readCatalogMeta(list, "vf", "account"),
+        step1Title: readCatalogMeta(list, "s1t", "Nhấn Lấy Key"),
+        step1Desc: readCatalogMeta(list, "s1d", "Mở Nhiệm Vụ Trong Tab Mới."),
+        step2Title: readCatalogMeta(list, "s2t", "Hoàn Thành Vượt Link"),
+        step2Desc: readCatalogMeta(list, "s2d", "Làm Đúng Yêu Cầu Của Trang."),
+        step3Title: readCatalogMeta(list, "s3t", "Sao Chép Key"),
+        step3Desc: readCatalogMeta(list, "s3d", "Nhận Key Tại Trang Đích."),
         publicTags: list.filter(
           (tag) =>
-            !/^(stock-label|limit-label|empty-text|guide-(enabled|text|url)|maintenance-text|step[123]-(title|desc)):/i.test(tag)
+            !/^m:/i.test(String(tag || "")) &&
+            !/^(stock-label|limit-label|empty-text|guide-(enabled|text|url|icon-mode|icon-url)|maintenance-text|value-format|step[123]-(title|desc)):/i.test(String(tag || ""))
         )
       };
     }
@@ -4178,7 +4280,7 @@
             </div>
           </div>
           <div class="actions" style="margin-top:0">
-            <button type="button" class="ghost js-toggle-accounts">Quản Lý Acc</button>
+            <button type="button" class="ghost js-toggle-accounts">Quản Lý Kho</button>
             <button type="button" class="primary js-save-item">Lưu Mục</button>
             <button type="button" class="danger js-delete-item">Xóa Mục</button>
           </div>
@@ -4298,7 +4400,24 @@
                   data-cat="guideUrl"
                   type="url"
                   value="${escapeHtml(popupMeta.guideUrl)}"
-                  placeholder="https://..."
+                  placeholder="https://www.youtube.com/watch?v=..."
+                />
+              </div>
+              <div>
+                <label>Ảnh/Icon Trước Chữ Hướng Dẫn</label>
+                <select data-cat="guideIconMode">
+                  <option value="question" ${popupMeta.guideIconMode === "question" ? "selected" : ""}>Dấu ? Mặc Định</option>
+                  <option value="item" ${popupMeta.guideIconMode === "item" ? "selected" : ""}>Dùng Ảnh Của Mục</option>
+                  <option value="url" ${popupMeta.guideIconMode === "url" ? "selected" : ""}>Dùng Link Ảnh Riêng</option>
+                </select>
+              </div>
+              <div>
+                <label>Link Ảnh Riêng Cho Nút Hướng Dẫn</label>
+                <input
+                  data-cat="guideIconUrl"
+                  type="url"
+                  value="${escapeHtml(popupMeta.guideIconUrl)}"
+                  placeholder="https://.../icon.png"
                 />
               </div>
             </div>
@@ -4349,14 +4468,25 @@
         </div>
 
         <div class="catalog-account-panel" hidden>
-          <h3 style="margin:0">Kho Acc Của Mục Này</h3>
-          <p>Nhập Mỗi Acc Một Dòng. Có Thể Dùng Dạng <strong>user|pass</strong>, <strong>email|pass</strong> Hoặc Bất Kỳ Chuỗi Nào Bạn Muốn Phát.</p>
+          <h3 class="js-account-panel-title" style="margin:0">Kho Tài Khoản / Mã Code</h3>
+
+          <div class="catalog-account-format-box">
+            <div>
+              <label>Định Dạng Dữ Liệu Trong Kho</label>
+              <select class="js-account-format" data-cat="valueFormat">
+                <option value="account" ${popupMeta.valueFormat !== "code" ? "selected" : ""}>Tài Khoản | Mật Khẩu</option>
+                <option value="code" ${popupMeta.valueFormat === "code" ? "selected" : ""}>1 Mã Code / 1 Dòng</option>
+              </select>
+            </div>
+            <p class="js-account-format-help"></p>
+          </div>
+
           <div class="catalog-account-tools">
-            <textarea class="js-account-input" placeholder="acc001|matkhau001&#10;acc002|matkhau002"></textarea>
-            <button type="button" class="primary js-add-accounts">+ Thêm Acc</button>
+            <textarea class="js-account-input"></textarea>
+            <button type="button" class="primary js-add-accounts">+ Thêm</button>
           </div>
           <div class="catalog-account-filter">
-            <input class="js-account-search" type="search" placeholder="Tìm acc..." />
+            <input class="js-account-search" type="search" placeholder="Tìm dữ liệu..." />
             <select class="js-account-status">
               <option value="">Tất Cả Trạng Thái</option>
               <option value="available">Còn Acc</option>
@@ -4368,8 +4498,8 @@
           <div class="catalog-account-list js-account-list"><div class="catalog-empty">Bấm Quản Lý Acc Để Tải Danh Sách.</div></div>
           <div class="actions">
             <button type="button" class="ghost js-restore-accounts">Trả Về Kho</button>
-            <button type="button" class="ghost js-disable-accounts">Khóa Acc</button>
-            <button type="button" class="danger js-delete-accounts">Xóa Acc Đã Chọn</button>
+            <button type="button" class="ghost js-disable-accounts">Khóa Đã Chọn</button>
+            <button type="button" class="danger js-delete-accounts">Xóa Đã Chọn</button>
           </div>
           <div class="catalog-mini-message"></div>
         </div>
@@ -4382,6 +4512,40 @@
       const typeInput = editor.querySelector('[data-cat="itemType"]');
       const accountToggle = editor.querySelector(".js-toggle-accounts");
       const accountPanel = editor.querySelector(".catalog-account-panel");
+      const accountFormat = editor.querySelector(".js-account-format");
+
+      function syncAccountFormatUi() {
+        const isCode = accountFormat?.value === "code";
+        const titleEl = editor.querySelector(".js-account-panel-title");
+        const helpEl = editor.querySelector(".js-account-format-help");
+        const inputEl = editor.querySelector(".js-account-input");
+        const addBtn = editor.querySelector(".js-add-accounts");
+        const searchEl = editor.querySelector(".js-account-search");
+
+        if (titleEl) {
+          titleEl.textContent = isCode ? "Kho Mã Code Của Mục Này" : "Kho Tài Khoản Của Mục Này";
+        }
+
+        if (helpEl) {
+          helpEl.innerHTML = isCode
+            ? "Mỗi Dòng Là <strong>1 Mã Code</strong>. Ví Dụ: CODE-ABC-123"
+            : "Mỗi Dòng Theo Dạng <strong>TàiKhoản|MậtKhẩu</strong>. Ví Dụ: user@gmail.com|matkhau123";
+        }
+
+        if (inputEl) {
+          inputEl.placeholder = isCode
+            ? "CODE-ABC-001\nCODE-ABC-002\nCODE-ABC-003"
+            : "user001|matkhau001\nuser002|matkhau002";
+        }
+
+        if (addBtn && !addBtn.disabled) {
+          addBtn.textContent = isCode ? "+ Thêm Mã Code" : "+ Thêm Tài Khoản";
+        }
+
+        if (searchEl) {
+          searchEl.placeholder = isCode ? "Tìm mã code..." : "Tìm tài khoản...";
+        }
+      }
 
       function renderThumb() {
         const url = String(imageInput.value || "").trim();
@@ -4408,8 +4572,10 @@
 
       renderThumb();
       syncTypeUi();
+      syncAccountFormatUi();
       imageInput.addEventListener("change", renderThumb);
       typeInput.addEventListener("change", syncTypeUi);
+      accountFormat?.addEventListener("change", syncAccountFormatUi);
       titleInput.addEventListener("input", () => {
         editor.querySelector(".catalog-editor-name").textContent = titleInput.value || "Mục Mới";
         if (!editor.dataset.itemId && !slugInput.dataset.touched) slugInput.value = slugifyCatalog(titleInput.value);
@@ -4462,19 +4628,22 @@
       const publicTags = get("tags").value.split(",").map((v) => v.trim()).filter(Boolean);
 
       const metaTags = [
-        `stock-label:${get("stockLabel").value.trim() || "Key Hiện Có"}`,
-        `limit-label:${get("limitLabel").value.trim() || "Giới Hạn Key"}`,
-        `empty-text:${get("emptyText").value.trim() || "Tạm Hết Key"}`,
-        `guide-enabled:${get("guideEnabled").checked ? "1" : "0"}`,
-        `guide-text:${get("guideText").value.trim() || "Hướng Dẫn Lấy Key"}`,
-        `guide-url:${get("guideUrl").value.trim()}`,
-        `maintenance-text:${get("maintenanceText").value.trim() || "Hiện Tại Đang Bảo Trì Vui Lòng Đợi ..."}`,
-        `step1-title:${get("step1Title").value.trim() || "Nhấn Lấy Key"}`,
-        `step1-desc:${get("step1Desc").value.trim() || "Mở Nhiệm Vụ Trong Tab Mới."}`,
-        `step2-title:${get("step2Title").value.trim() || "Hoàn Thành Vượt Link"}`,
-        `step2-desc:${get("step2Desc").value.trim() || "Làm Đúng Yêu Cầu Của Trang."}`,
-        `step3-title:${get("step3Title").value.trim() || "Sao Chép Key"}`,
-        `step3-desc:${get("step3Desc").value.trim() || "Nhận Key Tại Trang Đích."}`
+        ...encodeCatalogMeta("st", get("stockLabel").value.trim() || "Key Hiện Có"),
+        ...encodeCatalogMeta("lm", get("limitLabel").value.trim() || "Giới Hạn Key"),
+        ...encodeCatalogMeta("em", get("emptyText").value.trim() || "Tạm Hết Key"),
+        ...encodeCatalogMeta("ge", get("guideEnabled").checked ? "1" : "0"),
+        ...encodeCatalogMeta("gt", get("guideText").value.trim() || "Hướng Dẫn Lấy Key"),
+        ...encodeCatalogMeta("gu", get("guideUrl").value.trim()),
+        ...encodeCatalogMeta("gm", get("guideIconMode").value || "question"),
+        ...encodeCatalogMeta("gi", get("guideIconUrl").value.trim()),
+        ...encodeCatalogMeta("mt", get("maintenanceText").value.trim() || "Hiện Tại Đang Bảo Trì Vui Lòng Đợi ..."),
+        ...encodeCatalogMeta("vf", get("valueFormat")?.value || "account"),
+        ...encodeCatalogMeta("s1t", get("step1Title").value.trim() || "Nhấn Lấy Key"),
+        ...encodeCatalogMeta("s1d", get("step1Desc").value.trim() || "Mở Nhiệm Vụ Trong Tab Mới."),
+        ...encodeCatalogMeta("s2t", get("step2Title").value.trim() || "Hoàn Thành Vượt Link"),
+        ...encodeCatalogMeta("s2d", get("step2Desc").value.trim() || "Làm Đúng Yêu Cầu Của Trang."),
+        ...encodeCatalogMeta("s3t", get("step3Title").value.trim() || "Sao Chép Key"),
+        ...encodeCatalogMeta("s3d", get("step3Desc").value.trim() || "Nhận Key Tại Trang Đích.")
       ];
 
       return {
@@ -4634,11 +4803,13 @@
       const itemId = editor.dataset.itemId;
       const panel = editor.querySelector(".catalog-account-panel");
       const list = panel.querySelector(".js-account-list");
+      const isCode = panel.querySelector(".js-account-format")?.value === "code";
+      const noun = isCode ? "Mã Code" : "Tài Khoản";
       if (!itemId) {
-        setCatalogMiniMessage(panel, "Hãy Lưu Mục Trước Khi Thêm Acc.", "error");
+        setCatalogMiniMessage(panel, `Hãy Lưu Mục Trước Khi Thêm ${noun}.`, "error");
         return;
       }
-      list.innerHTML = '<div class="catalog-empty">Đang Tải Kho Acc...</div>';
+      list.innerHTML = `<div class="catalog-empty">Đang Tải Kho ${noun}...</div>`;
       setCatalogMiniMessage(panel, "");
       try {
         const data = await adminApi("admin-list-catalog-accounts", {
@@ -4650,27 +4821,27 @@
         });
         const accounts = Array.isArray(data.accounts) ? data.accounts : [];
         if (!accounts.length) {
-          list.innerHTML = '<div class="catalog-empty">Kho Acc Đang Trống.</div>';
+          list.innerHTML = `<div class="catalog-empty">Kho ${noun} Đang Trống.</div>`;
           return;
         }
         const rows = accounts.map((acc) => `
           <tr>
             <td><input class="checkbox js-account-checkbox" type="checkbox" value="${escapeHtml(acc.id)}"></td>
             <td><span class="account-value">${escapeHtml(acc.value)}</span></td>
-            <td><span class="status-badge status-${acc.status === "available" ? "available" : acc.status === "claimed" ? "claimed" : "disabled"}">${acc.status === "available" ? "Còn Acc" : acc.status === "claimed" ? "Đã Lấy" : "Đã Khóa"}</span></td>
+            <td><span class="status-badge status-${acc.status === "available" ? "available" : acc.status === "claimed" ? "claimed" : "disabled"}">${acc.status === "available" ? `Còn ${noun}` : acc.status === "claimed" ? "Đã Lấy" : "Đã Khóa"}</span></td>
             <td class="date-text">${escapeHtml(formatDate(acc.createdAt))}</td>
             <td class="date-text">${escapeHtml(formatDate(acc.claimedAt))}</td>
             <td class="date-text">${escapeHtml(acc.claimedIp || "—")}</td>
           </tr>`).join("");
         list.innerHTML = `
           <table>
-            <thead><tr><th></th><th>Acc</th><th>Trạng Thái</th><th>Ngày Thêm</th><th>Ngày Lấy</th><th>IP Lấy</th></tr></thead>
+            <thead><tr><th></th><th>${noun}</th><th>Trạng Thái</th><th>Ngày Thêm</th><th>Ngày Lấy</th><th>IP Lấy</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>`;
         const pagination = data.pagination || {};
-        setCatalogMiniMessage(panel, `Đang Hiển Thị ${accounts.length}/${Number(pagination.total || accounts.length)} Acc.`, "success");
+        setCatalogMiniMessage(panel, `Đang Hiển Thị ${accounts.length}/${Number(pagination.total || accounts.length)} ${noun}.`, "success");
       } catch (error) {
-        list.innerHTML = '<div class="catalog-empty">Không Tải Được Kho Acc.</div>';
+        list.innerHTML = `<div class="catalog-empty">Không Tải Được Kho ${noun}.</div>`;
         setCatalogMiniMessage(panel, String(error?.message || error), "error");
       }
     }
@@ -4680,19 +4851,38 @@
       const panel = editor.querySelector(".catalog-account-panel");
       const input = panel.querySelector(".js-account-input");
       const button = panel.querySelector(".js-add-accounts");
+      const isCode = panel.querySelector(".js-account-format")?.value === "code";
+      const noun = isCode ? "Mã Code" : "Tài Khoản";
+      const lines = String(input.value || "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
       if (!itemId) return setCatalogMiniMessage(panel, "Hãy Lưu Mục Trước.", "error");
-      if (!input.value.trim()) return setCatalogMiniMessage(panel, "Bạn Chưa Nhập Acc.", "error");
+      if (!lines.length) return setCatalogMiniMessage(panel, `Bạn Chưa Nhập ${noun}.`, "error");
+
+      if (!isCode) {
+        const invalidLine = lines.find((line) => !line.includes("|"));
+        if (invalidLine) {
+          return setCatalogMiniMessage(
+            panel,
+            "Định Dạng Tài Khoản Phải Là: TàiKhoản|MậtKhẩu — Mỗi Dòng Một Tài Khoản.",
+            "error"
+          );
+        }
+      }
+
       setLoading(button, true, "Đang Thêm...");
       try {
         const data = await adminApi("admin-add-catalog-accounts", { itemId, accounts: input.value });
         input.value = "";
-        setCatalogMiniMessage(panel, `Đã Thêm ${Number(data.inserted || 0)} Acc. Trùng ${Number(data.duplicates || 0)}.`, "success");
+        setCatalogMiniMessage(panel, `Đã Thêm ${Number(data.inserted || 0)} ${noun}. Trùng ${Number(data.duplicates || 0)}.`, "success");
         await loadCatalogAccounts(editor);
         await loadCatalogAdminPreserveOpen(itemId);
       } catch (error) {
         setCatalogMiniMessage(panel, String(error?.message || error), "error");
       } finally {
-        setLoading(button, false, "+ Thêm Acc");
+        setLoading(button, false, isCode ? "+ Thêm Mã Code" : "+ Thêm Tài Khoản");
       }
     }
 
@@ -5625,19 +5815,22 @@
             buttonText: "GET KEY",
             tags: [
               "Miễn Phí",
-              "stock-label:Key Hiện Có",
-              `limit-label:${limitLabel}`,
-              `empty-text:${emptyText}`,
-              "guide-enabled:0",
-              "guide-text:Hướng Dẫn Lấy Key",
-              "guide-url:",
-              "maintenance-text:Hiện Tại Đang Bảo Trì Vui Lòng Đợi ...",
-              "step1-title:Nhấn Lấy Key",
-              "step1-desc:Mở Nhiệm Vụ Trong Tab Mới.",
-              "step2-title:Hoàn Thành Vượt Link",
-              "step2-desc:Làm Đúng Yêu Cầu Của Trang.",
-              "step3-title:Sao Chép Key",
-              "step3-desc:Nhận Key Tại Trang Đích."
+              ...encodeCatalogMeta("st", "Key Hiện Có"),
+              ...encodeCatalogMeta("lm", limitLabel),
+              ...encodeCatalogMeta("em", emptyText),
+              ...encodeCatalogMeta("ge", "0"),
+              ...encodeCatalogMeta("gt", "Hướng Dẫn Lấy Key"),
+              ...encodeCatalogMeta("gu", ""),
+              ...encodeCatalogMeta("gm", "question"),
+              ...encodeCatalogMeta("gi", ""),
+              ...encodeCatalogMeta("mt", "Hiện Tại Đang Bảo Trì Vui Lòng Đợi ..."),
+              ...encodeCatalogMeta("vf", "account"),
+              ...encodeCatalogMeta("s1t", "Nhấn Lấy Key"),
+              ...encodeCatalogMeta("s1d", "Mở Nhiệm Vụ Trong Tab Mới."),
+              ...encodeCatalogMeta("s2t", "Hoàn Thành Vượt Link"),
+              ...encodeCatalogMeta("s2d", "Làm Đúng Yêu Cầu Của Trang."),
+              ...encodeCatalogMeta("s3t", "Sao Chép Key"),
+              ...encodeCatalogMeta("s3d", "Nhận Key Tại Trang Đích.")
             ],
             externalUrl: "",
             enabled: true,
