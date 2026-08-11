@@ -1937,6 +1937,75 @@
     }
   </style>
 
+
+  <style id="catalog-popup-editor-fix">
+    #catalogList {
+      min-height: 1px !important;
+    }
+
+    #catalogList .catalog-editor {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      margin-top: 10px !important;
+    }
+
+    .catalog-popup-steps-editor {
+      padding: 11px !important;
+      border: 1px solid #e3e8f1 !important;
+      border-radius: 12px !important;
+      background: #f8faff !important;
+    }
+
+    .catalog-popup-steps-title {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      margin-bottom: 8px;
+    }
+
+    .catalog-popup-steps-title strong {
+      color: #46536a;
+      font-size: 10.5px;
+    }
+
+    .catalog-popup-steps-title span {
+      color: #909bad;
+      font-size: 9px;
+    }
+
+    .catalog-step-edit-row {
+      display: grid;
+      grid-template-columns: 30px minmax(120px, .8fr) minmax(180px, 1.4fr);
+      gap: 7px;
+      align-items: center;
+      margin-top: 7px;
+    }
+
+    .catalog-step-edit-number {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #dce2fa;
+      border-radius: 8px;
+      color: #6677e8;
+      background: #eef0ff;
+      font-size: 8.5px;
+      font-weight: 850;
+    }
+
+    @media (max-width: 720px) {
+      .catalog-step-edit-row {
+        grid-template-columns: 28px 1fr;
+      }
+
+      .catalog-step-edit-row input:last-child {
+        grid-column: 2;
+      }
+    }
+  </style>
+
 </head>
 
 <body>
@@ -3976,6 +4045,33 @@
       return result;
     }
 
+    function normalizeCatalogTags(tags) {
+      if (Array.isArray(tags)) return tags.map((tag) => String(tag || "").trim()).filter(Boolean);
+      if (typeof tags === "string") {
+        return tags.split(",").map((tag) => tag.trim()).filter(Boolean);
+      }
+      return [];
+    }
+
+    function catalogInternalMeta(tags) {
+      const list = normalizeCatalogTags(tags);
+      const read = (prefix, fallback = "") => {
+        const match = list.find((tag) => tag.toLowerCase().startsWith(prefix.toLowerCase()));
+        return match ? String(match).slice(prefix.length).trim() : fallback;
+      };
+
+      return {
+        limitLabel: read("limit-label:", "Giới Hạn Key"),
+        step1Title: read("step1-title:", "Nhấn Lấy Key"),
+        step1Desc: read("step1-desc:", "Mở Nhiệm Vụ Trong Tab Mới."),
+        step2Title: read("step2-title:", "Hoàn Thành Vượt Link"),
+        step2Desc: read("step2-desc:", "Làm Đúng Yêu Cầu Của Trang."),
+        step3Title: read("step3-title:", "Sao Chép Key"),
+        step3Desc: read("step3-desc:", "Nhận Key Tại Trang Đích."),
+        publicTags: list.filter((tag) => !/^(limit-label|step[123]-(title|desc)):/i.test(tag))
+      };
+    }
+
     function catalogDefaultItem() {
       return {
         id: "",
@@ -3984,7 +4080,7 @@
         description: "",
         imageUrl: "",
         buttonText: "Nhận Ngay",
-        tags: ["Miễn Phí", `limit-label:${limitLabel}`],
+        tags: ["Miễn Phí"],
         itemType: "account",
         externalUrl: "",
         enabled: true,
@@ -4000,6 +4096,8 @@
 
     function createCatalogEditor(rawItem = {}) {
       const item = { ...catalogDefaultItem(), ...rawItem };
+      item.tags = normalizeCatalogTags(item.tags);
+      const popupMeta = catalogInternalMeta(item.tags);
       const editor = document.createElement("div");
       editor.className = "catalog-editor";
       editor.dataset.itemId = String(item.id || "");
@@ -4066,17 +4164,52 @@
             <input data-cat="buttonText" type="text" maxlength="80" value="${escapeHtml(item.buttonText)}" />
           </div>
           <div>
-            <label>Tag (Cách Nhau Bằng Dấu Phẩy)</label>
-            <input data-cat="tags" type="text" value="${escapeHtml((item.tags || []).join(", "))}" placeholder="Acc Random, Miễn Phí" />
+            <label>Tag Hiển Thị (Cách Nhau Bằng Dấu Phẩy)</label>
+            <input data-cat="tags" type="text" value="${escapeHtml(popupMeta.publicTags.join(", "))}" placeholder="Acc Random, Miễn Phí" />
           </div>
           <div class="wide js-external-url-wrap">
             <label>Link Đích (Chỉ Dùng Khi Loại = Mở Link Ngoài)</label>
             <input data-cat="externalUrl" type="url" value="${escapeHtml(item.externalUrl)}" placeholder="https://..." />
           </div>
           <div>
-            <label>Giới Hạn Acc / IP / Ngày</label>
+            <label>Chữ Loại Giới Hạn Trong Popup</label>
+            <input
+              data-cat="limitLabel"
+              type="text"
+              maxlength="60"
+              value="${escapeHtml(popupMeta.limitLabel)}"
+              placeholder="VD: Giới Hạn Key / Giới Hạn Acc / Giới Hạn Lượt"
+            />
+          </div>
+          <div>
+            <label>Số Lượng Giới Hạn / Ngày</label>
             <input data-cat="dailyLimit" type="number" min="0" max="1000" value="${Number(item.dailyLimit || 0)}" />
-            <p style="font-size:11px;margin-top:6px">0 = Không Giới Hạn. Chỉ Áp Dụng Cho Kho Acc.</p>
+            <p style="font-size:11px;margin-top:6px">0 = Không Giới Hạn.</p>
+          </div>
+
+          <div class="wide catalog-popup-steps-editor">
+            <div class="catalog-popup-steps-title">
+              <strong>3 Bước Hướng Dẫn Trong Popup</strong>
+              <span>Có thể sửa riêng cho từng mục.</span>
+            </div>
+
+            <div class="catalog-step-edit-row">
+              <span class="catalog-step-edit-number">01</span>
+              <input data-cat="step1Title" type="text" maxlength="80" value="${escapeHtml(popupMeta.step1Title)}" placeholder="Tiêu đề bước 1" />
+              <input data-cat="step1Desc" type="text" maxlength="160" value="${escapeHtml(popupMeta.step1Desc)}" placeholder="Mô tả bước 1" />
+            </div>
+
+            <div class="catalog-step-edit-row">
+              <span class="catalog-step-edit-number">02</span>
+              <input data-cat="step2Title" type="text" maxlength="80" value="${escapeHtml(popupMeta.step2Title)}" placeholder="Tiêu đề bước 2" />
+              <input data-cat="step2Desc" type="text" maxlength="160" value="${escapeHtml(popupMeta.step2Desc)}" placeholder="Mô tả bước 2" />
+            </div>
+
+            <div class="catalog-step-edit-row">
+              <span class="catalog-step-edit-number">03</span>
+              <input data-cat="step3Title" type="text" maxlength="80" value="${escapeHtml(popupMeta.step3Title)}" placeholder="Tiêu đề bước 3" />
+              <input data-cat="step3Desc" type="text" maxlength="160" value="${escapeHtml(popupMeta.step3Desc)}" placeholder="Mô tả bước 3" />
+            </div>
           </div>
           <div>
             <label>Trạng Thái</label>
@@ -4198,6 +4331,18 @@
 
     function collectCatalogEditor(editor) {
       const get = (name) => editor.querySelector(`[data-cat="${name}"]`);
+      const publicTags = get("tags").value.split(",").map((v) => v.trim()).filter(Boolean);
+
+      const metaTags = [
+        `limit-label:${get("limitLabel").value.trim() || "Giới Hạn Key"}`,
+        `step1-title:${get("step1Title").value.trim() || "Nhấn Lấy Key"}`,
+        `step1-desc:${get("step1Desc").value.trim() || "Mở Nhiệm Vụ Trong Tab Mới."}`,
+        `step2-title:${get("step2Title").value.trim() || "Hoàn Thành Vượt Link"}`,
+        `step2-desc:${get("step2Desc").value.trim() || "Làm Đúng Yêu Cầu Của Trang."}`,
+        `step3-title:${get("step3Title").value.trim() || "Sao Chép Key"}`,
+        `step3-desc:${get("step3Desc").value.trim() || "Nhận Key Tại Trang Đích."}`
+      ];
+
       return {
         itemId: editor.dataset.itemId || "",
         title: get("title").value.trim(),
@@ -4206,7 +4351,7 @@
         description: get("description").value.trim(),
         imageUrl: get("imageUrl").value.trim(),
         buttonText: get("buttonText").value.trim(),
-        tags: get("tags").value.split(",").map((v) => v.trim()).filter(Boolean),
+        tags: [...publicTags, ...metaTags],
         externalUrl: get("externalUrl").value.trim(),
         enabled: get("enabled").checked,
         maintenance: get("maintenance").checked,
@@ -4915,6 +5060,13 @@
     catalogItemSelect?.addEventListener("change", () => {
       setMessage(catalogMessage, "");
       showCatalogSelection(catalogItemSelect.value);
+
+      requestAnimationFrame(() => {
+        const editor = catalogList?.querySelector(".catalog-editor");
+        if (editor) {
+          editor.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      });
     });
 
     addCatalogItemButton?.addEventListener("click", () => {
@@ -5322,7 +5474,16 @@
             description: "",
             imageUrl: quickCategoryImageData,
             buttonText: "GET KEY",
-            tags: ["Miễn Phí"],
+            tags: [
+              "Miễn Phí",
+              `limit-label:${limitLabel}`,
+              "step1-title:Nhấn Lấy Key",
+              "step1-desc:Mở Nhiệm Vụ Trong Tab Mới.",
+              "step2-title:Hoàn Thành Vượt Link",
+              "step2-desc:Làm Đúng Yêu Cầu Của Trang.",
+              "step3-title:Sao Chép Key",
+              "step3-desc:Nhận Key Tại Trang Đích."
+            ],
             externalUrl: "",
             enabled: true,
             maintenance: false,
