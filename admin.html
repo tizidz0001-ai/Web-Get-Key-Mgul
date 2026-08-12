@@ -2149,6 +2149,44 @@
     }
   </style>
 
+
+  <style id="global-shortener-scope-style">
+    .global-shortener-scope {
+      margin: 10px 0 11px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid #dce4f2;
+      border-radius: 11px;
+      background: #f7f9ff;
+    }
+
+    .global-shortener-dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 8px;
+      border-radius: 50%;
+      background: #43b979;
+      box-shadow: 0 0 0 4px rgba(67,185,121,.09);
+    }
+
+    .global-shortener-scope strong {
+      display: block;
+      color: #46536a;
+      font-size: 10.5px;
+      line-height: 1.25;
+    }
+
+    .global-shortener-scope span:not(.global-shortener-dot) {
+      display: block;
+      margin-top: 2px;
+      color: #8995a8;
+      font-size: 9px;
+      line-height: 1.35;
+    }
+  </style>
+
 </head>
 
 <body>
@@ -2489,10 +2527,12 @@
       <section class="section">
         <div class="section-head">
           <div>
-            <h2>Cấu Hình Rút Gọn Link</h2>
+            <h2>Cấu Hình Rút Gọn Link Dùng Chung</h2>
             <p>
-              Nhập API Rút Gọn Bạn Muốn Dùng. Có Thể Nhập Link Mẫu Có <strong>url=</strong> Hoặc <strong>{URL}</strong>; API Key Có Thể Nhập Riêng Hoặc Để Sẵn Trong Link API. Chọn Số Lần Rút Gọn Đè Lên Nhau; Kết Quả Lần Trước
-              Sẽ Tự Làm Link Đích Cho Lần Sau. Tất Cả Các Lần Phải Thành Công Mới Trả Link Cho User.
+              Đây Là <strong>Cấu Hình Rút Gọn Duy Nhất</strong> Của Toàn Bộ Web.
+              MiGul, Drip, UGPhone Và Tất Cả Mục Get Key Tạo Thêm Đều Dùng Chung Danh Sách API Và Số Lần Rút Gọn Ở Đây.
+              Nhập Link Mẫu Có <strong>url=</strong> Hoặc <strong>{URL}</strong>; API Key Có Thể Nhập Riêng Hoặc Để Sẵn Trong Link API.
+              Kết Quả Lần Trước Sẽ Tự Làm Link Đích Cho Lần Sau. Tất Cả Các Lần Phải Thành Công Mới Trả Link Cho User.
             </p>
           </div>
         </div>
@@ -2512,6 +2552,14 @@
           </div>
         </div>
 
+        <div class="global-shortener-scope">
+          <span class="global-shortener-dot"></span>
+          <div>
+            <strong>Đang Áp Dụng Cho Tất Cả Mục</strong>
+            <span>MiGul • Drip • UGPhone • Mục Tạo Thêm</span>
+          </div>
+        </div>
+
         <div class="shortener-list" id="shortenerList"></div>
 
         <div class="actions">
@@ -2520,7 +2568,7 @@
           </button>
 
           <button class="primary" id="saveShortenersButton" type="button">
-            Lưu Cấu Hình Rút Gọn
+            Lưu Cấu Hình Dùng Chung
           </button>
         </div>
 
@@ -5681,8 +5729,8 @@
           group: "Hệ Thống",
           icon: "↗",
           label: "Rút Gọn Link",
-          title: "Cấu Hình Rút Gọn Link",
-          desc: "Quản lý số lớp rút gọn và từng API shortener."
+          title: "Cấu Hình Rút Gọn Dùng Chung",
+          desc: "Một cấu hình duy nhất áp dụng cho MiGul, Drip, UGPhone và mọi mục Get Key."
         },
         {
           id: "announcement",
