@@ -2083,6 +2083,72 @@
     }
   </style>
 
+
+  <style id="guide-file-upload-style">
+    .catalog-guide-file-box {
+      min-width: 0;
+    }
+
+    .catalog-guide-file-row {
+      margin-top: 4px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 66px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      border: 1px solid #e3e8f1;
+      border-radius: 11px;
+      background: #f8faff;
+    }
+
+    .catalog-guide-file-preview {
+      width: 60px;
+      height: 60px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      color: #97a2b5;
+      border: 1px solid #dce3ee;
+      border-radius: 14px;
+      background: #fff;
+      font-size: 24px;
+    }
+
+    .catalog-guide-file-preview img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .catalog-guide-file-actions {
+      min-width: 0;
+    }
+
+    .catalog-guide-file-actions > p {
+      margin: 7px 0 0 !important;
+      color: #8c97aa !important;
+      font-size: 9px !important;
+      line-height: 1.45 !important;
+    }
+
+    .catalog-guide-file-actions > button {
+      margin-right: 6px;
+    }
+
+    @media (max-width: 720px) {
+      .catalog-guide-file-row {
+        grid-template-columns: 58px minmax(0, 1fr);
+      }
+
+      .catalog-guide-file-preview {
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+      }
+    }
+  </style>
+
 </head>
 
 <body>
@@ -4411,14 +4477,25 @@
                   <option value="url" ${popupMeta.guideIconMode === "url" ? "selected" : ""}>Dùng Link Ảnh Riêng</option>
                 </select>
               </div>
-              <div>
-                <label>Link Ảnh Riêng Cho Nút Hướng Dẫn</label>
-                <input
-                  data-cat="guideIconUrl"
-                  type="url"
-                  value="${escapeHtml(popupMeta.guideIconUrl)}"
-                  placeholder="https://.../icon.png"
-                />
+              <div class="catalog-guide-file-box">
+                <label>Ảnh Riêng Cho Nút Hướng Dẫn</label>
+                <div class="catalog-guide-file-row">
+                  <div class="catalog-guide-file-preview js-guide-icon-preview">
+                    ${popupMeta.guideIconUrl ? `<img src="${escapeHtml(popupMeta.guideIconUrl)}" alt="">` : "🖼️"}
+                  </div>
+                  <div class="catalog-guide-file-actions">
+                    <button type="button" class="ghost js-pick-guide-icon-file">Chọn Ảnh</button>
+                    <button type="button" class="danger js-clear-guide-icon-file">Xóa Ảnh</button>
+                    <input class="js-guide-icon-file" type="file" accept="image/*" hidden />
+                    <input
+                      data-cat="guideIconUrl"
+                      class="js-guide-icon-data"
+                      type="hidden"
+                      value="${escapeHtml(popupMeta.guideIconUrl)}"
+                    />
+                    <p>Chọn ảnh từ máy. Ảnh sẽ được nén và lưu tự động.</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -4513,6 +4590,35 @@
       const accountToggle = editor.querySelector(".js-toggle-accounts");
       const accountPanel = editor.querySelector(".catalog-account-panel");
       const accountFormat = editor.querySelector(".js-account-format");
+      const guideIconData = editor.querySelector(".js-guide-icon-data");
+      const guideIconPreview = editor.querySelector(".js-guide-icon-preview");
+      const guideIconFile = editor.querySelector(".js-guide-icon-file");
+
+      function renderGuideIconPreview() {
+        const value = String(guideIconData?.value || "").trim();
+        if (!guideIconPreview) return;
+
+        if (!value) {
+          guideIconPreview.innerHTML = "🖼️";
+          return;
+        }
+
+        guideIconPreview.innerHTML = `<img src="${escapeHtml(value)}" alt="">`;
+      }
+
+      async function handleGuideIconFileChange() {
+        const file = guideIconFile?.files?.[0];
+        if (!file || !guideIconData) return;
+
+        try {
+          guideIconData.value = await imageFileToThumbnail(file);
+          renderGuideIconPreview();
+        } catch (error) {
+          alert(String(error?.message || error || "Không Thể Tải Ảnh."));
+        } finally {
+          if (guideIconFile) guideIconFile.value = "";
+        }
+      }
 
       function syncAccountFormatUi() {
         const isCode = accountFormat?.value === "code";
@@ -4571,11 +4677,23 @@
       }
 
       renderThumb();
+      renderGuideIconPreview();
       syncTypeUi();
       syncAccountFormatUi();
       imageInput.addEventListener("change", renderThumb);
       typeInput.addEventListener("change", syncTypeUi);
       accountFormat?.addEventListener("change", syncAccountFormatUi);
+
+      editor.querySelector(".js-pick-guide-icon-file")?.addEventListener("click", () => {
+        guideIconFile?.click();
+      });
+
+      guideIconFile?.addEventListener("change", handleGuideIconFileChange);
+
+      editor.querySelector(".js-clear-guide-icon-file")?.addEventListener("click", () => {
+        if (guideIconData) guideIconData.value = "";
+        renderGuideIconPreview();
+      });
       titleInput.addEventListener("input", () => {
         editor.querySelector(".catalog-editor-name").textContent = titleInput.value || "Mục Mới";
         if (!editor.dataset.itemId && !slugInput.dataset.touched) slugInput.value = slugifyCatalog(titleInput.value);
