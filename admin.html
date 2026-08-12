@@ -4474,7 +4474,7 @@
                 <select data-cat="guideIconMode">
                   <option value="question" ${popupMeta.guideIconMode === "question" ? "selected" : ""}>Dấu ? Mặc Định</option>
                   <option value="item" ${popupMeta.guideIconMode === "item" ? "selected" : ""}>Dùng Ảnh Của Mục</option>
-                  <option value="url" ${popupMeta.guideIconMode === "url" ? "selected" : ""}>Dùng Link Ảnh Riêng</option>
+                  <option value="url" ${popupMeta.guideIconMode === "url" ? "selected" : ""}>Dùng Ảnh Riêng Từ File</option>
                 </select>
               </div>
               <div class="catalog-guide-file-box">
@@ -4593,6 +4593,7 @@
       const guideIconData = editor.querySelector(".js-guide-icon-data");
       const guideIconPreview = editor.querySelector(".js-guide-icon-preview");
       const guideIconFile = editor.querySelector(".js-guide-icon-file");
+      const guideIconModeSelect = editor.querySelector('[data-cat="guideIconMode"]');
 
       function renderGuideIconPreview() {
         const value = String(guideIconData?.value || "").trim();
@@ -4601,6 +4602,11 @@
         if (!value) {
           guideIconPreview.innerHTML = "🖼️";
           return;
+        }
+
+        // Có ảnh riêng thì tự ưu tiên chế độ dùng ảnh nếu dữ liệu cũ bị fallback về dấu ?.
+        if (guideIconModeSelect && guideIconModeSelect.value === "question") {
+          guideIconModeSelect.value = "url";
         }
 
         guideIconPreview.innerHTML = `<img src="${escapeHtml(value)}" alt="">`;
@@ -4612,6 +4618,11 @@
 
         try {
           guideIconData.value = await imageFileToThumbnail(file);
+
+          if (guideIconModeSelect) {
+            guideIconModeSelect.value = "url";
+          }
+
           renderGuideIconPreview();
         } catch (error) {
           alert(String(error?.message || error || "Không Thể Tải Ảnh."));
@@ -4692,6 +4703,11 @@
 
       editor.querySelector(".js-clear-guide-icon-file")?.addEventListener("click", () => {
         if (guideIconData) guideIconData.value = "";
+
+        if (guideIconModeSelect?.value === "url") {
+          guideIconModeSelect.value = "question";
+        }
+
         renderGuideIconPreview();
       });
       titleInput.addEventListener("input", () => {
@@ -4752,7 +4768,12 @@
         ...encodeCatalogMeta("ge", get("guideEnabled").checked ? "1" : "0"),
         ...encodeCatalogMeta("gt", get("guideText").value.trim() || "Hướng Dẫn Lấy Key"),
         ...encodeCatalogMeta("gu", get("guideUrl").value.trim()),
-        ...encodeCatalogMeta("gm", get("guideIconMode").value || "question"),
+        ...encodeCatalogMeta(
+          "gm",
+          get("guideIconUrl").value.trim()
+            ? "url"
+            : (get("guideIconMode").value || "question")
+        ),
         ...encodeCatalogMeta("gi", get("guideIconUrl").value.trim()),
         ...encodeCatalogMeta("mt", get("maintenanceText").value.trim() || "Hiện Tại Đang Bảo Trì Vui Lòng Đợi ..."),
         ...encodeCatalogMeta("vf", get("valueFormat")?.value || "account"),
