@@ -4268,30 +4268,44 @@
       return chunks.map((chunk, index) => `m:${key}#${index}:${chunk}`);
     }
 
-    function catalogInternalMeta(tags) {
+    function catalogInternalMeta(tags, uiConfig = {}) {
       const list = normalizeCatalogTags(tags);
+      const config =
+        uiConfig && typeof uiConfig === "object" && !Array.isArray(uiConfig)
+          ? uiConfig
+          : {};
+
+      const textValue = (name, legacyKey, fallback = "") => {
+        if (typeof config[name] === "string") return config[name];
+        return readCatalogMeta(list, legacyKey, fallback);
+      };
+
+      const boolValue = (name, legacyKey, fallback = false) => {
+        if (typeof config[name] === "boolean") return config[name];
+        return readCatalogMeta(list, legacyKey, fallback ? "1" : "0") === "1";
+      };
 
       return {
-        stockLabel: readCatalogMeta(list, "st", "Key Hiện Có"),
-        limitLabel: readCatalogMeta(list, "lm", "Giới Hạn Key"),
-        emptyText: readCatalogMeta(list, "em", "Tạm Hết Key"),
-        guideEnabled: readCatalogMeta(list, "ge", "0") === "1",
-        guideText: readCatalogMeta(list, "gt", "Hướng Dẫn Lấy Key"),
-        guideUrl: readCatalogMeta(list, "gu", ""),
-        guideIconMode: readCatalogMeta(list, "gm", "question"),
-        guideIconUrl: readCatalogMeta(list, "gi", ""),
-        maintenanceText: readCatalogMeta(
-          list,
+        stockLabel: textValue("stockLabel", "st", "Key Hiện Có"),
+        limitLabel: textValue("limitLabel", "lm", "Giới Hạn Key"),
+        emptyText: textValue("emptyText", "em", "Tạm Hết Key"),
+        guideEnabled: boolValue("guideEnabled", "ge", false),
+        guideText: textValue("guideText", "gt", "Hướng Dẫn Lấy Key"),
+        guideUrl: textValue("guideUrl", "gu", ""),
+        guideIconMode: textValue("guideIconMode", "gm", "question"),
+        guideIconUrl: textValue("guideIconUrl", "gi", ""),
+        maintenanceText: textValue(
+          "maintenanceText",
           "mt",
           "Hiện Tại Đang Bảo Trì Vui Lòng Đợi ..."
         ),
-        valueFormat: readCatalogMeta(list, "vf", "account"),
-        step1Title: readCatalogMeta(list, "s1t", "Nhấn Lấy Key"),
-        step1Desc: readCatalogMeta(list, "s1d", "Mở Nhiệm Vụ Trong Tab Mới."),
-        step2Title: readCatalogMeta(list, "s2t", "Hoàn Thành Vượt Link"),
-        step2Desc: readCatalogMeta(list, "s2d", "Làm Đúng Yêu Cầu Của Trang."),
-        step3Title: readCatalogMeta(list, "s3t", "Sao Chép Key"),
-        step3Desc: readCatalogMeta(list, "s3d", "Nhận Key Tại Trang Đích."),
+        valueFormat: textValue("valueFormat", "vf", "account"),
+        step1Title: textValue("step1Title", "s1t", "Nhấn Lấy Key"),
+        step1Desc: textValue("step1Desc", "s1d", "Mở Nhiệm Vụ Trong Tab Mới."),
+        step2Title: textValue("step2Title", "s2t", "Hoàn Thành Vượt Link"),
+        step2Desc: textValue("step2Desc", "s2d", "Làm Đúng Yêu Cầu Của Trang."),
+        step3Title: textValue("step3Title", "s3t", "Sao Chép Key"),
+        step3Desc: textValue("step3Desc", "s3d", "Nhận Key Tại Trang Đích."),
         publicTags: list.filter(
           (tag) =>
             !/^m:/i.test(String(tag || "")) &&
@@ -4325,7 +4339,7 @@
     function createCatalogEditor(rawItem = {}) {
       const item = { ...catalogDefaultItem(), ...rawItem };
       item.tags = normalizeCatalogTags(item.tags);
-      const popupMeta = catalogInternalMeta(item.tags);
+      const popupMeta = catalogInternalMeta(item.tags, item.uiConfig);
       const editor = document.createElement("div");
       editor.className = "catalog-editor";
       editor.dataset.itemId = String(item.id || "");
@@ -4759,31 +4773,41 @@
 
     function collectCatalogEditor(editor) {
       const get = (name) => editor.querySelector(`[data-cat="${name}"]`);
-      const publicTags = get("tags").value.split(",").map((v) => v.trim()).filter(Boolean);
+      const publicTags = get("tags").value
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean)
+        .slice(0, 8);
 
-      const metaTags = [
-        ...encodeCatalogMeta("st", get("stockLabel").value.trim() || "Key Hiện Có"),
-        ...encodeCatalogMeta("lm", get("limitLabel").value.trim() || "Giới Hạn Key"),
-        ...encodeCatalogMeta("em", get("emptyText").value.trim() || "Tạm Hết Key"),
-        ...encodeCatalogMeta("ge", get("guideEnabled").checked ? "1" : "0"),
-        ...encodeCatalogMeta("gt", get("guideText").value.trim() || "Hướng Dẫn Lấy Key"),
-        ...encodeCatalogMeta("gu", get("guideUrl").value.trim()),
-        ...encodeCatalogMeta(
-          "gm",
-          get("guideIconUrl").value.trim()
-            ? "url"
-            : (get("guideIconMode").value || "question")
-        ),
-        ...encodeCatalogMeta("gi", get("guideIconUrl").value.trim()),
-        ...encodeCatalogMeta("mt", get("maintenanceText").value.trim() || "Hiện Tại Đang Bảo Trì Vui Lòng Đợi ..."),
-        ...encodeCatalogMeta("vf", get("valueFormat")?.value || "account"),
-        ...encodeCatalogMeta("s1t", get("step1Title").value.trim() || "Nhấn Lấy Key"),
-        ...encodeCatalogMeta("s1d", get("step1Desc").value.trim() || "Mở Nhiệm Vụ Trong Tab Mới."),
-        ...encodeCatalogMeta("s2t", get("step2Title").value.trim() || "Hoàn Thành Vượt Link"),
-        ...encodeCatalogMeta("s2d", get("step2Desc").value.trim() || "Làm Đúng Yêu Cầu Của Trang."),
-        ...encodeCatalogMeta("s3t", get("step3Title").value.trim() || "Sao Chép Key"),
-        ...encodeCatalogMeta("s3d", get("step3Desc").value.trim() || "Nhận Key Tại Trang Đích.")
-      ];
+      const guideIconUrl = get("guideIconUrl").value.trim();
+      const guideIconMode = guideIconUrl
+        ? "url"
+        : (get("guideIconMode").value || "question");
+
+      const uiConfig = {
+        stockLabel: get("stockLabel").value.trim() || "Key Hiện Có",
+        limitLabel: get("limitLabel").value.trim() || "Giới Hạn Key",
+        emptyText: get("emptyText").value.trim() || "Tạm Hết Key",
+        guideEnabled: get("guideEnabled").checked === true,
+        guideText: get("guideText").value.trim() || "Hướng Dẫn Lấy Key",
+        guideUrl: get("guideUrl").value.trim(),
+        guideIconMode,
+        guideIconUrl,
+        maintenanceText:
+          get("maintenanceText").value.trim() ||
+          "Hiện Tại Đang Bảo Trì Vui Lòng Đợi ...",
+        valueFormat: get("valueFormat")?.value || "account",
+        step1Title: get("step1Title").value.trim() || "Nhấn Lấy Key",
+        step1Desc:
+          get("step1Desc").value.trim() || "Mở Nhiệm Vụ Trong Tab Mới.",
+        step2Title:
+          get("step2Title").value.trim() || "Hoàn Thành Vượt Link",
+        step2Desc:
+          get("step2Desc").value.trim() || "Làm Đúng Yêu Cầu Của Trang.",
+        step3Title: get("step3Title").value.trim() || "Sao Chép Key",
+        step3Desc:
+          get("step3Desc").value.trim() || "Nhận Key Tại Trang Đích."
+      };
 
       return {
         itemId: editor.dataset.itemId || "",
@@ -4793,12 +4817,16 @@
         description: get("description").value.trim(),
         imageUrl: get("imageUrl").value.trim(),
         buttonText: get("buttonText").value.trim(),
-        tags: [...publicTags, ...metaTags],
+        tags: publicTags,
+        uiConfig,
         externalUrl: get("externalUrl").value.trim(),
         enabled: get("enabled").checked,
         maintenance: get("maintenance").checked,
         sortOrder: Number(get("sortOrder").value) || 0,
-        dailyLimit: Math.min(1000, Math.max(0, Math.floor(Number(get("dailyLimit").value) || 0)))
+        dailyLimit: Math.min(
+          1000,
+          Math.max(0, Math.floor(Number(get("dailyLimit").value) || 0))
+        )
       };
     }
 
@@ -4902,7 +4930,7 @@
       try {
         const data = await adminApi("admin-save-catalog-item", collectCatalogEditor(editor));
         const savedId = String(data?.item?.id || editor.dataset.itemId || "");
-        setMessage(catalogMessage, "Đã Lưu Danh Mục Thành Công.", "success");
+        setMessage(catalogMessage, "Đã Lưu Danh Mục Và Cấu Hình Popup Thành Công.", "success");
         await loadCatalogAdmin(savedId);
       } catch (error) {
         await handleAdminError(error, catalogMessage);
@@ -5952,25 +5980,25 @@
             description: "",
             imageUrl: quickCategoryImageData,
             buttonText: "GET KEY",
-            tags: [
-              "Miễn Phí",
-              ...encodeCatalogMeta("st", "Key Hiện Có"),
-              ...encodeCatalogMeta("lm", limitLabel),
-              ...encodeCatalogMeta("em", emptyText),
-              ...encodeCatalogMeta("ge", "0"),
-              ...encodeCatalogMeta("gt", "Hướng Dẫn Lấy Key"),
-              ...encodeCatalogMeta("gu", ""),
-              ...encodeCatalogMeta("gm", "question"),
-              ...encodeCatalogMeta("gi", ""),
-              ...encodeCatalogMeta("mt", "Hiện Tại Đang Bảo Trì Vui Lòng Đợi ..."),
-              ...encodeCatalogMeta("vf", "account"),
-              ...encodeCatalogMeta("s1t", "Nhấn Lấy Key"),
-              ...encodeCatalogMeta("s1d", "Mở Nhiệm Vụ Trong Tab Mới."),
-              ...encodeCatalogMeta("s2t", "Hoàn Thành Vượt Link"),
-              ...encodeCatalogMeta("s2d", "Làm Đúng Yêu Cầu Của Trang."),
-              ...encodeCatalogMeta("s3t", "Sao Chép Key"),
-              ...encodeCatalogMeta("s3d", "Nhận Key Tại Trang Đích.")
-            ],
+            tags: ["Miễn Phí"],
+            uiConfig: {
+              stockLabel: "Key Hiện Có",
+              limitLabel,
+              emptyText,
+              guideEnabled: false,
+              guideText: "Hướng Dẫn Lấy Key",
+              guideUrl: "",
+              guideIconMode: "question",
+              guideIconUrl: "",
+              maintenanceText: "Hiện Tại Đang Bảo Trì Vui Lòng Đợi ...",
+              valueFormat: "account",
+              step1Title: "Nhấn Lấy Key",
+              step1Desc: "Mở Nhiệm Vụ Trong Tab Mới.",
+              step2Title: "Hoàn Thành Vượt Link",
+              step2Desc: "Làm Đúng Yêu Cầu Của Trang.",
+              step3Title: "Sao Chép Key",
+              step3Desc: "Nhận Key Tại Trang Đích."
+            },
             externalUrl: "",
             enabled: true,
             maintenance: false,
